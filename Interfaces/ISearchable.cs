@@ -5,7 +5,6 @@ using System.Linq.Expressions;
 using System.Reflection;
 using MongoDB.Bson.Serialization.Attributes;
 using Rumble.Platform.Common.Enums;
-using Rumble.Platform.Common.Exceptions;
 using Rumble.Platform.Common.Extensions;
 using Rumble.Platform.Common.Minq;
 using Rumble.Platform.Common.Utilities;
@@ -90,7 +89,7 @@ public interface ISearchable<T> where T : PlatformCollectionDocument
             : Array.Empty<string>();
 
         if (!terms.Any())
-            throw new PlatformException("No valid search terms provided.", code: ErrorCode.InvalidRequestData);
+            throw new Exception("No valid search terms provided.");
         
         long total = 0;
         foreach (ISearchable<T> result in results)

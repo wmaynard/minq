@@ -87,7 +87,7 @@ public abstract class PlatformService : IPlatformService
         return output;
     }
 
-    public static T Require<T>() where T : PlatformService => Optional<T>() ?? throw new PlatformException($"Service not found {typeof(T).Name}");
+    public static T Require<T>() where T : PlatformService => Optional<T>() ?? throw new Exception($"Service not found {typeof(T).Name}");
 
     public static T Optional<T>() where T : PlatformService
     {

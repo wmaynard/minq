@@ -9,7 +9,6 @@ using MongoDB.Bson.IO;
 using MongoDB.Bson.Serialization;
 using MongoDB.Driver;
 using Rumble.Platform.Common.Enums;
-using Rumble.Platform.Common.Exceptions;
 using Rumble.Platform.Common.Extensions;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Common.Utilities.JsonTools;
@@ -79,7 +78,7 @@ public class FilterChain<T>
     public FilterChain<T> Is<U>(U model) where U : PlatformCollectionDocument
     {
         if (model.Id == null || !model.Id.CanBeMongoId())
-            throw new PlatformException("Record does not exist, is not a CollectionDocument or the ID is invalid.");
+            throw new Exception("Record does not exist, is not a CollectionDocument or the ID is invalid.");
         return AddFilter($"{{_id:ObjectId('{model.Id}')}}");
     }
 

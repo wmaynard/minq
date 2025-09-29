@@ -1,7 +1,6 @@
 using System;
 using System.Linq;
 using MongoDB.Bson;
-using Rumble.Platform.Common.Exceptions.Mongo;
 
 namespace Rumble.Platform.Common.Extensions;
 
@@ -16,7 +15,7 @@ public static class StringExtension
     public static void MustBeMongoId(this string _string)
     {
         if (!_string.CanBeMongoId())
-            throw new InvalidMongoIdException(_string);
+            throw new Exception(_string);
     }
 
     public static string Limit(this string _string, int length) => _string?[..Math.Min(_string.Length, length)];

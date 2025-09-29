@@ -3,8 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json.Serialization;
 using MongoDB.Bson.Serialization.Attributes;
-using Rumble.Platform.Common.Enums;
-using Rumble.Platform.Common.Extensions;
 using Rumble.Platform.Common.Utilities.JsonTools;
 
 namespace Rumble.Platform.Common.Models;
@@ -70,28 +68,6 @@ public class TokenInfo : PlatformDataModel
     [BsonElement(DB_KEY_ACCOUNT_ID)]
     [JsonInclude, JsonPropertyName(FRIENDLY_KEY_ACCOUNT_ID), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string AccountId { get; set; }
-
-    [BsonIgnore]
-    [JsonInclude, JsonPropertyName(FRIENDLY_KEY_AUDIENCE)]
-    public string[] Audience
-    {
-        get
-        {
-            if (_audiences != null)
-                return _audiences;
-            
-            string[] output = Enum.GetValues<Audience>()
-                .Where(aud => aud.IsFlagOf(PermissionSet))
-                .Select(aud => aud.GetDisplayName())
-                .ToArray();
-
-            string wildcard = Enums.Audience.All.GetDisplayName();
-            if (output.Any(str => str == wildcard))
-                output = new [] { wildcard };
-
-            return _audiences = output.ToArray();
-        }
-    }
     
     [BsonElement(DB_KEY_PERMISSION_SET)]
     [JsonInclude, JsonPropertyName(FRIENDLY_KEY_PERMISSION_SET)]
@@ -156,25 +132,4 @@ public class TokenInfo : PlatformDataModel
     [BsonIgnore]
     [JsonIgnore]
     public bool IsExpired => Expiration <= DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-    
-    [BsonIgnore]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
-    public Ban[] Bans { get; set; }
-
-    public bool IsValidFor(Audience audience) => IsValidFor(audience, out _);
-    
-    public bool IsValidFor(Audience audience, out long? bannedUntil)
-    {
-        bannedUntil = null;
-        bool output = audience.IsFlagOf(PermissionSet);
-
-        if (!output && Bans != null && Bans.Any())
-            bannedUntil = Bans
-                .Where(ban => audience.IsFlagOf(ban.PermissionSet))
-                .Where(ban => ban.Expiration != null)
-                .MaxBy(ban => ban.Expiration)
-                ?.Expiration;
-
-        return output;
-    } 
 }

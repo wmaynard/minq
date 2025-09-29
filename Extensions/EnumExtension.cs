@@ -71,7 +71,7 @@ public static class EnumExtension
         {
             type = obj.GetType()
         });
-        throw new PlatformException("Attempted to check flags on an enum, but the enum does not have a FlagsAttribute.", code: ErrorCode.ExtensionMethodFailure);
+        throw new Exception("Attempted to check flags on an enum, but the enum does not have a FlagsAttribute.");
     }
 
     public static string GetDisplayName<T>(this T obj) where T : Enum

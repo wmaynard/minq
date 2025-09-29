@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using MongoDB.Bson.Serialization.Serializers;
 using MongoDB.Driver;
-using Rumble.Platform.Common.Exceptions;
 
 namespace Rumble.Platform.Common.Attributes;
 
@@ -42,7 +41,7 @@ public sealed class CompoundIndex : PlatformMongoIndex
         if (indexes == null || !indexes.Any())
             return null;
         if (indexes.Select(index => index.GroupName).Distinct().Count() > 1)
-            throw new PlatformException($"Only CompoundIndexes with the same {nameof(GroupName)} can be combined.");
+            throw new Exception($"Only CompoundIndexes with the same {nameof(GroupName)} can be combined.");
         
         CompoundIndex first = indexes.First();
 

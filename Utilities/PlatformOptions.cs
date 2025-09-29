@@ -4,7 +4,6 @@ using System.Linq;
 using System.Threading.Tasks;
 using Rumble.Platform.Common.Enums;
 using Rumble.Platform.Common.Extensions;
-using Rumble.Platform.Common.Filters;
 using Rumble.Platform.Common.Services;
 
 namespace Rumble.Platform.Common.Utilities;
@@ -23,8 +22,6 @@ public class PlatformOptions
     internal string ServiceName { get; set; }
     internal Type[] DisabledServices { get; set; }
 
-    internal CommonFilter EnabledFilters { get; set; }
-    internal CommonFeature EnabledFeatures { get; set; }
     internal bool WebServerEnabled { get; set; }
     internal int WarningThreshold { get; set; }
     internal int ErrorThreshold { get; set; }
@@ -46,8 +43,6 @@ public class PlatformOptions
         CustomFilters = new List<Type>();
         DisabledServices = Array.Empty<Type>();
         WebServerEnabled = false;
-        EnabledFeatures = GetFullSet<CommonFeature>();
-        EnabledFilters = GetFullSet<CommonFilter>();
         WarningThreshold = 30_000;
         ErrorThreshold = 60_000;
         CriticalThreshold = 90_000;
@@ -91,80 +86,11 @@ public class PlatformOptions
         return this;
     }
 
-    /// <summary>
-    /// Override the default service name, which is obtained via reflection and uses the project's base namespace.
-    /// </summary>
-    public PlatformOptions SetTokenAudience(Audience name)
-    {
-        PlatformEnvironment.ProjectAudience = name;
-        ServiceName = name.GetDisplayName();
-        return this;
-    }
-
-    public List<Type> CustomFilters { get; private set; } 
-    public PlatformOptions AddFilter<T>() where T : PlatformFilter
-    {
-        CustomFilters.Add(typeof(T));
-        return this;
-    }
-
-    /// <summary>
-    /// Prevents services from initializing.  Note that by disabling these, you cannot use them in dependency injection.
-    /// Trying to do so will prevent the application from starting.
-    /// </summary>
-    public PlatformOptions DisableServices(CommonService services)
-    {
-        DisabledServices ??= Array.Empty<Type>();
-        List<Type> disabled = new List<Type>();
-
-        foreach (CommonService svc in services.GetFlags())
-            switch (svc)
-            {
-                case CommonService.ApiService:
-                    disabled.Add(typeof(ApiService));
-                    disabled.Add(typeof(DynamicConfig));
-                    break;
-                case CommonService.Cache:
-                    disabled.Add(typeof(CacheService));
-                    break;
-                case CommonService.Config:
-                    disabled.Add(typeof(ConfigService));
-                    break;
-                case CommonService.DynamicConfig:
-                    disabled.Add(typeof(DynamicConfig));
-                    break;
-                case CommonService.HealthService:
-                    disabled.Add(typeof(HealthService));
-                    break;
-            }
-
-        disabled.AddRange(DisabledServices);
-        DisabledServices = disabled.Distinct().ToArray();
-        return this;
-    }
-
-    /// <summary>
-    /// Turns off certain features in platform common.  May cause unintentional side effects.
-    /// </summary>
-    public PlatformOptions DisableFeatures(CommonFeature features)
-    {
-        EnabledFeatures = (EnabledFeatures.Invert() | features).Invert();
-        return this;
-    }
+    public List<Type> CustomFilters { get; private set; }
 
     public PlatformOptions DisableAspNetServices()
     {
         AspNetServicesEnabled = false;
-        return this;
-    }
-
-    /// <summary>
-    /// Turns off certain filters in platform common.  Use with extreme caution; the most important parts of common
-    /// rely on these for C# services, such as automatic token authorization.
-    /// </summary>
-    public PlatformOptions DisableFilters(CommonFilter filters)
-    {
-        EnabledFilters = (EnabledFilters.Invert() | filters).Invert();
         return this;
     }
 
@@ -238,11 +164,6 @@ public class PlatformOptions
             {
                 DisabledServices = DisabledServices.Select(type => type.Name)
             }, emphasis: Log.LogType.WARN);
-        if (!EnabledFilters.IsFullSet())
-            Log.Info(ProjectOwner, "Some platform-common filters have been disabled.  This is a new feature and may have unintended side effects.", data: new
-            {
-                DisabledFilters = EnabledFilters.Invert().GetFlags()
-            });
         if (LogThrottleThreshold < MINIMUM_THROTTLE_THRESHOLD)
         {
             Log.Info(ProjectOwner, "The log throttling threshold is too low and will be set to a minimum.", data: new
@@ -258,13 +179,6 @@ public class PlatformOptions
                 MinimumPeriod = MINIMUM_THROTTLE_PERIOD
             });
             LogThrottlePeriodSeconds = MINIMUM_THROTTLE_PERIOD;
-        }
-        if (EnabledFeatures.HasFlag(CommonFeature.LogglyThrottling) && DisabledServices.Contains(typeof(CacheService)))
-            Log.Local(ProjectOwner, "Disabling the CacheService also disables log throttling.");
-        if (string.IsNullOrWhiteSpace(RegistrationName))
-        {
-            Log.Warn(Owner.Default, "No registration name set for dynamic config.  Set one in PlatformOptions.SetRegistrationName().");
-            RegistrationName = PlatformEnvironment.ServiceName;
         }
         // TODO: Add more logs / protection here
         return this;

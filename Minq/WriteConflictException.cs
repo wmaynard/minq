@@ -8,14 +8,14 @@ using Rumble.Platform.Common.Utilities.JsonTools;
 
 namespace Rumble.Platform.Common.Minq;
 
-public class WriteConflictException : PlatformException
+public class WriteConflictException : Exception
 {
     private const string MESSAGE = "Write conflict encountered.  Check that you aren't updating the same field multiple times in one query.";
     
     public string Help { get; init; }
     public RumbleJson MongoException { get; init; } 
     
-    public WriteConflictException(Exception e) : base(MESSAGE, code: ErrorCode.MongoWriteConflict)
+    public WriteConflictException(Exception e) : base(MESSAGE)
     {
         Help = "This probably was a result of updating the same field more than once in the same query.  This is not allowed in Mongo and the driver does not handle it well.  If you're still unclear on what to do, reach out to #platform.";
         if (e is MongoException mongo)

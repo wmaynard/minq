@@ -10,8 +10,6 @@ using MongoDB.Bson.Serialization.Attributes;
 using MongoDB.Driver;
 using Rumble.Platform.Common.Enums;
 using Rumble.Platform.Common.Exceptions;
-using Rumble.Platform.Common.Filters;
-using Rumble.Platform.Common.Web;
 using Rumble.Platform.Common.Models;
 using Rumble.Platform.Common.Utilities.JsonTools;
 
@@ -38,7 +36,6 @@ public class Log : PlatformDataModel
         {
             if (_defaultOwner != null)
                 Warn(DefaultOwner, "Log.DefaultOwner is already assigned.", data: new { Owner = Enum.GetName(DefaultOwner) });
-            _defaultOwner ??= OwnerInformation.Default = value;
         }
     }
 
@@ -83,23 +80,11 @@ public class Log : PlatformDataModel
     [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string StackTrace { get; set; }
 
-    [JsonInclude, JsonPropertyName("env")]
-    public string Environment => PlatformEnvironment.Deployment ?? "Unknown";
-
     [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string Time { get; set; }
 
     [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string Endpoint { get; set; }
-
-    [JsonInclude, JsonPropertyName("region")]
-    public string Region => PlatformEnvironment.Region ?? "Unknown";
-
-    [JsonInclude, JsonPropertyName("log_source"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public string Source => PlatformEnvironment.ServiceName;
-
-    [JsonInclude, JsonPropertyName("cluster_url"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public object ClusterUrl => PlatformEnvironment.ClusterUrl;
 
     [JsonInclude, JsonPropertyName("platformData"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public object Data { get; set; }
@@ -124,9 +109,9 @@ public class Log : PlatformDataModel
         }
     }
 
-    [JsonIgnore] private static int MaxOwnerNameLength => !PlatformEnvironment.IsLocal ? 0 : Enum.GetNames(typeof(Owner)).Max(n => n.Length);
+    [JsonIgnore] private static int MaxOwnerNameLength => Enum.GetNames(typeof(Owner)).Max(n => n.Length);
 
-    [JsonIgnore] private static int MaxSeverityLength => !PlatformEnvironment.IsLocal ? 0 : Enum.GetNames(typeof(LogType)).Max(n => n.Length);
+    [JsonIgnore] private static int MaxSeverityLength => Enum.GetNames(typeof(LogType)).Max(n => n.Length);
 
     [JsonIgnore] private string Caller { get; set; }
 
@@ -146,12 +131,8 @@ public class Log : PlatformDataModel
         Time = $"{DateTime.UtcNow:yyyy.MM.dd HH:mm:ss.fff}";
         Exception = exception;
 
-        Endpoint = exception is PlatformException
-            ? ((PlatformException)Exception)?.Endpoint ?? Diagnostics.FindEndpoint()
-            : Endpoint = Diagnostics.FindEndpoint();
+        Endpoint = Diagnostics.FindEndpoint();
 
-        if (!PlatformEnvironment.IsLocal && type < LogType.ERROR)
-            return;
 
         Caller = Clean(new StackFrame(skipFrames: 3).GetMethod());
         Version = PlatformEnvironment.Version;
@@ -309,7 +290,7 @@ public class Log : PlatformDataModel
     /// <param name="exception">Any exception encountered, if available.</param>
     public static void Verbose(Owner owner, string message, object data = null, Exception exception = null)
     {
-        if (PlatformEnvironment.Optional<bool>("VERBOSE_LOGGING"))
+        // if (PlatformEnvironment.Optional<bool>("VERBOSE_LOGGING"))
             Write(LogType.VERBOSE, owner, message, data, exception);
     }
     /// <summary>
@@ -323,8 +304,8 @@ public class Log : PlatformDataModel
     /// <param name="emphasis">Makes this log appear as another type with color printing enabled.</param>
     public static void Local(Owner owner, string message, object data = null, Exception exception = null, LogType emphasis = LogType.LOCAL)
     {
-        if (!PlatformEnvironment.IsLocal)
-            return;
+        // if (!PlatformEnvironment.IsLocal)
+        //     return;
         Write(LogType.LOCAL, owner, message, data, exception, emphasis: emphasis);
     }
 
@@ -370,10 +351,6 @@ public class Log : PlatformDataModel
     /// <param name="localIfNotDeployed">When working locally, setting this to true will override INFO to LOCAL.</param>
     public static void Info(Owner owner, string message, object data = null, Exception exception = null, bool localIfNotDeployed = false)
     {
-        if (localIfNotDeployed && PlatformEnvironment.IsLocal)
-            Write(LogType.LOCAL, owner, message, data, exception);
-        else
-            Write(LogType.INFO, owner, message, data, exception);
     }
     /// <summary>
     /// Logs a WARN-level event.  If these are found frequently, something is probably wrong with the code, but could
@@ -448,11 +425,6 @@ public class Log : PlatformDataModel
         TokenInfo token = null;
 
         HttpContext context = new HttpContextAccessor().HttpContext;
-        try
-        {
-            token = (TokenInfo)context?.Items[PlatformAuthorizationFilter.KEY_TOKEN];
-        }
-        catch { }
 
         // The try catch here is necessary for thread safety; occasionally the context gets disposed before we've hit this point.
         string endpoint = null;

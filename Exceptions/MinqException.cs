@@ -8,22 +8,15 @@ using Rumble.Platform.Common.Utilities.JsonTools;
 
 namespace Rumble.Platform.Common.Exceptions;
 
-public class PlatformException : Exception // TODO: Should probably be an abstract class
+public class MinqException : Exception // TODO: Should probably be an abstract class
 {
     [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string Endpoint { get; private set; }
   
-    [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
-    public ErrorCode Code { get; private set; }
-  
-    public PlatformException() : this("No message provided."){}
+    public MinqException() : this("No message provided."){}
 #pragma warning disable CS0618
-    public PlatformException(string message, Exception inner = null, ErrorCode code = ErrorCode.NotSpecified) : base(message, inner)
+    public MinqException(string message, Exception inner = null) : base(message, inner)
     {
-        if (code == ErrorCode.NotSpecified)
-            Log.Local(Owner.Default, "No error code specified.  Make error codes more useful by supplying an error code.");
-        Endpoint = Diagnostics.FindEndpoint();
-        Code = code;
     }
 #pragma warning restore CS0618
 

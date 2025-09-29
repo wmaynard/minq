@@ -84,7 +84,7 @@ public class Transaction
     private void EnforceNotConsumed()
     {
         if (Consumed)
-            throw new PlatformException("Unable to commit transaction; it has already been either aborted or committed.");
+            throw new Exception("Unable to commit transaction; it has already been either aborted or committed.");
     }
     
     public enum TransactionStatus { Open, Aborted, Committed, Failed }

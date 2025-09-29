@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Extensions.Options;
@@ -25,7 +26,7 @@ internal class MinqIndex : PlatformDataModel
     internal MinqIndex(Dictionary<string, bool> manualDefinition, string name, bool unique)
     {
         if (manualDefinition == null)
-            throw new PlatformException("Manual index definitions must not be null");
+            throw new Exception("Manual index definitions must not be null");
         Fields = new RumbleJson();
 
         foreach (string key in manualDefinition.Keys)

@@ -46,17 +46,17 @@ internal static class Minq
         #if RELEASE
         return;
         #else
-        if (!(PlatformEnvironment.MongoConnectionString.Contains("localhost:27017") || PlatformEnvironment.MongoConnectionString.Contains("unittestuser")))
-            return;
-
-        if (PlatformEnvironment.IsProd)
-        {
-            Log.Critical(Owner.Will, $"Attempted call to {nameof(WipeLocalDatabases)} with a prod configuration.  This has been ignored, but should not happen.", data: new
-            {
-                Help = $"Disable the call to {nameof(WipeLocalDatabases)} in Startup.cs if this is intentional."
-            });
-            return;
-        }
+        // if (!(PlatformEnvironment.MongoConnectionString.Contains("localhost:27017") || PlatformEnvironment.MongoConnectionString.Contains("unittestuser")))
+        //     return;
+        //
+        // if (PlatformEnvironment.IsProd)
+        // {
+        //     Log.Critical(Owner.Will, $"Attempted call to {nameof(WipeLocalDatabases)} with a prod configuration.  This has been ignored, but should not happen.", data: new
+        //     {
+        //         Help = $"Disable the call to {nameof(WipeLocalDatabases)} in Startup.cs if this is intentional."
+        //     });
+        //     return;
+        // }
         
         Log.Local(Owner.Will, "Wiping local databases.");
 
@@ -270,15 +270,18 @@ public class Minq<T> where T : PlatformCollectionDocument
     /// <returns>A new RequestChain for method chaining.</returns>
     public RequestChain<T> WithTransaction(out Transaction transaction, bool abortOnFailure = true)
     {
-        transaction = !PlatformEnvironment.MongoConnectionString.Contains("localhost")
-            ? new Transaction(Client.StartSession())
-            : null;
+        // transaction = !PlatformEnvironment.MongoConnectionString.Contains("localhost")
+        //     ? new Transaction(Client.StartSession())
+        //     : null;
 
-        return new RequestChain<T>(this)
-        {
-            Transaction = transaction,
-            AbortTransactionOnFailure = abortOnFailure
-        };
+        // return new RequestChain<T>(this)
+        // {
+        //     Transaction = transaction,
+        //     AbortTransactionOnFailure = abortOnFailure
+        // };
+        transaction = null;
+
+        return new RequestChain<T>(this);
     }
     
     public RequestChain<T> OnTransactionAborted(Action action) => new RequestChain<T>(this).OnTransactionAborted(action);
@@ -352,7 +355,7 @@ public class Minq<T> where T : PlatformCollectionDocument
         {
             T[] toInsert = models.Where(model => model != null).ToArray();
             if (!toInsert.Any())
-                throw new PlatformException("You must provide at least one model to insert.  Null objects are ignored.");
+                throw new Exception("You must provide at least one model to insert.  Null objects are ignored.");
 
             long timestamp = Timestamp.Now;
             foreach (T model in models)
@@ -386,20 +389,20 @@ public class Minq<T> where T : PlatformCollectionDocument
     public static Minq<T> Connect(string collectionName)
     {
         if (string.IsNullOrWhiteSpace(collectionName))
-            throw new PlatformException("Collection name cannot be a null or empty string.");
-        if (string.IsNullOrWhiteSpace(PlatformEnvironment.MongoConnectionString))
-            throw new PlatformException("Mongo connection string cannot be a null or empty string.");
-        if (string.IsNullOrWhiteSpace(PlatformEnvironment.MongoDatabaseName))
-            throw new PlatformException("Mongo connection string must include a database name.");
+            throw new Exception("Collection name cannot be a null or empty string.");
+        // if (string.IsNullOrWhiteSpace(PlatformEnvironment.MongoConnectionString))
+        //     throw new Exception("Mongo connection string cannot be a null or empty string.");
+        // if (string.IsNullOrWhiteSpace(PlatformEnvironment.MongoDatabaseName))
+        //     throw new Exception("Mongo connection string must include a database name.");
         
-        Client ??= new MongoClient(PlatformEnvironment.MongoConnectionString);
+        // Client ??= new MongoClient(PlatformEnvironment.MongoConnectionString);
         // Adds a global BsonIgnoreExtraElements
         ConventionRegistry.Register("IgnoreExtraElements", new ConventionPack
         {
             new IgnoreExtraElementsConvention(true)
         }, filter: t => true);
 
-        IMongoDatabase db = Client.GetDatabase(PlatformEnvironment.MongoDatabaseName);
+        IMongoDatabase db = Client.GetDatabase("helloworld"); // TODO
 
         return new Minq<T>(db.GetCollection<T>(collectionName), db.GetCollection<CachedResult>($"{collectionName}_cache"));
     }

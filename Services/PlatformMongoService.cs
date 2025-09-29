@@ -13,7 +13,6 @@ using MongoDB.Driver.Core.Clusters;
 using Rumble.Platform.Common.Attributes;
 using Rumble.Platform.Common.Enums;
 using Rumble.Platform.Common.Exceptions;
-using Rumble.Platform.Common.Filters;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Common.Interfaces;
 using Rumble.Platform.Common.Models;
@@ -35,12 +34,6 @@ public abstract class PlatformMongoService<Model> : PlatformService, IPlatformMo
     protected readonly IMongoCollection<Model> _collection;
     protected HttpContext HttpContext => _httpContextAccessor?.HttpContext;
 
-    private bool UseMongoTransaction => (bool)(HttpContext?.Items[PlatformMongoTransactionFilter.KEY_USE_MONGO_TRANSACTION] ?? false);
-    protected IClientSessionHandle MongoSession
-    {
-        get => (IClientSessionHandle)HttpContext?.Items[PlatformMongoTransactionFilter.KEY_MONGO_SESSION];
-        private set => HttpContext.Items[PlatformMongoTransactionFilter.KEY_MONGO_SESSION] = value;
-    }
     private readonly HttpContextAccessor _httpContextAccessor; 
 
     public bool IsConnected => _client.Cluster.Description.State == ClusterState.Connected;
@@ -63,13 +56,13 @@ public abstract class PlatformMongoService<Model> : PlatformService, IPlatformMo
     
     protected PlatformMongoService(string collection = null)
     {
-        Connection = PlatformEnvironment.MongoConnectionString;
-        Database = PlatformEnvironment.MongoDatabaseName;
+        // Connection = PlatformEnvironment.MongoConnectionString;
+        // Database = PlatformEnvironment.MongoDatabaseName;
 
         if (string.IsNullOrEmpty(Connection))
-            Log.Error(Owner.Default, $"Missing Mongo-related environment variable '{PlatformEnvironment.KEY_MONGODB_URI}'.");
+            Log.Error(Owner.Default, $"Missing Mongo-related environment variable 'MONGODB_URI'.");
         if (string.IsNullOrEmpty(Database))
-            Log.Error(Owner.Default, $"Missing Mongo-related environment variable '{PlatformEnvironment.KEY_MONGODB_NAME}'.");
+            Log.Error(Owner.Default, $"Missing Mongo-related environment variable 'MONGODB_DATABASE'.");
 
         _client ??= CreateClient(Connection);
 
@@ -99,12 +92,6 @@ public abstract class PlatformMongoService<Model> : PlatformService, IPlatformMo
 
     private void StartTransaction(out IClientSessionHandle session, bool attributeOverride)
     {
-        session = MongoSession;
-
-        // Return if the session has already started or if we don't need to use one.
-        if (session != null || (!attributeOverride && !UseMongoTransaction))
-            return;
-
         Log.Verbose(Owner.Default, "Starting MongoDB transaction.");
         session = _client.StartSession();
         try
@@ -115,24 +102,9 @@ public abstract class PlatformMongoService<Model> : PlatformService, IPlatformMo
         {
             // MongoDB Transactions are not supported in non-clustered environments ("standalone servers").  Mark the context field as false so we don't keep retrying.
             // This should not affect deployed code - only local.
-            if (!PlatformEnvironment.IsLocal)
+            // if (!PlatformEnvironment.IsLocal)
                 Log.Error(Owner.Default, "Unable to start a MongoDB transaction.", exception: e);
-            HttpContext.Items[PlatformMongoTransactionFilter.KEY_USE_MONGO_TRANSACTION] = false;
             return;
-        }
-        MongoSession = session;
-    }
-
-    public void CommitTransaction()
-    {
-        try
-        {
-            MongoSession?.CommitTransaction();
-            MongoSession = null;
-        }
-        catch (Exception e)
-        {
-            Log.Error(Owner.Will, "Could not commit transaction from PlatformMongoService.CommitTransaction().", exception: e);
         }
     }
 
@@ -142,16 +114,6 @@ public abstract class PlatformMongoService<Model> : PlatformService, IPlatformMo
         IClientSessionHandle output = _client.StartSession();
         output.StartTransaction();
         return output;
-    }
-
-    public void CommitTransaction(IClientSessionHandle session = null)
-    {
-        session ??= MongoSession;
-
-        if (session == null)
-            throw new PlatformException("Unable to commit transaction; session has not started yet.", code: ErrorCode.MongoSessionIsNull);
-
-        session.CommitTransaction();
     }
 
     public Model Create(Model model)
@@ -177,7 +139,7 @@ public abstract class PlatformMongoService<Model> : PlatformService, IPlatformMo
     {
         StartTransactionIfRequested(out IClientSessionHandle session);
         if (!createIfNotFound && model.Id == null)
-            throw new PlatformException(message: "Model.Id is null; update will be unsuccessful without upsert.");
+            throw new Exception(message: "Model.Id is null; update will be unsuccessful without upsert.");
         ReplaceOptions options = new() { IsUpsert = createIfNotFound };
         if (session != null)
             _collection.ReplaceOne(session, filter: m => model.Id == m.Id, replacement: model, options: options);
@@ -501,7 +463,7 @@ public abstract class PlatformMongoService<Model> : PlatformService, IPlatformMo
                     command = $" ({msg[..colon]})";
             }
             Log.Error(Owner.Will, $"Unable to create collection on '{_database.DatabaseNamespace.DatabaseName}'{command}.  This is likely a permissions or IP issue.  Try logging into Portal on dev to rule out a whitelist problem.", exception: e);
-            PlatformEnvironment.Exit("Unable to connect to database.");
+            Environment.Exit(1);
         }
     }
 

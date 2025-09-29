@@ -34,18 +34,17 @@
 	
 	<ItemGroup>
 	  <FrameworkReference Include="Microsoft.AspNetCore.App" Version="2.2.8" />
-	  <PackageReference Include="AWSSDK.KinesisFirehose" Version="3.7.2.99" />
-	  <PackageReference Include="AWSSDK.S3" Version="3.7.201.12" />
-	  <PackageReference Include="MaxMind.Db" Version="3.0.0" />
-	  <PackageReference Include="Microsoft.AspNetCore.Rewrite" Version="2.2.0" />
 	  <PackageReference Include="MongoDB.Bson" Version="2.20.0" />
 	  <PackageReference Include="MongoDB.Driver" Version="2.20.0" />
 	  <PackageReference Include="MongoDB.Driver.Core" Version="2.20.0" />
-	  <PackageReference Include="StackExchange.Redis" Version="2.2.79" />
 	</ItemGroup>
 	
 	<ItemGroup>
 	  <ProjectReference Include="..\Logging\basic-utilities.csproj" />
+	</ItemGroup>
+	
+	<ItemGroup>
+	  <Folder Include="Exceptions\" />
 	</ItemGroup>
 	
 

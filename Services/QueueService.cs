@@ -51,13 +51,13 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
 
         collection = $"{COLLECTION_PREFIX}{collection}";
 
-        _config = new MongoClient(PlatformEnvironment.MongoConnectionString)
-            .GetDatabase(PlatformEnvironment.MongoDatabaseName)
-            .GetCollection<QueueConfig>(collection);
-        
-        _work = new MongoClient(PlatformEnvironment.MongoConnectionString)
-            .GetDatabase(PlatformEnvironment.MongoDatabaseName)
-            .GetCollection<QueuedTask>(collection);
+        // _config = new MongoClient(PlatformEnvironment.MongoConnectionString)
+        //     .GetDatabase(PlatformEnvironment.MongoDatabaseName)
+        //     .GetCollection<QueueConfig>(collection);
+        //
+        // _work = new MongoClient(PlatformEnvironment.MongoConnectionString)
+        //     .GetDatabase(PlatformEnvironment.MongoDatabaseName)
+        //     .GetCollection<QueuedTask>(collection);
 
         _sendTaskResultsWhenTheyAreCompleted = sendTaskResultsWhenTheyAreCompleted;
 
@@ -105,7 +105,6 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
     
     public void WipeDatabase()
     {
-        if (!PlatformEnvironment.IsLocal || PlatformEnvironment.MongoConnectionString.Contains("-prod"))
         {
             Log.Critical(Owner.Default, "Code attempted to wipe a database outside of a local environment.  This is not allowed.");
             return;
@@ -168,8 +167,7 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
             catch (Exception e)
             {
                 Log.Error(Owner.Default, $"Error executing primary node work, {e.Message}", exception: e);
-                if (PlatformEnvironment.IsLocal)
-                    Log.Local(Owner.Default, $"({e.Message})", emphasis: Log.LogType.ERROR);
+                Log.Local(Owner.Default, $"({e.Message})", emphasis: Log.LogType.ERROR);
             }
         else
             for (int count = SecondaryTaskCount; count > 0; count--)
@@ -337,7 +335,7 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
         QueueConfig config = _config.Find(config => config.Type == TaskData.TaskType.Config).FirstOrDefault();
 
         if (require && config?.Settings == null)
-            throw new PlatformException("QueueService config not found.", code: ErrorCode.MongoRecordNotFound);
+            throw new Exception("QueueService config not found.");
 
         return require
             ? config.Settings.Require<U>(key)
@@ -489,7 +487,7 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
         {
             ProcessTask(task.Data);
             if (!CompleteTask(task))
-                throw new PlatformException("Could not mark the queuedTask as completed.", code: ErrorCode.MongoRecordNotFound);
+                throw new Exception("Could not mark the queuedTask as completed.");
         }
         catch (Exception e)
         {
@@ -497,7 +495,7 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
             try
             {
                 if (!FailTask(task))
-                    throw new PlatformException("Could not mark the queuedTask as failed!", code: ErrorCode.MongoRecordNotFound);
+                    throw new Exception("Could not mark the queuedTask as failed!");
             }
             catch (Exception nested)
             {
@@ -529,15 +527,16 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
             ),
             update: Builders<QueueConfig>.Update.Combine(
                 Builders<QueueConfig>.Update.Set(config => config.PrimaryServiceId, Id),
-                Builders<QueueConfig>.Update.Set(config => config.LastActive, TimestampMs.Now),
-                Builders<QueueConfig>.Update.Set(config => config.UpdatedFromEnvironment, PlatformEnvironment.ClusterUrl)
+                Builders<QueueConfig>.Update.Set(config => config.LastActive, TimestampMs.Now)
+                // Builders<QueueConfig>.Update.Set(config => config.UpdatedFromEnvironment, PlatformEnvironment.ClusterUrl)
             )
         ).ModifiedCount > 0;
 
-        shouldYield = output 
-            && PreferOffCluster 
-            && PlatformEnvironment.IsProd 
-            && !PlatformEnvironment.IsOffCluster;
+        shouldYield = false;
+        // shouldYield = output 
+        //     && PreferOffCluster 
+        //     && PlatformEnvironment.IsProd 
+        //     && !PlatformEnvironment.IsOffCluster;
         
         return output;
     }

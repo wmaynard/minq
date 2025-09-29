@@ -128,7 +128,7 @@ public class RequestChain<T> where T : PlatformCollectionDocument
     private T[] PageQuery(int size, int number, out long remaining)
     {
         if (size <= 0)
-            throw new PlatformException("Invalid size request.  Size must be greater than zero.", code: ErrorCode.InvalidParameter);
+            throw new Exception("Invalid size request.  Size must be greater than zero.");
 
         IFindFluent<T, T> finder = UsingTransaction
             ? _collection
@@ -559,7 +559,7 @@ public class RequestChain<T> where T : PlatformCollectionDocument
         catch (Exception e)
         {
             if (e is RequestConsumedException<T> consumed)
-                Log.Error(Owner.Default, "Request has already been consumed; MINQ will return a default value.", exception: consumed);
+                Log.Error(Owner.Default, "Request has already been consumed; MINQ will return a default value.");
             Transaction?.TryAbort();
             return 0;
         }
@@ -570,7 +570,7 @@ public class RequestChain<T> where T : PlatformCollectionDocument
     /// </summary>
     /// <returns>The first model matching the specified query.</returns>
     /// <exception cref="IndexOutOfRangeException">Thrown when no records are found.</exception>
-    public T First() => FirstOrDefault() ?? throw new PlatformException("No models found.", code: ErrorCode.MongoRecordNotFound);
+    public T First() => FirstOrDefault() ?? throw new Exception("No models found.");
 
     public T FirstOrDefault()
     {
@@ -610,7 +610,7 @@ public class RequestChain<T> where T : PlatformCollectionDocument
         }).ToArray();
         
         if (!toInsert.Any())
-            throw new PlatformException("You must provide at least one model to insert.  Null objects are ignored.");
+            throw new Exception("You must provide at least one model to insert.  Null objects are ignored.");
         try
         {
             if (UsingTransaction)
@@ -655,7 +655,7 @@ public class RequestChain<T> where T : PlatformCollectionDocument
         WarnOnUnusedEvents(nameof(Page));
 
         if (size <= 0)
-            throw new PlatformException("Invalid size request.  Size must be greater than zero.", code: ErrorCode.InvalidParameter);
+            throw new Exception("Invalid size request.  Size must be greater than zero.");
 
         return PageQuery(size, number, out remaining);
     }
@@ -677,7 +677,7 @@ public class RequestChain<T> where T : PlatformCollectionDocument
         WarnOnUnusedEvents(nameof(Page));
 
         if (size <= 0)
-            throw new PlatformException("Invalid size request.  Size must be greater than zero.", code: ErrorCode.InvalidParameter);
+            throw new Exception("Invalid size request.  Size must be greater than zero.");
 
         T[] output = PageQuery(size, number, out remaining);
 
@@ -984,7 +984,7 @@ public class RequestChain<T> where T : PlatformCollectionDocument
             .ToArray();
 
         if (ids.Length > MAX_LIMIT)
-            throw new PlatformException($"More documents found than are supported by {nameof(UpdateAndReturn)}.  Limit your query, or use {nameof(Update)}.");
+            throw new Exception($"More documents found than are supported by {nameof(UpdateAndReturn)}.  Limit your query, or use {nameof(Update)}.");
         
         UpdateChain<T> updateChain = new UpdateChain<T>();
         update.Invoke(updateChain);
