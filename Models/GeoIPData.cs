@@ -1,3 +1,4 @@
+using System;
 using System.Text.Json.Serialization;
 using MongoDB.Bson.Serialization.Attributes;
 using Rumble.Platform.Common.Utilities;
@@ -63,9 +64,7 @@ public class GeoIPData : PlatformDataModel
             ?.Optional<string>(KEY_ENGLISH);
     }
 
-    private static GeoIPData FromMaxMind(string ipAddress) => Interop.MaxMind.Lookup(ipAddress);
-
     // Keep MaxMind-specific interop limited to this class; don't pollute other classes with it.
     // If we switch IP lookup providers, this keeps our code consistent.
-    internal static GeoIPData FromAddress(string ip) => FromMaxMind(ip);
+    internal static GeoIPData FromAddress(string ip) => throw new NotImplementedException();
 }

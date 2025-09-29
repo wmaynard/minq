@@ -10,7 +10,6 @@ using Microsoft.AspNetCore.Http;
 using Rumble.Platform.Common.Enums;
 using Rumble.Platform.Common.Extensions;
 using Rumble.Platform.Common.Interfaces;
-using Rumble.Platform.Common.Interop;
 using Rumble.Platform.Common.Models;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Common.Utilities.JsonTools;
@@ -175,31 +174,7 @@ public class HealthService : PlatformTimerService
 
         long downTime = Timestamp.Now - WarningTime;
 
-        if (Warning && (PlatformEnvironment.IsLocal || PlatformEnvironment.IsProd))
-        {
-            if (downTime > SECONDS_BEFORE_DM)
-                await Notify(health, downTime, output);
-            if (downTime > SECONDS_BEFORE_CHANNEL)
-                await Notify(health, downTime, output, directMessage: false);
-        }
         return output;
-    }
-
-    private async Task Notify(float health, long downTime, RumbleJson data, bool directMessage = true)
-    {
-        TimeSpan ts = TimeSpan.FromSeconds(downTime);
-        string duration = $"{(int)ts.TotalHours}h {ts.Minutes}m {ts.Seconds}s";
-
-        SlackDiagnostics log = SlackDiagnostics
-            .Log(
-                title: $"{PlatformEnvironment.ServiceName} health is degraded!",
-                message: $"{Name} is reporting a health of {health} %.  The service has been in a bad state for {duration}."
-            ).Attach(name: "Health Response", content: data);
-
-        if (directMessage)
-            await log.DirectMessage(Owner.Default);
-        else
-            await log.Tag(Owner.Default).Send();
     }
 
     private void UpdateWarning(bool isBadState)

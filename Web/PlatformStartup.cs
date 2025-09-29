@@ -29,7 +29,6 @@ using Rumble.Platform.Common.Filters;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Common.Web.Routing;
 using Rumble.Platform.Common.Interfaces;
-using Rumble.Platform.Common.Interop;
 using Rumble.Platform.Common.Minq;
 using Rumble.Platform.Common.Models;
 using Rumble.Platform.Common.Services;
@@ -137,10 +136,6 @@ public abstract class PlatformStartup
         Log.DefaultOwner = Options.ProjectOwner;
         Log.PrintObjectsEnabled = Options.EnabledFeatures.HasFlag(CommonFeature.ConsoleObjectPrinting);
         Log.NoColor = !Options.EnabledFeatures.HasFlag(CommonFeature.ConsoleColorPrinting);
-        LogglyClient.Disabled = !Options.EnabledFeatures.HasFlag(CommonFeature.Loggly);
-        LogglyClient.UseThrottling = Options.EnabledFeatures.HasFlag(CommonFeature.LogglyThrottling);
-        LogglyClient.ThrottleThreshold = Options.LogThrottleThreshold;
-        LogglyClient.ThrottleSendFrequency = Options.LogThrottlePeriodSeconds;
         PlatformEnvironment.RegistrationName = Options.RegistrationName;
         // PlatformEnvironment.PrintToConsole();
 
@@ -393,16 +388,11 @@ public abstract class PlatformStartup
 
     private void Ready()
     {
-        Options.ExitIfInvalid();
-        
         string[] urls = PlatformEnvironment.ServiceUrls;
         
         Log.Suppressed = false;
         
         PlatformEnvironment.Validate(Options, out List<string> errors);
-        
-        if (Options.EnabledFeatures.HasFlag(CommonFeature.Graphite))
-            Graphite.Initialize(Options.ServiceName ?? ServiceName);
 
         if (Options.EnabledFeatures.HasFlag(CommonFeature.ExitOnMissingEnvironmentVariables) && errors.Any())
         {
@@ -410,15 +400,6 @@ public abstract class PlatformStartup
             {
                 Errors = errors
             });
-            ApiService.Instance?.Alert(
-                title: $"{PlatformEnvironment.ServiceName} unable to start.",
-                message: "Environment variables are missing.",
-                countRequired: 15,
-                timeframe: 600,
-                owner: Owner.Will,
-                impact: ImpactType.ServicePartiallyUsable,
-                confluenceLink: "https://rumblegames.atlassian.net/wiki/spaces/TH/pages/3518169188/platform-common+some-service+unable+to+start."
-            );
             Environment.Exit(exitCode: 1);
         }
 

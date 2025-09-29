@@ -14,7 +14,6 @@ using Rumble.Platform.Common.Exceptions;
 using Rumble.Platform.Common.Extensions;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Common.Web;
-using Rumble.Platform.Common.Interop;
 using Rumble.Platform.Common.Minq;
 using Rumble.Platform.Common.Models;
 using Rumble.Platform.Common.Utilities.JsonTools;
@@ -97,6 +96,5 @@ public class PlatformExceptionFilter : PlatformFilter, IExceptionFilter
             : new BadRequestObjectResult(response);
 
         context.ExceptionHandled = true;
-        Graphite.Track(Graphite.KEY_EXCEPTION_COUNT, 1, context.GetEndpoint(), Graphite.Metrics.Type.FLAT);
     }
 }

@@ -12,9 +12,7 @@ using Rumble.Platform.Common.Enums;
 using Rumble.Platform.Common.Exceptions;
 using Rumble.Platform.Common.Extensions;
 using Rumble.Platform.Common.Filters;
-using Rumble.Platform.Common.Interop;
 using Rumble.Platform.Common.Models;
-using Rumble.Platform.Common.Models.Alerting;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Common.Utilities.JsonTools;
 
@@ -311,24 +309,6 @@ public class ApiService : PlatformService
                     Url = response.RequestUrl,
                     Code = response.StatusCode
                 });
-                long lastGenerated = ConfigService.Instance?.Optional<long>(KEY_LAST_TOKEN_GENERATED) ?? 0;
-                if (lastGenerated > 0 && lastGenerated < Timestamp.Now - FAILURE_THRESHOLD_SECONDS) // Only alert if tokens have been failing for over 5 minutes.
-                    Alert(
-                        title: "Token Service Bad Response",
-                        message: $"Token has been failing for at least {FAILURE_THRESHOLD_SECONDS / 60} minutes",
-                        countRequired: 15,
-                        timeframe: 600,
-                        owner: Owner.Will,
-                        impact: ImpactType.ServiceUnusable,
-                        data: response.AsRumbleJson.Combine(new RumbleJson
-                        {
-                            { "origin", PlatformEnvironment.Name },
-                            { KEY_LAST_TOKEN_GENERATED, lastGenerated },
-                            { "url", response.RequestUrl },
-                            { "code", response.StatusCode }
-                        }),
-                        confluenceLink: "https://rumblegames.atlassian.net/wiki/spaces/TH/pages/3518529597/platform-common+Token+Service+Bad+Response"
-                    );
             })
             .Post(out RumbleJson json, out code);
 
@@ -357,20 +337,6 @@ public class ApiService : PlatformService
         }
         catch (TokenBannedException)
         {
-            throw;
-        }
-        catch (Exception)
-        {
-            Alert(
-                title: "Token Service Bad Response",
-                message: "Token Service did not return a valid token.",
-                countRequired: 15,
-                timeframe: 600,
-                owner: Owner.Will,
-                impact: ImpactType.ServiceUnusable,
-                confluenceLink: "https://rumblegames.atlassian.net/wiki/spaces/TH/pages/3518529597/platform-common+Token+Service+Bad+Response"
-            );
-            
             throw;
         }
     }
@@ -422,12 +388,6 @@ public class ApiService : PlatformService
                     
                     // Store only valid tokens
                     cache?.Store(encryptedToken, output, expirationMS: TokenInfo.CACHE_EXPIRATION);
-
-                    Graphite.Track(
-                        name: Graphite.KEY_AUTHORIZATION_COUNT,
-                        value: 1,
-                        endpoint: endpoint
-                    );
                 })
                 .Get();
         
@@ -464,103 +424,4 @@ public class ApiService : PlatformService
             .Patch();
         return true;
     }
-
-    /// <summary>
-    /// Fires off a pending alert, or sends one if certain criteria are met.  If {countRequired} alerts are issued within
-    /// {timeframe}, the alert will change from a pending status to send out immediately.
-    /// </summary>
-    /// <param name="title">The title of the alert.</param>
-    /// <param name="message">The message of the alert.  Keep this descriptive and short, if possible.</param>
-    /// <param name="countRequired">The number of hits an alert can tolerate before sending.  If you want your alert
-    /// to always send, use the value of 1.</param>
-    /// <param name="timeframe">The number of seconds an alert can be pending for.  If an alert is triggered {countRequired} times
-    /// in this time period, the alert status changes from pending to sent.</param>
-    /// <param name="type">Slack, Email, or All.</param>
-    /// <param name="impact">What kind of impact the issue has that necessitates the alert.</param>
-    /// <param name="data">Any additional data you want to attach to the alert.  In Slack, this comes through as a code block.</param>
-    /// <param name="confluenceLink">The link to the Engineering Alert Runbook for your specific Alert.</param>
-    public Alert Alert(string title, string message, int countRequired, int timeframe, string confluenceLink, Owner owner = Owner.Default, ImpactType impact = ImpactType.Unknown, AlertSeverity severity = AlertSeverity.CodeRed, RumbleJson data = null)
-    {
-        if (string.IsNullOrWhiteSpace(confluenceLink))
-            Log.Warn(owner, "Confluence link was not provided for an alert", data: new
-            {
-                Title = title
-            });
-        Alert toSend = new()
-        {
-            CreatedOn = Timestamp.Now,
-            Data = data,
-            Origin = PlatformEnvironment.ServiceName,
-            // EscalationPeriod = 0,
-            Impact = impact,
-            Message = message,
-            Owner = owner,
-            Trigger = new Trigger
-            {
-                Count = 0,
-                CountRequired = countRequired,
-                Timeframe = timeframe
-            },
-            Status = Models.Alerting.Alert.AlertStatus.Pending,
-            Title = title,
-            ConfluenceLink = confluenceLink,
-            Severity = severity
-        };
-        
-        Alert output = null;
-        try
-        {
-            
-            toSend.Validate();
-#if LOCAL
-            Request(PlatformEnvironment.Url("http://localhost:5201/alert"))
-#else
-            Request(PlatformEnvironment.Url("/alert"))
-#endif
-                .AddAuthorization(DynamicConfig.Instance?.AdminToken)
-                .SetRetries(1)
-                .SetPayload(new RumbleJson
-                {
-                    { "alert", toSend }
-                })
-                .OnSuccess(response =>
-                {
-                    try
-                    {
-                        output = response.Require<Alert>("alert");
-                    }
-                    catch (Exception e)
-                    {
-                        Log.Warn(Owner.Will, "An alert was successfully sent, but the response that came back couldn't be parsed", exception: e);
-                    }
-                })
-                .OnFailure(response => Log.Error(Owner.Will, "Unable to send an alert to alert-service.", data: new RumbleJson
-                {
-                    { "response", response }
-                }))
-                .Post();
-        }
-        catch (Exception ex)
-        {
-            Log.Error(Owner.Will, "Unable to send alert.", data: new
-            {
-                alert = toSend
-            }, exception: ex);
-        }
-
-
-        return output;
-    }
-
-    public Alert Alert(Alert alert) => Alert(
-        title: alert.Title,
-        message: alert.Message,
-        countRequired: alert.Trigger.CountRequired,
-        timeframe: (int) alert.Trigger.Timeframe,
-        confluenceLink: alert.ConfluenceLink,
-        owner: alert.Owner,
-        impact: alert.Impact,
-        severity: alert.Severity,
-        data: alert.Data
-    );
 }

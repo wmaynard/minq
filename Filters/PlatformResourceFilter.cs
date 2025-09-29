@@ -7,7 +7,6 @@ using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.Extensions.Primitives;
 using Rumble.Platform.Common.Enums;
 using Rumble.Platform.Common.Extensions;
-using Rumble.Platform.Common.Interop;
 using Rumble.Platform.Common.Services;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Common.Utilities.JsonTools;
@@ -90,15 +89,6 @@ public class PlatformResourceFilter : PlatformFilter, IResourceFilter
                 RawString = json,
                 Headers = context.HttpContext.Request.Headers
             }, exception: e);
-            ApiService.Instance?.Alert(
-                title: "JSON Parse Failure",
-                message: message,
-                countRequired: PlatformEnvironment.IsDev ? 120 : 15,
-                timeframe: 600,
-                owner: Owner.Will,
-                impact: ImpactType.ServicePartiallyUsable,
-                confluenceLink: "https://rumblegames.atlassian.net/wiki/spaces/TH/pages/3518496790/platform-common+JSON+Parse+Failure"
-            );
         }
     }
 

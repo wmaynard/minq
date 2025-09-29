@@ -10,7 +10,6 @@ using Rumble.Platform.Common.Exceptions;
 using Rumble.Platform.Common.Extensions;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Common.Web;
-using Rumble.Platform.Common.Interop;
 using Rumble.Platform.Common.Models;
 using Rumble.Platform.Common.Services;
 using Rumble.Platform.Common.Utilities.JsonTools;
@@ -47,14 +46,6 @@ public class PlatformAuthorizationFilter : PlatformFilter, IAuthorizationFilter,
 
         if (auth.Ok)
             return;
-
-        Graphite.Track(
-            name: auth.AdminTokenRequired 
-                ? Graphite.KEY_UNAUTHORIZED_ADMIN_COUNT 
-                : Graphite.KEY_UNAUTHORIZED_COUNT,
-            value: 1,
-            endpoint: context.GetEndpoint()
-        );
 
         context.Result = new UnauthorizedObjectResult(new ErrorResponse(
             message: "unauthorized",

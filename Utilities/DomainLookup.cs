@@ -53,41 +53,6 @@ public static class DomainLookup
         return null;
     }
 
-    
-    public static bool IsGeoBlocked(string address)
-    {
-        TrimToDomain(address, out string domain);
-        if (string.IsNullOrWhiteSpace(domain))
-        {
-            Log.Error(Owner.Will, "Unable to trim a domain from an email address.", data: new
-            {
-                Address = address
-            });
-            return false;
-        }
-        
-        MxRecord[] mx = GetMxRecords(domain);
-        IPAddress[] mxIps = mx.Length > 0
-            ? mx
-                .SelectMany(record => TryDnsGetHostAddresses(record.Exchange.Value))
-                .ToArray()
-            : Array.Empty<IPAddress>();
-        string[] ips = mxIps
-            .Union(TryDnsGetHostAddresses(domain))
-            .Where(ip => ip.AddressFamily == AddressFamily.InterNetwork)
-            .Select(ip => ip.ToString())
-            .ToArray();
-        
-        return GeoBanInfo.Validate(ips) switch
-        {
-            GeoBanInfo.Status.Unknown => false,
-            GeoBanInfo.Status.AllClear => false,
-            GeoBanInfo.Status.SomeBanned => true,
-            GeoBanInfo.Status.AllBanned => true,
-            _ => false
-        };
-    }
-
     /// <summary>
     /// Returns an array of IPs associated with a given domain if any can be found.  This method trims subdomains and retries.
     /// When investigating a LeanPlum bounce issue, there was a particularly interesting edge case domain - edu.sd45.bc.ca.

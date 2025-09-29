@@ -12,7 +12,6 @@ using Rumble.Platform.Common.Enums;
 using Rumble.Platform.Common.Exceptions;
 using Rumble.Platform.Common.Filters;
 using Rumble.Platform.Common.Web;
-using Rumble.Platform.Common.Interop;
 using Rumble.Platform.Common.Models;
 using Rumble.Platform.Common.Utilities.JsonTools;
 
@@ -48,9 +47,6 @@ public class Log : PlatformDataModel
 
     private static bool SwarmMessagePrinted { get; set; }
 
-    private static readonly LogglyClient Loggly = PlatformEnvironment.SwarmMode
-        ? null
-        : new LogglyClient();
 
     public enum LogType
     {
@@ -272,12 +268,6 @@ public class Log : PlatformDataModel
     /// <returns>Returns itself for chaining.</returns>
     private Log Send()
     {
-        bool throttled = false;
-        if (SeverityType != LogType.LOCAL)
-            Loggly?.Send(this, out throttled);
-        if (throttled)
-            SeverityType = LogType.THROTTLED;
-        
         #if RELEASE
         OpenObserve.Send(this);
         return this;
@@ -363,10 +353,6 @@ public class Log : PlatformDataModel
                 { "Data", data },
                 { "Exception", exception }
             };
-            await SlackDiagnostics.Log("Improper Dev log call!", newMessage)
-                .Tag(owner)
-                .Attach("details.txt", details.Json)
-                .Send();
         }
         catch (Exception e)
         {
@@ -427,11 +413,6 @@ public class Log : PlatformDataModel
             { "Data", data },
             { "Exception", exception }
         };
-
-        await SlackDiagnostics.Log(message, "A critical error has been reported.")
-            .Tag(owner)
-            .Attach("details.txt", details.Json)
-            .Send();
     }
 
     /// <summary>

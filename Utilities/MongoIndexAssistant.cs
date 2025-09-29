@@ -117,15 +117,6 @@ public static class MongoIndexAssistant
                     Name = index.Name,
                     Collection = collection.CollectionNamespace
                 }, exception: e);
-                ApiService.Instance?.Alert(
-                    title: "Mongo Index Creation Failure",
-                    message: "Platform-Common was unable to create a specified index on startup.  MongoDB may have performance problems if this is unaddressed.",
-                    countRequired: PlatformEnvironment.IsDev ? 120 : 15,
-                    timeframe: 600,
-                    owner: Owner.Will,
-                    impact: ImpactType.PerformanceNotOptimized,
-                    confluenceLink: "https://rumblegames.atlassian.net/wiki/spaces/TH/pages/3518496774/platform-common+Mongo+Index+Creation+Failure"
-                );
             }
         }
     }
