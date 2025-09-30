@@ -8,7 +8,7 @@ using MongoDB.Driver;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Common.Utilities.JsonTools;
 
-namespace Rumble.Platform.Common.Minq;
+namespace Rumble.Platform.Common.MinqOld;
 
 public class UpdateChain<T> where T : PlatformCollectionDocument
 {

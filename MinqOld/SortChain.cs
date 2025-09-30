@@ -7,7 +7,7 @@ using Maynard.Logging;
 using MongoDB.Driver;
 using Rumble.Platform.Common.Utilities;
 
-namespace Rumble.Platform.Common.Minq;
+namespace Rumble.Platform.Common.MinqOld;
 
 public class SortChain<T> where T : Model
 {

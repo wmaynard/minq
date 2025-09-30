@@ -7,7 +7,7 @@ using MongoDB.Bson;
 using MongoDB.Driver;
 using Rumble.Platform.Common.Utilities;
 
-namespace Rumble.Platform.Common.Minq;
+namespace Rumble.Platform.Common.MinqOld;
 
 internal class MinqIndex : Model
 {

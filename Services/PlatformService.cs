@@ -6,7 +6,7 @@ using Maynard.Json;
 using Maynard.Logging;
 using Microsoft.AspNetCore.Http;
 using Rumble.Platform.Common.Interfaces;
-using Rumble.Platform.Common.Minq;
+using Rumble.Platform.Common.MinqOld;
 using Rumble.Platform.Common.Models;
 using Rumble.Platform.Common.Utilities;
 
