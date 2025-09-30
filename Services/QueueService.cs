@@ -4,6 +4,7 @@ using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
+using Maynard.Json;
 using MongoDB.Bson.Serialization.Attributes;
 using MongoDB.Driver;
 using Rumble.Platform.Common.Attributes;
@@ -19,7 +20,7 @@ public interface IConfiscatable
     void Confiscate();
 }
 
-public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T>.TaskData>, IConfiscatable where T : PlatformDataModel
+public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T>.TaskData>, IConfiscatable where T : Model
 {
     private const int MAX_FAILURE_COUNT = 5;
     private const string COLLECTION_PREFIX = "queue_";
@@ -113,7 +114,7 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
         _config.UpdateMany(
             filter: Builders<QueueConfig>.Filter.Empty,
             update: Builders<QueueConfig>.Update
-                .Set(config => config.Settings, new RumbleJson())
+                .Set(config => config.Settings, new FlexJson())
                 .Set(config => config.LastActive, 0)
                 .Set(config => config.PrimaryServiceId, null)
         );
@@ -318,7 +319,7 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
             return;
         }
 
-        config.Settings ??= new RumbleJson();
+        config.Settings ??= new FlexJson();
         config.Settings[key] = value;
         _config.ReplaceOne(filter: Builders<QueueConfig>.Filter.Eq(queue => queue.Id, config.Id), replacement: config);
     }
@@ -625,7 +626,7 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
             filter: Builders<QueueConfig>.Filter.Eq(config => config.Type, TaskData.TaskType.Config),
             update: Builders<QueueConfig>.Update.Combine(
                 Builders<QueueConfig>.Update.Set(config => config.LastActive, TimestampMs.Now),
-                Builders<QueueConfig>.Update.Set(config => config.Settings, new RumbleJson())
+                Builders<QueueConfig>.Update.Set(config => config.Settings, new FlexJson())
             ),
             options: new UpdateOptions
             {
@@ -688,7 +689,7 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
         internal string UpdatedFromEnvironment { get; set; }
         
         [BsonElement(KEY_SETTINGS)]
-        public RumbleJson Settings { get; set; }
+        public FlexJson Settings { get; set; }
         
         [BsonElement(KEY_WAITLIST)]
         [CompoundIndex(GROUP_KEY_WAITLIST, priority: 1)]

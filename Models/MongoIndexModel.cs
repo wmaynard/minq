@@ -1,6 +1,7 @@
 using System;
 using System.Security.Cryptography.Xml;
 using System.Text.Json.Serialization;
+using Maynard.Json;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
 using MongoDB.Driver;
@@ -8,7 +9,7 @@ using Rumble.Platform.Common.Utilities.JsonTools;
 
 namespace Rumble.Platform.Common.Models;
 
-public class MongoIndexModel : PlatformDataModel
+public class MongoIndexModel : Model
 {
     [BsonElement("v")]
     [JsonPropertyName("v")]
@@ -24,7 +25,7 @@ public class MongoIndexModel : PlatformDataModel
 
     [BsonElement("key")]
     [JsonPropertyName("key")]
-    public RumbleJson KeyInformation { get; set; }
+    public FlexJson KeyInformation { get; set; }
     
     [BsonElement("unique")]
     [JsonPropertyName("unique")]
@@ -38,7 +39,7 @@ public class MongoIndexModel : PlatformDataModel
     {
         try
         {
-            return ((RumbleJson)$"{{\"data\":{collection.Indexes.List().ToList().ToJson()}}}").Require<MongoIndexModel[]>("data");
+            return ((FlexJson)$"{{\"data\":{collection.Indexes.List().ToList().ToJson()}}}").Require<MongoIndexModel[]>("data");
         }
         catch
         {

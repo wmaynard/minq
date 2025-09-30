@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Maynard.Json;
 using Microsoft.Extensions.Options;
 using MongoDB.Bson;
 using MongoDB.Driver;
@@ -11,11 +12,11 @@ using Rumble.Platform.Common.Utilities.JsonTools;
 
 namespace Rumble.Platform.Common.Minq;
 
-internal class MinqIndex : PlatformDataModel
+internal class MinqIndex : Model
 {
     internal const string INDEX_PREFIX = "minq_";
     internal string Name { get; set; }
-    internal RumbleJson Fields { get; set; }
+    internal FlexJson Fields { get; set; }
     internal bool Unique { get; set; }
     internal string KeyString => string.Join(",", Fields.Select(json => json.Key ?? "unknown"));
     
@@ -27,7 +28,7 @@ internal class MinqIndex : PlatformDataModel
     {
         if (manualDefinition == null)
             throw new Exception("Manual index definitions must not be null");
-        Fields = new RumbleJson();
+        Fields = new FlexJson();
 
         foreach (string key in manualDefinition.Keys)
             Fields[key] = 1;
@@ -50,7 +51,7 @@ internal class MinqIndex : PlatformDataModel
 
     internal MinqIndex(Dictionary<string, int> weights)
     {
-        Fields = new RumbleJson();
+        Fields = new FlexJson();
         
         IOrderedEnumerable<KeyValuePair<string, int>> ordered = weights
             .OrderBy(pair => pair.Value)

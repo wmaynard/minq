@@ -1,5 +1,6 @@
 using System;
 using System.Timers;
+using Maynard.Json;
 using Rumble.Platform.Common.Enums;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Common.Utilities.JsonTools;
@@ -38,7 +39,7 @@ public abstract class PlatformMongoTimerService<T> : PlatformMongoService<T>, ID
     protected void Resume() => _timer.Start();
     protected abstract void OnElapsed();
 
-    public override RumbleJson HealthStatus => new RumbleJson
+    public override FlexJson HealthStatus => new FlexJson
     {
         { Name, Status }
     };

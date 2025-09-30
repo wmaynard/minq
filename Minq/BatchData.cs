@@ -1,8 +1,9 @@
+using Maynard.Json;
 using Rumble.Platform.Common.Utilities.JsonTools;
 
 namespace Rumble.Platform.Common.Minq;
 
-public class BatchData<T> where T : PlatformDataModel
+public class BatchData<T> where T : Model
 {
     /// <summary>
     /// If set to false, this batch will be the final one processed.

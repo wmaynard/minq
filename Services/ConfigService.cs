@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using Maynard.Json;
 using Rumble.Platform.Common.Models;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Common.Utilities.JsonTools;
@@ -42,7 +43,7 @@ public sealed class ConfigService : PlatformMongoService<ConfigService.ServiceCo
 
     public class ServiceConfig : PlatformCollectionDocument
     {
-        public RumbleJson Data { get; set; }
-        internal ServiceConfig() => Data = new RumbleJson();
+        public FlexJson Data { get; set; }
+        internal ServiceConfig() => Data = new FlexJson();
     }
 }

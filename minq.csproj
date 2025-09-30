@@ -34,17 +34,20 @@
 	
 	<ItemGroup>
 	  <FrameworkReference Include="Microsoft.AspNetCore.App" Version="2.2.8" />
-	  <PackageReference Include="MongoDB.Bson" Version="2.20.0" />
-	  <PackageReference Include="MongoDB.Driver" Version="2.20.0" />
-	  <PackageReference Include="MongoDB.Driver.Core" Version="2.20.0" />
 	</ItemGroup>
 	
 	<ItemGroup>
+	  <ProjectReference Include="..\flex-json\flex-json.csproj" />
 	  <ProjectReference Include="..\Logging\basic-utilities.csproj" />
 	</ItemGroup>
 	
 	<ItemGroup>
 	  <Folder Include="Exceptions\" />
+	</ItemGroup>
+	
+	<ItemGroup>
+	  <PackageReference Include="MongoDB.Bson" Version="3.5.0" />
+	  <PackageReference Include="MongoDB.Driver" Version="3.5.0" />
 	</ItemGroup>
 	
 

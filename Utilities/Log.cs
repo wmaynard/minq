@@ -4,6 +4,7 @@ using System.Linq;
 using System.Reflection;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
+using Maynard.Json;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Features;
 using MongoDB.Bson.Serialization.Attributes;
@@ -17,7 +18,7 @@ namespace Rumble.Platform.Common.Utilities;
 
 // TODO: Create a LogService; add suppression to anything spammy
 
-public class Log : PlatformDataModel
+public class Log : Model
 {
     private static bool _written;
 #if DEBUG
@@ -122,7 +123,7 @@ public class Log : PlatformDataModel
     public string CommonVersion { get; init; }
 
     [JsonInclude, JsonPropertyName("throttleDetails"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] 
-    public RumbleJson ThrottleDetails { get; private set; }
+    public FlexJson ThrottleDetails { get; private set; }
 
     private Log(LogType type, Owner owner, Exception exception = null)
     {
@@ -329,7 +330,7 @@ public class Log : PlatformDataModel
                 OriginalData = data,
                 OriginalException = exception
             });
-            RumbleJson details = new RumbleJson()
+            FlexJson details = new FlexJson()
             {
                 { "Data", data },
                 { "Exception", exception }
@@ -385,7 +386,7 @@ public class Log : PlatformDataModel
     {
         Write(LogType.CRITICAL, owner, message, data, exception);
 
-        RumbleJson details = new RumbleJson()
+        FlexJson details = new FlexJson()
         {
             { "Data", data },
             { "Exception", exception }
@@ -456,7 +457,7 @@ public class Log : PlatformDataModel
 
         long seconds = Timestamp.Now - timestamp;
 
-        ThrottleDetails = new RumbleJson
+        ThrottleDetails = new FlexJson
         {
             { "message", $"Suppressed {count} logs with the same message over the last {seconds} seconds."},
             { "suppressed", count },

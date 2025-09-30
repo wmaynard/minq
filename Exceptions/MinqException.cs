@@ -2,6 +2,7 @@ using System;
 using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Maynard.Json;
 using Rumble.Platform.Common.Enums;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Common.Utilities.JsonTools;
@@ -40,11 +41,11 @@ public class MinqException : Exception // TODO: Should probably be an abstract c
         }
     }
 
-    internal new RumbleJson Data
+    internal new FlexJson Data
     {
         get
         {
-            RumbleJson output = new();
+            FlexJson output = new();
             foreach (PropertyInfo info in GetType().GetProperties(BindingFlags.Public | BindingFlags.GetProperty | BindingFlags.Instance | BindingFlags.DeclaredOnly))
                 output[JsonNamingPolicy.CamelCase.ConvertName(info.Name)] = info.GetValue(this);
             return output;

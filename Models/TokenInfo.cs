@@ -2,13 +2,14 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json.Serialization;
+using Maynard.Json;
 using MongoDB.Bson.Serialization.Attributes;
 using Rumble.Platform.Common.Utilities.JsonTools;
 
 namespace Rumble.Platform.Common.Models;
 
 [BsonIgnoreExtraElements]
-public class TokenInfo : PlatformDataModel
+public class TokenInfo : Model
 {
     private string[] _audiences;
     

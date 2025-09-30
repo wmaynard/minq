@@ -1,4 +1,5 @@
 using System;
+using Maynard.Json;
 using MongoDB.Bson;
 using Rumble.Platform.Common.Enums;
 using Rumble.Platform.Common.Utilities;
@@ -9,7 +10,7 @@ namespace Rumble.Platform.Common.Models;
 /// <summary>
 /// An object containing information about keys/records scanned and whether or not the query was covered by indexes.
 /// </summary>
-public class MongoQueryStats : PlatformDataModel
+public class MongoQueryStats : Model
 {
     public bool IndexScan { get; private set; }
     public bool CollectionScan { get; private set; }
@@ -29,14 +30,14 @@ public class MongoQueryStats : PlatformDataModel
 
     public MongoQueryStats(BsonDocument explainResult)
     {
-        RumbleJson result = explainResult;
+        FlexJson result = explainResult;
 
         // Get stats for the queries
         try
         {
-            RumbleJson winningPlan = result
-                .Require<RumbleJson>("queryPlanner")
-                .Require<RumbleJson>("winningPlan");
+            FlexJson winningPlan = result
+                .Require<FlexJson>("queryPlanner")
+                .Require<FlexJson>("winningPlan");
             IndexScan = winningPlan.ContainsValueRecursive("IXSCAN");
             CollectionScan = winningPlan.ContainsValueRecursive("COLLSCAN");
         }
@@ -48,11 +49,11 @@ public class MongoQueryStats : PlatformDataModel
         // Parse the execution stats
         try
         {
-            RumbleJson stats = result.Require<RumbleJson>("executionStats");
-            DocumentsReturned = stats.Require<RumbleJson>("nReturned").Require<long>("$numberInt");
-            DocumentsExamined = stats.Require<RumbleJson>("totalDocsExamined").Require<long>("$numberInt");
-            ExecutionTimeMs = stats.Require<RumbleJson>("executionTimeMillis").Require<long>("$numberInt");
-            KeysExamined = stats.Require<RumbleJson>("totalKeysExamined").Require<long>("$numberInt");
+            FlexJson stats = result.Require<FlexJson>("executionStats");
+            DocumentsReturned = stats.Require<FlexJson>("nReturned").Require<long>("$numberInt");
+            DocumentsExamined = stats.Require<FlexJson>("totalDocsExamined").Require<long>("$numberInt");
+            ExecutionTimeMs = stats.Require<FlexJson>("executionTimeMillis").Require<long>("$numberInt");
+            KeysExamined = stats.Require<FlexJson>("totalKeysExamined").Require<long>("$numberInt");
         }
         catch (Exception e)
         {

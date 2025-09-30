@@ -4,6 +4,7 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Text.Json.Serialization;
+using Maynard.Json;
 using Microsoft.AspNetCore.Http;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
@@ -208,7 +209,7 @@ public abstract class PlatformMongoService<Model> : PlatformService, IPlatformMo
         foreach (CompoundIndex compound in output.OfType<CompoundIndex>())
             compound.AddKeys(additionalKeys.Where(adds => adds.GroupName == compound.GroupName));
         
-        if (property.PropertyType.IsAssignableTo(typeof(PlatformDataModel)))
+        if (property.PropertyType.IsAssignableTo(typeof(Model)))
             foreach (PropertyInfo nested in GetIndexCandidates(property.PropertyType))
                 output.AddRange(ExtractIndexes(nested, property.Name, parentDbKey, depth - 1));
 
@@ -240,7 +241,7 @@ public abstract class PlatformMongoService<Model> : PlatformService, IPlatformMo
             candidates.AddRange(type
                 .GetGenericArguments()
                 .Union(type.GetNestedTypes(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic))
-                .Where(model => model.IsAssignableTo(typeof(PlatformDataModel)))
+                .Where(model => model.IsAssignableTo(typeof(Model)))
                 .SelectMany(GetIndexCandidates)
             );
             
@@ -495,7 +496,7 @@ public abstract class PlatformMongoService<Model> : PlatformService, IPlatformMo
         internal string DatabaseKey { get; set; }
     }
 
-    public override RumbleJson HealthStatus => new RumbleJson
+    public override FlexJson HealthStatus => new FlexJson
     {
         { Name, IsHealthy ? "connected" : "disconnected" }
     };

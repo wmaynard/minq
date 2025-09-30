@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.Text.Json.Serialization;
+using Maynard.Json;
 using Microsoft.AspNetCore.Http;
 using Rumble.Platform.Common.Enums;
 using Rumble.Platform.Common.Exceptions;
@@ -97,14 +98,14 @@ public abstract class PlatformService : IPlatformService
         return (T)svc;
     }
 
-    public virtual RumbleJson HealthStatus => new RumbleJson
+    public virtual FlexJson HealthStatus => new FlexJson
     {
         { Name, "unimplemented" }
     };
 
-    internal static RumbleJson ProcessGdprRequest(TokenInfo token)
+    internal static FlexJson ProcessGdprRequest(TokenInfo token)
     {
-        RumbleJson output = new RumbleJson();
+        FlexJson output = new FlexJson();
         long totalAffected = 0;
         
         if (token == null)

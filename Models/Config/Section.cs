@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json.Serialization;
+using Maynard.Json;
 using MongoDB.Bson.Serialization.Attributes;
 using Rumble.Platform.Common.Utilities.JsonTools;
 
@@ -34,11 +35,11 @@ public class Section : PlatformCollectionDocument
 
     [BsonIgnore]
     [JsonInclude, JsonPropertyName(FRIENDLY_KEY_ADMIN_VALUES), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public RumbleJson AdminData => RumbleJson.FromDictionary(Data);
+    public FlexJson AdminData => FlexJson.FromDictionary(Data);
 
     [BsonIgnore]
     [JsonInclude, JsonPropertyName(FRIENDLY_KEY_VALUES), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public RumbleJson ClientData => RumbleJson.FromDictionary(Data.ToDictionary(keySelector: pair => pair.Key, elementSelector: pair => pair.Value.Value));
+    public FlexJson ClientData => FlexJson.FromDictionary(Data.ToDictionary(keySelector: pair => pair.Key, elementSelector: pair => pair.Value.Value));
   
     [BsonElement(DB_KEY_ADMIN_TOKEN)]
     [JsonInclude, JsonPropertyName(FRIENDLY_KEY_ADMIN_TOKEN), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
@@ -203,13 +204,13 @@ public class Section : PlatformCollectionDocument
             : output.Where(diff => diff.Key.StartsWith(limiter)).ToArray();
     }
     
-    public class Diff : PlatformDataModel
+    public class Diff : Model
     {
         public string Key { get; set; }
         public DiffValue[] Data { get; set; }
     }
     
-    public class DiffValue : PlatformDataModel
+    public class DiffValue : Model
     {
         public string Environment { get; set; }
         public string Value { get; set; }

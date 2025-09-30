@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Text.RegularExpressions;
+using Maynard.Json;
 using Microsoft.AspNetCore.Mvc;
 using MongoDB.Bson;
 using MongoDB.Bson.IO;
@@ -29,10 +30,10 @@ public class FilterChain<T>
         ? Builder.And(Filters)
         : Builder.Empty;
 
-    internal int HashCode => Filter.Render(
+    internal int HashCode => Filter.Render(new(
             documentSerializer: BsonSerializer.SerializerRegistry.GetSerializer<T>(),
             serializerRegistry: BsonSerializer.SerializerRegistry
-        )
+        ))
         .ToJson(new JsonWriterSettings{ OutputMode = JsonOutputMode.CanonicalExtendedJson})
         .GetHashCode();
 
@@ -258,7 +259,7 @@ public class FilterChain<T>
     /// <param name="builder"></param>
     /// <typeparam name="U"></typeparam>
     /// <returns></returns>
-    public FilterChain<T> Where<U>(Expression<Func<T, IEnumerable<U>>> field, Action<FilterChain<U>> builder) where U : PlatformDataModel
+    public FilterChain<T> Where<U>(Expression<Func<T, IEnumerable<U>>> field, Action<FilterChain<U>> builder) where U : Model
     {
         FilterChain<U> filter = new();
         builder.Invoke(filter);
@@ -345,16 +346,16 @@ public class FilterChain<T>
         return this;
     }
     internal static string Render(Expression<Func<T, object>> field) => new ExpressionFieldDefinition<T>(field)
-        .Render(
+        .Render(new(
             documentSerializer: BsonSerializer.SerializerRegistry.GetSerializer<T>(),
             serializerRegistry: BsonSerializer.SerializerRegistry
-        ).FieldName;
+        )).FieldName;
     
     internal static string Render<U>(Expression<Func<T, U>> field) => new ExpressionFieldDefinition<T>(field)
-        .Render(
+        .Render(new(
             documentSerializer: BsonSerializer.SerializerRegistry.GetSerializer<T>(),
             serializerRegistry: BsonSerializer.SerializerRegistry
-        ).FieldName;
+        )).FieldName;
 }
 
 public static class MinqExpressionExtension

@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Data;
 using System.Linq.Expressions;
+using Maynard.Json;
 using MongoDB.Driver;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Common.Utilities.JsonTools;
@@ -202,7 +203,7 @@ public class UpdateChain<T> where T : PlatformCollectionDocument
     /// <param name="filter">A filter chain to select items for removal.</param>
     /// <typeparam name="U"></typeparam>
     /// <returns>The UpdateChain for method chaining.</returns>
-    public UpdateChain<T> RemoveWhere<U>(Expression<Func<T, IEnumerable<U>>> field, Action<FilterChain<U>> filter) where U : PlatformDataModel
+    public UpdateChain<T> RemoveWhere<U>(Expression<Func<T, IEnumerable<U>>> field, Action<FilterChain<U>> filter) where U : Model
     {
         FilterChain<U> _filter = new FilterChain<U>();
         filter.Invoke(_filter);

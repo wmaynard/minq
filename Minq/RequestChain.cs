@@ -7,6 +7,7 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Threading.Tasks;
 using System.Transactions;
+using Maynard.Json;
 using Microsoft.AspNetCore.Http;
 using MongoDB.Bson;
 using MongoDB.Bson.IO;
@@ -440,7 +441,7 @@ public class RequestChain<T> where T : PlatformCollectionDocument
             Parent.GenericCollection.Indexes.CreateOne(model);
 
 
-            Minq<T>.TryRender(_filter, out RumbleJson filterJson, out string filterString);
+            Minq<T>.TryRender(_filter, out FlexJson filterJson, out string filterString);
             
             Log.Info(Owner.Will, "MINQ automatically created an index", data: new
             {
@@ -457,7 +458,7 @@ public class RequestChain<T> where T : PlatformCollectionDocument
                 : "Unable to create automatic MINQ index; investigation possibly needed",
                 data: new
                 {
-                    Filter = (RumbleJson)Minq<T>.Render(_filter),
+                    Filter = (FlexJson)Minq<T>.Render(_filter),
                     Stats = stats
                 }, exception: e
             );
@@ -482,10 +483,10 @@ public class RequestChain<T> where T : PlatformCollectionDocument
                 { "explain", new BsonDocument
                 {
                     { "find", _collection.CollectionNamespace.CollectionName }, 
-                    { "filter", _filter.Render(
+                    { "filter", _filter.Render(new(
                         documentSerializer: BsonSerializer.SerializerRegistry.GetSerializer<T>(),
                         serializerRegistry: BsonSerializer.SerializerRegistry
-                    ).AsBsonDocument }
+                    )).AsBsonDocument }
                 } }
             };
             stats = new MongoQueryStats(_collection.Database.RunCommand<BsonDocument>(command));

@@ -1,11 +1,12 @@
 using System.Text.Json.Serialization;
+using Maynard.Json;
 using MongoDB.Bson.Serialization.Attributes;
 using Rumble.Platform.Common.Utilities.JsonTools;
 
 namespace Rumble.Platform.Common.Models.Config;
 
 [BsonIgnoreExtraElements]
-public class SettingsValue : PlatformDataModel
+public class SettingsValue : Model
 {
     [BsonElement("value")]
     [JsonInclude, JsonPropertyName("value")]

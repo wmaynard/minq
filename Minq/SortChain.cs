@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
+using Maynard.Json;
 using MongoDB.Driver;
 using Rumble.Platform.Common.Enums;
 using Rumble.Platform.Common.Utilities;
@@ -9,7 +10,7 @@ using Rumble.Platform.Common.Utilities.JsonTools;
 
 namespace Rumble.Platform.Common.Minq;
 
-public class SortChain<T> where T : PlatformDataModel
+public class SortChain<T> where T : Model
 {
     internal SortDefinitionBuilder<T> Builder { get; init; }
     private List<SortDefinition<T>> Definitions { get; init; }

@@ -1,4 +1,5 @@
 using System;
+using Maynard.Json;
 using MongoDB.Bson;
 using MongoDB.Bson.IO;
 using MongoDB.Driver;
@@ -13,7 +14,7 @@ public class WriteConflictException : Exception
     private const string MESSAGE = "Write conflict encountered.  Check that you aren't updating the same field multiple times in one query.";
     
     public string Help { get; init; }
-    public RumbleJson MongoException { get; init; } 
+    public FlexJson MongoException { get; init; } 
     
     public WriteConflictException(Exception e) : base(MESSAGE)
     {

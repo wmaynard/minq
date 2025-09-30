@@ -4,6 +4,7 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Text.RegularExpressions;
+using Maynard.Json;
 using Microsoft.Extensions.Options;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization;
@@ -243,7 +244,7 @@ public class Minq<T> where T : PlatformCollectionDocument
     /// automatically building indexes based on usage with reflection.
     /// </summary>
     /// <returns>A Mongo type that can be used as if it was a LINQ query; can only be used for reading data, not updating.</returns>
-    public IMongoQueryable<T> AsLinq() => Collection.AsQueryable();
+    public IQueryable<T> AsLinq() => Collection.AsQueryable();
     
     /// <summary>
     /// Uses an existing Transaction to use for Mongo queries.  Transactions are generally not supported on localhost; use a
@@ -505,27 +506,27 @@ public class Minq<T> where T : PlatformCollectionDocument
     }
     
     public static string Render(Expression<Func<T, object>> field) => new ExpressionFieldDefinition<T>(field)
-        .Render(
+        .Render(new(
             documentSerializer: BsonSerializer.SerializerRegistry.GetSerializer<T>(),
             serializerRegistry: BsonSerializer.SerializerRegistry
-        ).FieldName;
+        )).FieldName;
     internal static string Render<U>(Expression<Func<T, U>> field) => new ExpressionFieldDefinition<T>(field)
-        .Render(
+        .Render(new(
             documentSerializer: BsonSerializer.SerializerRegistry.GetSerializer<T>(),
             serializerRegistry: BsonSerializer.SerializerRegistry
-        ).FieldName;
+        )).FieldName;
     private static string Render(Expression<Func<CachedResult, object>> field) => new ExpressionFieldDefinition<CachedResult>(field)
-        .Render(
+        .Render(new(
             documentSerializer: BsonSerializer.SerializerRegistry.GetSerializer<CachedResult>(),
             serializerRegistry: BsonSerializer.SerializerRegistry
-        ).FieldName;
+        )).FieldName;
 
-    internal static string Render(FilterDefinition<T> filter) => filter.Render(
+    internal static string Render(FilterDefinition<T> filter) => filter.Render(new(
         documentSerializer: BsonSerializer.SerializerRegistry.GetSerializer<T>(),
         serializerRegistry: BsonSerializer.SerializerRegistry
-    ).ToString();
+    )).ToString();
 
-    internal static bool TryRender(FilterDefinition<T> filter, out RumbleJson asJson, out string asString)
+    internal static bool TryRender(FilterDefinition<T> filter, out FlexJson asJson, out string asString)
     {
         asJson = null;
         asString = null;
@@ -548,10 +549,10 @@ public class Minq<T> where T : PlatformCollectionDocument
     /// </summary>
     /// <param name="update">The UpdateDefinition to serialize.</param>
     /// <returns>A string representation of the UpdateDefinition.</returns>
-    internal static string Render(UpdateDefinition<T> update) => update.Render(
+    internal static string Render(UpdateDefinition<T> update) => update.Render(new(
         documentSerializer: BsonSerializer.SerializerRegistry.GetSerializer<T>(),
         serializerRegistry: BsonSerializer.SerializerRegistry
-    ).ToString();
+    )).ToString();
     
 #if DEBUG
     public long DeleteAll() => new RequestChain<T>(this).Delete();
