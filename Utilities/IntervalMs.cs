@@ -1,5 +1,3 @@
-using System;
-
 namespace Rumble.Platform.Common.Utilities;
 
 public static class IntervalMs

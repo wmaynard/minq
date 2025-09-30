@@ -4,7 +4,6 @@ using System.Linq;
 using System.Threading.Tasks;
 using Rumble.Platform.Common.Enums;
 using Rumble.Platform.Common.Extensions;
-using Rumble.Platform.Common.Services;
 
 namespace Rumble.Platform.Common.Utilities;
 

@@ -1,16 +1,10 @@
 using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
-using System.Collections.ObjectModel;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Linq.Expressions;
-using System.Threading.Tasks;
-using System.Transactions;
 using Maynard.Json;
-using Microsoft.AspNetCore.Http;
 using MongoDB.Bson;
-using MongoDB.Bson.IO;
 using MongoDB.Bson.Serialization;
 using MongoDB.Driver;
 using Rumble.Platform.Common.Enums;
@@ -892,7 +886,7 @@ public class RequestChain<T> where T : PlatformCollectionDocument
             FindOneAndUpdateOptions<T> options = new()
             {
                 IsUpsert = false,
-                ReturnDocument = MongoDB.Driver.ReturnDocument.After
+                ReturnDocument = ReturnDocument.After
             };
             
             T output = UsingTransaction
@@ -1192,7 +1186,7 @@ public class RequestChain<T> where T : PlatformCollectionDocument
         FindOneAndUpdateOptions<T> options = new()
         {
             IsUpsert = true,
-            ReturnDocument = MongoDB.Driver.ReturnDocument.After
+            ReturnDocument = ReturnDocument.After
         };
 
         try

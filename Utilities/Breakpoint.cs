@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 
 namespace Rumble.Platform.Common.Utilities;
 
@@ -9,7 +10,7 @@ public static class Breakpoint
     {
         Console.WriteLine("Foo");
         #if DEBUG
-        System.Diagnostics.Debugger.Break();
+        Debugger.Break();
         #endif
     }
     
@@ -18,7 +19,7 @@ public static class Breakpoint
     {
         #if DEBUG
         if (condition)
-            System.Diagnostics.Debugger.Break();
+            Debugger.Break();
         #endif
     }
 }

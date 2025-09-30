@@ -3,7 +3,6 @@ using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Reflection;
 using Rumble.Platform.Common.Enums;
-using Rumble.Platform.Common.Exceptions;
 using Rumble.Platform.Common.Utilities;
 
 namespace Rumble.Platform.Common.Extensions;

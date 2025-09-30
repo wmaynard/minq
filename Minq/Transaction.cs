@@ -1,11 +1,6 @@
 using System;
-using System.Diagnostics.CodeAnalysis;
-using System.Threading;
-using System.Threading.Tasks;
-using MongoDB.Bson;
 using MongoDB.Driver;
 using Rumble.Platform.Common.Enums;
-using Rumble.Platform.Common.Exceptions;
 using Rumble.Platform.Common.Utilities;
 
 namespace Rumble.Platform.Common.Minq;

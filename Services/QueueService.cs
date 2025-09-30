@@ -9,7 +9,6 @@ using MongoDB.Bson.Serialization.Attributes;
 using MongoDB.Driver;
 using Rumble.Platform.Common.Attributes;
 using Rumble.Platform.Common.Enums;
-using Rumble.Platform.Common.Exceptions;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Common.Utilities.JsonTools;
 

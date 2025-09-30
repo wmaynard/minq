@@ -3,16 +3,11 @@ using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.Text.Json.Serialization;
-using System.Threading.Tasks;
 using Maynard.Json;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Http.Features;
-using MongoDB.Bson.Serialization.Attributes;
 using MongoDB.Driver;
 using Rumble.Platform.Common.Enums;
-using Rumble.Platform.Common.Exceptions;
 using Rumble.Platform.Common.Models;
-using Rumble.Platform.Common.Utilities.JsonTools;
 
 namespace Rumble.Platform.Common.Utilities;
 
@@ -275,7 +270,7 @@ public class Log : Model
         if (!PrintObjectsEnabled)
             return this;
 
-        string data = (Data?.ToString() ?? "") + System.Environment.NewLine;
+        string data = (Data?.ToString() ?? "") + Environment.NewLine;
         if (!string.IsNullOrWhiteSpace(data))
             PrettyPrint(data, ConsoleColor.Green);
         
