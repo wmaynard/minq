@@ -3,8 +3,8 @@ using System.Collections.Concurrent;
 using System.Linq;
 using System.Reflection;
 using Maynard.Json;
+using Maynard.Logging;
 using Microsoft.AspNetCore.Http;
-using Rumble.Platform.Common.Enums;
 using Rumble.Platform.Common.Interfaces;
 using Rumble.Platform.Common.Minq;
 using Rumble.Platform.Common.Models;
@@ -25,12 +25,12 @@ public abstract class PlatformService : IPlatformService
         if (Registry.ContainsKey(GetType()))
             Registry[GetType()] = this;
         else if (!Registry.TryAdd(GetType(), this))
-            Log.Warn(Owner.Default, "Failed to add an entry to the service registry", data: new
+            Log.Warn("Failed to add an entry to the service registry", data: new
             {
                 Type = GetType()
             });
 
-        Log.Verbose(Owner.Default, $"Creating {GetType().Name}");
+        Log.Verbose($"Creating {GetType().Name}");
     }
 
     // TODO: This is the same code as in PlatformController's service resolution.
@@ -49,7 +49,7 @@ public abstract class PlatformService : IPlatformService
                 }
                 catch (Exception e)
                 {
-                    Log.Error(Owner.Will, $"Unable to retrieve {info.PropertyType.Name}.", exception: e);
+                    Log.Error($"Unable to retrieve {info.PropertyType.Name}.", exception: e);
                 }
         foreach (FieldInfo info in GetType().GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static))
             if (info.FieldType.IsAssignableTo(typeof(PlatformService)))
@@ -59,7 +59,7 @@ public abstract class PlatformService : IPlatformService
                 }
                 catch (Exception e)
                 {
-                    Log.Error(Owner.Will, $"Unable to retrieve {info.FieldType.Name}.", exception: e);
+                    Log.Error($"Unable to retrieve {info.FieldType.Name}.", exception: e);
                 }
         return true;
     }
@@ -106,7 +106,7 @@ public abstract class PlatformService : IPlatformService
         
         if (token == null)
         {
-            Log.Warn(Owner.Default, "A GDPR request came in with no PII to identify records.");
+            Log.Warn("A GDPR request came in with no PII to identify records.");
             return output;
         }
 
@@ -118,11 +118,11 @@ public abstract class PlatformService : IPlatformService
             long affected = 0;
             try
             {
-                affected = service.ProcessGdprRequest(token, dummyText);
+                affected = service.ProcessGdprRequest(token.AccountId, dummyText);
             }
             catch (Exception e)
             {
-                Log.Error(Owner.Default, "An exception was thrown during a GDPR request; investigation needed.", data: new
+                Log.Error("An exception was thrown during a GDPR request; investigation needed.", data: new
                 {
                     Service = name,
                     Token = token
@@ -136,7 +136,7 @@ public abstract class PlatformService : IPlatformService
         }
         
         if (totalAffected <= 0)
-            Log.Warn(Owner.Default, "A PII deletion request came in, but no records were affected; investigation needed.", data: new
+            Log.Warn("A PII deletion request came in, but no records were affected; investigation needed.", data: new
             {
                 Token = token
             });

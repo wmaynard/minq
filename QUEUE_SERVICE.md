@@ -104,7 +104,7 @@ public class FutileService : QueueService<MyData>
     ...
     protected override void ProcessTask(MyData data)
     {
-        Log.Local(Owner.Will, $"{(IsPrimary ? "(Primary)" : "(Secondary)")} Processed '{data.Message}'");
+        Log.Local($"{(IsPrimary ? "(Primary)" : "(Secondary)")} Processed '{data.Message}'");
     }
     ...
 ```

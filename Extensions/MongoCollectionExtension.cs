@@ -4,10 +4,10 @@ using System.Linq;
 using System.Reflection;
 using System.Text.Json.Serialization;
 using Maynard.Json;
+using Maynard.Logging;
 using MongoDB.Bson.Serialization.Attributes;
 using MongoDB.Driver;
 using Rumble.Platform.Common.Attributes;
-using Rumble.Platform.Common.Enums;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Common.Utilities.JsonTools;
 
@@ -91,7 +91,7 @@ public static class MongoCollectionExtension
     {
         if (depth <= 0)
         {
-            Log.Error(Owner.Default, "Maximum depth exceeded for Mongo indexes.");
+            Log.Error("Maximum depth exceeded for Mongo indexes.");
             return Array.Empty<PlatformMongoIndex>();
         }
 
@@ -131,7 +131,7 @@ public static class MongoCollectionExtension
         if (bson != null)
             return output.ToArray();
         if (output.Any())
-            Log.Warn(Owner.Default, "Unable to create indexes without a BsonElement attribute also present on a property.", data: new
+            Log.Warn("Unable to create indexes without a BsonElement attribute also present on a property.", data: new
             {
                 Name = property.Name
             });

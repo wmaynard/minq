@@ -1,7 +1,7 @@
 using System;
 using Maynard.Json;
+using Maynard.Logging;
 using MongoDB.Bson;
-using Rumble.Platform.Common.Enums;
 using Rumble.Platform.Common.Utilities;
 
 namespace Rumble.Platform.Common.Models;
@@ -42,7 +42,7 @@ public class MongoQueryStats : Model
         }
         catch (Exception e)
         {
-            Log.Error(Owner.Will, "Unable to parse Mongo explanation component: winning plan", exception: e);
+            Log.Error("Unable to parse Mongo explanation component: winning plan", exception: e);
         }
             
         // Parse the execution stats
@@ -56,7 +56,7 @@ public class MongoQueryStats : Model
         }
         catch (Exception e)
         {
-            Log.Error(Owner.Will, "Unable to parse Mongo explanation component: execution stats", exception: e);
+            Log.Error("Unable to parse Mongo explanation component: execution stats", exception: e);
         }
     }
 }

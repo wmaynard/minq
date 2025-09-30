@@ -3,11 +3,13 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Linq.Expressions;
+using Maynard.Extensions;
 using Maynard.Json;
+using Maynard.Logging;
+using Maynard.Time;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization;
 using MongoDB.Driver;
-using Rumble.Platform.Common.Enums;
 using Rumble.Platform.Common.Exceptions;
 using Rumble.Platform.Common.Extensions;
 using Rumble.Platform.Common.Interfaces;
@@ -69,7 +71,7 @@ public class RequestChain<T> where T : PlatformCollectionDocument
         if (Consumed)
         {
             RequestConsumedException<T> exception = new (this);
-            Log.Error(Owner.Default, "MINQ request already consumed; the query will return a default result.", exception: exception);
+            Log.Error("MINQ request already consumed; the query will return a default result.", exception: exception);
             throw exception;
         }
 
@@ -160,7 +162,7 @@ public class RequestChain<T> where T : PlatformCollectionDocument
             Transaction = Transaction
         });
         
-        Log.Verbose(Owner.Default, $"A transaction was previously aborted; the call to {methodName} can not be completed.");
+        Log.Verbose($"A transaction was previously aborted; the call to {methodName} can not be completed.");
         return true;
     }
 
@@ -172,7 +174,7 @@ public class RequestChain<T> where T : PlatformCollectionDocument
     private void WarnOnUnusedCache(string methodName)
     {
         if (UseCache)
-            Log.Warn(Owner.Will, $"MINQ was told to use a cache for its query, but caches aren't available for {methodName}");
+            Log.Warn($"MINQ was told to use a cache for its query, but caches aren't available for {methodName}");
     }
 
     /// <summary>
@@ -188,11 +190,11 @@ public class RequestChain<T> where T : PlatformCollectionDocument
             Method = methodName
         };
         if (_onNoneAffected != null)
-            Log.Warn(Owner.Default, string.Format(message, nameof(OnNoneAffected)), data);
+            Log.Warn(string.Format(message, nameof(OnNoneAffected)), data);
         if (_onRecordsAffected != null)
-            Log.Warn(Owner.Default, string.Format(message, nameof(OnRecordsAffected)), data);
+            Log.Warn(string.Format(message, nameof(OnRecordsAffected)), data);
         if (_onTransactionAborted != null)
-            Log.Warn(Owner.Default, string.Format(message, nameof(OnTransactionAborted)), data);
+            Log.Warn(string.Format(message, nameof(OnTransactionAborted)), data);
     }
     
     #region Chainables
@@ -223,7 +225,7 @@ public class RequestChain<T> where T : PlatformCollectionDocument
     public RequestChain<T> All()
     {
         if (_filter != null && _filter != Builders<T>.Filter.Empty)
-            Log.Warn(Owner.Default, $"An existing filter is being overwritten by {nameof(All)}(); remove the previous filter definitions");
+            Log.Warn($"An existing filter is being overwritten by {nameof(All)}(); remove the previous filter definitions");
         _filter = Builders<T>.Filter.Empty;
         return this;
     }
@@ -357,7 +359,7 @@ public class RequestChain<T> where T : PlatformCollectionDocument
     public RequestChain<T> Sort(Action<SortChain<T>> sort)
     {
         if (_sort != null)
-            Log.Warn(Owner.Default, $"Only one call to MINQ {nameof(Sort)} can be honored per request.  Combine them into one call.");
+            Log.Warn($"Only one call to MINQ {nameof(Sort)} can be honored per request.  Combine them into one call.");
         SortChain<T> chain = new ();
         sort.Invoke(chain);
 
@@ -389,7 +391,7 @@ public class RequestChain<T> where T : PlatformCollectionDocument
     private void WarnOnFilterOverwrite(string method)
     {
         if (_filter != null && Minq<T>.Render(_filter) != EmptyRenderedFilter)
-            Log.Warn(Owner.Default, $"Filter was not empty when {method}() was called.  {method}() overrides previous filters.  Is this intentional?");
+            Log.Warn($"Filter was not empty when {method}() was called.  {method}() overrides previous filters.  Is this intentional?");
     }
     
     #region Index Management
@@ -416,7 +418,7 @@ public class RequestChain<T> where T : PlatformCollectionDocument
 
         if (stats == null)
         {
-            Log.Warn(Owner.Will, "MongoQueryStats was null; investigation needed, auto-indexing disabled for this query.");
+            Log.Warn("MongoQueryStats was null; investigation needed, auto-indexing disabled for this query.");
             return;
         }
 
@@ -426,9 +428,9 @@ public class RequestChain<T> where T : PlatformCollectionDocument
                 return;
 
             if (stats.IsPartiallyCovered)
-                Log.Info(Owner.Will, "A MINQ query was partially covered by existing indexes; a new index will be added");
+                Log.Info("A MINQ query was partially covered by existing indexes; a new index will be added");
             else if (stats.IsNotCovered)
-                Log.Warn(Owner.Will, "A MINQ query is not covered by any index; a new index will be added");
+                Log.Warn("A MINQ query is not covered by any index; a new index will be added");
             
             suggested.Name = $"{MinqIndex.INDEX_PREFIX}{next}";
             CreateIndexModel<BsonDocument> model = suggested.GenerateIndexModel();
@@ -437,7 +439,7 @@ public class RequestChain<T> where T : PlatformCollectionDocument
 
             Minq<T>.TryRender(_filter, out FlexJson filterJson, out string filterString);
             
-            Log.Info(Owner.Will, "MINQ automatically created an index", data: new
+            Log.Info("MINQ automatically created an index", data: new
             {
                 Collection = _collection.CollectionNamespace.CollectionName,
                 IndexName = suggested.Name,
@@ -447,7 +449,7 @@ public class RequestChain<T> where T : PlatformCollectionDocument
         }
         catch (Exception e)
         {
-            Log.Error(Owner.Will, stats.DocumentsReturned > 1_000 
+            Log.Error(stats.DocumentsReturned > 1_000 
                 ? "Unable to create automatic MINQ index, and the query scanned many documents; investigation required" 
                 : "Unable to create automatic MINQ index; investigation possibly needed",
                 data: new
@@ -488,7 +490,7 @@ public class RequestChain<T> where T : PlatformCollectionDocument
         }
         catch (Exception e)
         {
-            Log.Error(Owner.Will, "Unable to parse Mongo explanation", exception: e);
+            Log.Error("Unable to parse Mongo explanation", exception: e);
         }
     }
     
@@ -554,7 +556,7 @@ public class RequestChain<T> where T : PlatformCollectionDocument
         catch (Exception e)
         {
             if (e is RequestConsumedException<T> consumed)
-                Log.Error(Owner.Default, "Request has already been consumed; MINQ will return a default value.");
+                Log.Error("Request has already been consumed; MINQ will return a default value.");
             Transaction?.TryAbort();
             return 0;
         }
@@ -721,7 +723,7 @@ public class RequestChain<T> where T : PlatformCollectionDocument
             long timeTaken = TimestampMs.Now - start;
             
             if (UsingTransaction && timeTaken > 20_000)
-                Log.Warn(Owner.Default, $"{nameof(Process)} took a while to execute and is using a transaction; this may fail if over 30s", data: new
+                Log.Warn($"{nameof(Process)} took a while to execute and is using a transaction; this may fail if over 30s", data: new
                 {
                     TimeTakenMs = timeTaken
                 });
@@ -759,7 +761,7 @@ public class RequestChain<T> where T : PlatformCollectionDocument
         }
         catch (Exception e)
         {
-            Log.Local(Owner.Will, e.Message, emphasis: Log.LogType.ERROR);
+            Log.Verbose(e.Message);
             Transaction?.TryAbort();
             return Array.Empty<U>();
         }
@@ -838,7 +840,7 @@ public class RequestChain<T> where T : PlatformCollectionDocument
         try
         {
             if (_limit > 0)
-                Log.Local(Owner.Default, "Update called with a Limit; Limit is unsupported by the Mongo driver and may be unintentional.");
+                Log.Verbose("Update called with a Limit; Limit is unsupported by the Mongo driver and may be unintentional.");
             
             long output = (UsingTransaction
                 ? _collection.UpdateMany(Transaction.Session, _filter, _update)
@@ -963,7 +965,7 @@ public class RequestChain<T> where T : PlatformCollectionDocument
         Consume();
         
         if (_limit == 0)
-            Log.Warn(Owner.Will, $"Use {nameof(Limit)}() to avoid a potential performance issue with {nameof(UpdateAndReturn)}() with large data sets.", data: new
+            Log.Warn($"Use {nameof(Limit)}() to avoid a potential performance issue with {nameof(UpdateAndReturn)}() with large data sets.", data: new
             {
                 maxLimit = MAX_LIMIT
             });
@@ -1154,7 +1156,7 @@ public class RequestChain<T> where T : PlatformCollectionDocument
         }
         catch (Exception e)
         {
-            Log.Error(Owner.Default, "Unable to UpsertMany due to an exception", exception: e);
+            Log.Error("Unable to UpsertMany due to an exception", exception: e);
             Transaction?.TryAbort();
             return 0;
         }
@@ -1215,7 +1217,7 @@ public class RequestChain<T> where T : PlatformCollectionDocument
         }
         catch (Exception e)
         {
-            Log.Error(Owner.Default, "Unable to Upsert due to an exception", exception: e);
+            Log.Error("Unable to Upsert due to an exception", exception: e);
             Transaction?.TryAbort();
             return null;
         }
@@ -1294,7 +1296,7 @@ public class RequestChain<T> where T : PlatformCollectionDocument
         T searchModel = (T)Activator.CreateInstance(typeof(T));
         if (searchModel is not ISearchable<T> searchable)
         {
-            Log.Error(Owner.Default, $"In order to use {nameof(Minq<T>)}.{nameof(Search)}, your model must implement {nameof(ISearchable<T>)}.");
+            Log.Error($"In order to use {nameof(Minq<T>)}.{nameof(Search)}, your model must implement {nameof(ISearchable<T>)}.");
             return Array.Empty<T>();
         }
 
@@ -1303,15 +1305,15 @@ public class RequestChain<T> where T : PlatformCollectionDocument
         
         if (typeof(T).IsAssignableFrom(typeof(ISearchable<T>)))
         {
-            Log.Error(Owner.Default, $"In order to use {nameof(Minq<T>)}.{nameof(Search)}, your model must implement {nameof(ISearchable<T>)}.");
+            Log.Error($"In order to use {nameof(Minq<T>)}.{nameof(Search)}, your model must implement {nameof(ISearchable<T>)}.");
             return Array.Empty<T>();
         }
 
         if (terms.Length > ISearchable<T>.MAXIMUM_TERMS)
-            Log.Local(Owner.Default, $"Too many search terms provided; only {ISearchable<T>.MAXIMUM_TERMS} are used.", emphasis: Log.LogType.WARN);
+            Log.Verbose($"Too many search terms provided; only {ISearchable<T>.MAXIMUM_TERMS} are used.");
         if (fields.Length > ISearchable<T>.MAXIMUM_FIELDS)
         {
-            Log.Error(Owner.Default, $"Too many search fields provided; search will return no results.", data: new
+            Log.Error($"Too many search fields provided; search will return no results.", data: new
             {
                 FieldCount = fields.Length,
                 AllowedCount = ISearchable<T>.MAXIMUM_FIELDS
@@ -1323,7 +1325,7 @@ public class RequestChain<T> where T : PlatformCollectionDocument
             _limit = 25;
         else if (_limit > ISearchable<T>.MAXIMUM_LIMIT)
         {
-            Log.Warn(Owner.Default, "Search result limit exceeded and has been lowered by common.  Searches are expensive; lower your limit.");
+            Log.Warn("Search result limit exceeded and has been lowered by common.  Searches are expensive; lower your limit.");
             _limit = ISearchable<T>.MAXIMUM_LIMIT;
         }
 
@@ -1331,7 +1333,7 @@ public class RequestChain<T> where T : PlatformCollectionDocument
 
         if (!sanitizedTerms.Any())
         {
-            Log.Warn(Owner.Default, $"No valid search terms detected; {nameof(Search)}() will return an empty array.");
+            Log.Warn($"No valid search terms detected; {nameof(Search)}() will return an empty array.");
             return Array.Empty<T>();
         }
         

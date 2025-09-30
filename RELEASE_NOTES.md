@@ -43,7 +43,7 @@ _apiService
     .OnFailure((sender, response) =>
     {
         // Can add diagnostics here for when the code isn't 2xx
-        Log.Error(Owner.Will, "Unable to generate token."); 
+        Log.Error("Unable to generate token."); 
     })
     .Post(out GenericData response, out int code); // all HTTP methods available
 ```

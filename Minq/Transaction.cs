@@ -1,6 +1,6 @@
 using System;
+using Maynard.Logging;
 using MongoDB.Driver;
-using Rumble.Platform.Common.Enums;
 using Rumble.Platform.Common.Utilities;
 
 namespace Rumble.Platform.Common.Minq;
@@ -43,14 +43,14 @@ public class Transaction
         {
             Session.AbortTransaction();
             Status = TransactionStatus.Aborted;
-            Log.Warn(Owner.Default, "MINQ transaction aborted.");
+            Log.Warn("MINQ transaction aborted.");
             Consumed = true;
             return true;
         }
         catch (Exception e)
         {
             Status = TransactionStatus.Failed;
-            Log.Error(Owner.Default, "Unable to abort Transaction.", exception: e);
+            Log.Error("Unable to abort Transaction.", exception: e);
             Consumed = true;
             return false;
         }
@@ -70,7 +70,7 @@ public class Transaction
         catch (Exception e)
         {
             Status = TransactionStatus.Failed;
-            Log.Error(Owner.Default, "Unable to commit Transaction.", exception: e);
+            Log.Error("Unable to commit Transaction.", exception: e);
             Consumed = true;
             return false;
         }

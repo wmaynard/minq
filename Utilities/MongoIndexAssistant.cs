@@ -1,7 +1,7 @@
 using System.Linq;
+using Maynard.Logging;
 using MongoDB.Driver;
 using Rumble.Platform.Common.Attributes;
-using Rumble.Platform.Common.Enums;
 using Rumble.Platform.Common.Extensions;
 using Rumble.Platform.Common.Models;
 using Rumble.Platform.Common.Utilities.JsonTools;
@@ -90,7 +90,7 @@ public static class MongoIndexAssistant
                 try
                 {
                     collection.Indexes.DropOne(index.Name);
-                    Log.Warn(Owner.Will, "Mongo index dropped.  If this is not rare, treat it as an error.", new
+                    Log.Warn("Mongo index dropped.  If this is not rare, treat it as an error.", new
                     {
                         Name = index.Name,
                         Collection = collection.CollectionNamespace
@@ -98,7 +98,7 @@ public static class MongoIndexAssistant
                 }
                 catch (MongoCommandException e)
                 {
-                    Log.Error(Owner.Default, "Unable to drop index.", data: new
+                    Log.Error("Unable to drop index.", data: new
                     {
                         Name = index.Name,
                         Collection = collection.CollectionNamespace
@@ -111,7 +111,7 @@ public static class MongoIndexAssistant
             }
             catch (MongoCommandException e)
             {
-                Log.Error(Owner.Will, $"Unable to create index.", data: new
+                Log.Error($"Unable to create index.", data: new
                 {
                     Name = index.Name,
                     Collection = collection.CollectionNamespace

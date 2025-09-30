@@ -2,7 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Timers;
-using Rumble.Platform.Common.Enums;
+using Maynard.Logging;
+using Maynard.Time;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Common.Utilities.JsonTools;
 
@@ -43,13 +44,13 @@ public abstract class MinqTimerService<T> : MinqService<T> where T : PlatformCol
         }
         catch (Exception e)
         {
-            Log.Error(Owner.Default, "MinqTimerService.OnElapsed failed.", exception: e);
+            Log.Error("MinqTimerService.OnElapsed failed.", exception: e);
 
             Failures.Add(Timestamp.Now);
             CoolingOff = Failures.Count > FAILURE_TOLERANCE;
 
             if (CoolingOff)
-                Log.Error(Owner.Default, $"{GetType().Name} has hit enough errors to enter a cooldown!  It will restart in one hour.");
+                Log.Error($"{GetType().Name} has hit enough errors to enter a cooldown!  It will restart in one hour.");
         }
         Timer.Start();
     }

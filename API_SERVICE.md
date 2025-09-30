@@ -67,7 +67,7 @@ await _apiService
     .AddAuthorization($"Bearer {PlatformEnvironment.SlackLogBotToken}")
     .OnFailure(response =>
     {
-        Log.Local(Owner.Default, "Unable to fetch Slack user information.", data: new 
+        Log.Local("Unable to fetch Slack user information.", data: new 
         {
             Response = response;
         });
@@ -76,7 +76,7 @@ await _apiService
     {
         foreach (GenericData memberData in response.AsGenericData.Require<GenericData[]>(key: "members"))
             users.Add(memberData);
-        Log.Local(Owner.Default, "Slack member data loaded.");
+        Log.Local("Slack member data loaded.");
     })
     .GetAsync();
 ```

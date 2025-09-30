@@ -5,6 +5,7 @@ using System.Linq.Expressions;
 using System.Reflection;
 using System.Text.Json.Serialization;
 using Maynard.Json;
+using Maynard.Logging;
 using Microsoft.AspNetCore.Http;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
@@ -12,7 +13,6 @@ using MongoDB.Bson.Serialization.Conventions;
 using MongoDB.Driver;
 using MongoDB.Driver.Core.Clusters;
 using Rumble.Platform.Common.Attributes;
-using Rumble.Platform.Common.Enums;
 using Rumble.Platform.Common.Interfaces;
 using Rumble.Platform.Common.Models;
 using Rumble.Platform.Common.Utilities;
@@ -60,9 +60,9 @@ public abstract class PlatformMongoService<Model> : PlatformService, IPlatformMo
         // Database = PlatformEnvironment.MongoDatabaseName;
 
         if (string.IsNullOrEmpty(Connection))
-            Log.Error(Owner.Default, $"Missing Mongo-related environment variable 'MONGODB_URI'.");
+            Log.Error($"Missing Mongo-related environment variable 'MONGODB_URI'.");
         if (string.IsNullOrEmpty(Database))
-            Log.Error(Owner.Default, $"Missing Mongo-related environment variable 'MONGODB_DATABASE'.");
+            Log.Error($"Missing Mongo-related environment variable 'MONGODB_DATABASE'.");
 
         _client ??= CreateClient(Connection);
 
@@ -92,7 +92,7 @@ public abstract class PlatformMongoService<Model> : PlatformService, IPlatformMo
 
     private void StartTransaction(out IClientSessionHandle session, bool attributeOverride)
     {
-        Log.Verbose(Owner.Default, "Starting MongoDB transaction.");
+        Log.Verbose("Starting MongoDB transaction.");
         session = _client.StartSession();
         try
         {
@@ -103,7 +103,7 @@ public abstract class PlatformMongoService<Model> : PlatformService, IPlatformMo
             // MongoDB Transactions are not supported in non-clustered environments ("standalone servers").  Mark the context field as false so we don't keep retrying.
             // This should not affect deployed code - only local.
             // if (!PlatformEnvironment.IsLocal)
-                Log.Error(Owner.Default, "Unable to start a MongoDB transaction.", exception: e);
+                Log.Error("Unable to start a MongoDB transaction.", exception: e);
             return;
         }
     }
@@ -154,7 +154,7 @@ public abstract class PlatformMongoService<Model> : PlatformService, IPlatformMo
     {
         Model output = _collection.Find(filter: model => model.Id == id).FirstOrDefault();
         if (output == null)
-            Log.Warn(Owner.Default, "The specified document ID does not exist in MongoDB.", data: new
+            Log.Warn("The specified document ID does not exist in MongoDB.", data: new
             {
                 Id = id,
                 Model = typeof(Model).Name,
@@ -175,7 +175,7 @@ public abstract class PlatformMongoService<Model> : PlatformService, IPlatformMo
     {
         if (depth <= 0)
         {
-            Log.Error(Owner.Default, "Maximum depth exceeded for Mongo indexes.");
+            Log.Error("Maximum depth exceeded for Mongo indexes.");
             return Array.Empty<PlatformMongoIndex>();
         }
 
@@ -215,7 +215,7 @@ public abstract class PlatformMongoService<Model> : PlatformService, IPlatformMo
         if (bson != null)
             return output.ToArray();
         if (output.Any())
-            Log.Warn(Owner.Default, "Unable to create indexes without a BsonElement attribute also present on a property.", data: new
+            Log.Warn("Unable to create indexes without a BsonElement attribute also present on a property.", data: new
             {
                 Name = property.Name
             });
@@ -317,12 +317,12 @@ public abstract class PlatformMongoService<Model> : PlatformService, IPlatformMo
                 // TODO: Create indexes given a Collection, as opposed to the below filtering.
                 MongoIndexAssistant.CreateIndexes(collection);
 
-                Log.Verbose(Owner.Will, $"Creating indexes for {collection?.CollectionNamespace}");
+                Log.Verbose($"Creating indexes for {collection?.CollectionNamespace}");
             }
         }
         catch (Exception e)
         {
-            Log.Warn(Owner.Will, "Unable to scan member Mongo Collections to create indexes (WIP feature)", exception: e);
+            Log.Warn("Unable to scan member Mongo Collections to create indexes (WIP feature)", exception: e);
         }
         
         PlatformMongoIndex[] indexes = ExtractIndexes();
@@ -404,7 +404,7 @@ public abstract class PlatformMongoService<Model> : PlatformService, IPlatformMo
                 try
                 {
                     _collection.Indexes.DropOne(index.Name);
-                    Log.Warn(Owner.Will, "Mongo index dropped.  If this is not rare, treat it as an error.", new
+                    Log.Warn("Mongo index dropped.  If this is not rare, treat it as an error.", new
                     {
                         Name = index.Name,
                         Collection = _collection.CollectionNamespace
@@ -412,7 +412,7 @@ public abstract class PlatformMongoService<Model> : PlatformService, IPlatformMo
                 }
                 catch (MongoCommandException e)
                 {
-                    Log.Error(Owner.Default, "Unable to drop index.", data: new
+                    Log.Error("Unable to drop index.", data: new
                     {
                         Name = index.Name,
                         Collection = _collection.CollectionNamespace
@@ -425,7 +425,7 @@ public abstract class PlatformMongoService<Model> : PlatformService, IPlatformMo
             }
             catch (MongoCommandException e)
             {
-                Log.Error(Owner.Will, $"Unable to create index.", data: new
+                Log.Error($"Unable to create index.", data: new
                 {
                     Name = index.Name,
                     Collection = _collection.CollectionNamespace
@@ -450,7 +450,7 @@ public abstract class PlatformMongoService<Model> : PlatformService, IPlatformMo
             return;
 
         _database.CreateCollection(name);
-        Log.Info(Owner.Will, $"Created collection '{name}'");
+        Log.Info($"Created collection '{name}'");
         }
         catch (Exception e)
         {
@@ -462,7 +462,7 @@ public abstract class PlatformMongoService<Model> : PlatformService, IPlatformMo
                 if (colon > -1)
                     command = $" ({msg[..colon]})";
             }
-            Log.Error(Owner.Will, $"Unable to create collection on '{_database.DatabaseNamespace.DatabaseName}'{command}.  This is likely a permissions or IP issue.  Try logging into Portal on dev to rule out a whitelist problem.", exception: e);
+            Log.Error($"Unable to create collection on '{_database.DatabaseNamespace.DatabaseName}'{command}.  This is likely a permissions or IP issue.  Try logging into Portal on dev to rule out a whitelist problem.", exception: e);
             Environment.Exit(1);
         }
     }
@@ -475,9 +475,9 @@ public abstract class PlatformMongoService<Model> : PlatformService, IPlatformMo
         _collection.DeleteMany(session, filter: model => true);
     else
         _collection.DeleteMany(filter: model => true);
-    Log.Local(Owner.Default, "All documents deleted.");
+    Log.Verbose("All documents deleted.");
     #else
-    Log.Error(Owner.Default, "Deleting all documents in a collection is not supported outside of local / debug environments.", data: new
+    Log.Error("Deleting all documents in a collection is not supported outside of local / debug environments.", data: new
     {
         Details = "If this call truly is intended, you need to override the DeleteAll method in your service and will need to manually control the Mongo transactions (if using them).",
         Service = GetType().FullName
@@ -510,11 +510,12 @@ public abstract class PlatformMongoService<Model> : PlatformService, IPlatformMo
     /// PII (personally identifiable information), whether by deletion or replacing with dummy text, and return the affected
     /// record count.
     /// </summary>
-    /// <param name="token">The token information of the user requesting a deletion request.</param>
+    /// <param name="accountId">The accountId of the user requesting a deletion request.</param>
+    /// <param name="dummyText">A dummy text string to replace PII with.</param>
     /// <returns>The affected record count.</returns>
-    public virtual long ProcessGdprRequest(TokenInfo token, string dummyText)
+    public virtual long ProcessGdprRequest(string accountId, string dummyText)
     {
-        Log.Verbose(Owner.Default, $"A GDPR request was received but no process has been defined", data: new
+        Log.Verbose($"A GDPR request was received but no process has been defined", data: new
         {
             Service = GetType().Name
         });

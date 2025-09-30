@@ -1,7 +1,7 @@
 using System;
 using System.Timers;
 using Maynard.Json;
-using Rumble.Platform.Common.Enums;
+using Maynard.Logging;
 using Rumble.Platform.Common.Utilities;
 
 namespace Rumble.Platform.Common.Services;
@@ -26,7 +26,7 @@ public abstract class PlatformTimerService : PlatformService, IDisposable
             }
             catch (Exception e)
             {
-                Log.Error(Owner.Default, $"{GetType().Name}.OnElapsed failed.", exception: e);
+                Log.Error($"{GetType().Name}.OnElapsed failed.", exception: e);
             }
             Resume();
         };
@@ -58,7 +58,7 @@ public abstract class PlatformTimerService : PlatformService, IDisposable
             }
             catch (Exception e)
             {
-                Log.Error(Owner.Default, "Unable to set timer service interval.", exception: e);
+                Log.Error("Unable to set timer service interval.", exception: e);
             }
         }
     }

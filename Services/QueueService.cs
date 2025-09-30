@@ -5,10 +5,11 @@ using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
 using Maynard.Json;
+using Maynard.Logging;
+using Maynard.Time;
 using MongoDB.Bson.Serialization.Attributes;
 using MongoDB.Driver;
 using Rumble.Platform.Common.Attributes;
-using Rumble.Platform.Common.Enums;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Common.Utilities.JsonTools;
 
@@ -69,7 +70,7 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
         UpsertConfig();
         
         #if DEBUG
-        Log.Local(Owner.Will, "Debug build detected; newer QueueService instances always confiscate control locally.", emphasis: Log.LogType.CRITICAL);
+        Log.Verbose("Debug build detected; newer QueueService instances always confiscate control locally.");
         Confiscate();
         #endif
     }
@@ -88,7 +89,7 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
         ).ModifiedCount;
 
         if (affected > 0)
-            Log.Local(Owner.Default, $"Acknowledged {affected} tasks.");
+            Log.Verbose($"Acknowledged {affected} tasks.");
 
         return data;
     }
@@ -106,7 +107,7 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
     public void WipeDatabase()
     {
         {
-            Log.Critical(Owner.Default, "Code attempted to wipe a database outside of a local environment.  This is not allowed.");
+            Log.Alert("Code attempted to wipe a database outside of a local environment.  This is not allowed.");
             return;
         }
 
@@ -146,7 +147,7 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
                     try
                     {
                         if (!_sendTaskResultsWhenTheyAreCompleted)
-                            Log.Verbose(Owner.Will, "Tasks completed.  Acknowledging tasks and firing event.");
+                            Log.Verbose("Tasks completed.  Acknowledging tasks and firing event.");
 
                         T[] tasks = AcknowledgeTasks();
 
@@ -155,7 +156,7 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
                     }
                     catch (Exception e)
                     {
-                        Log.Error(Owner.Default, "Could not successfully execute OnTasksCompleted().", exception: e);
+                        Log.Error("Could not successfully execute OnTasksCompleted().", exception: e);
                     }
                 
                 AbandonOldTrackedTasks();
@@ -166,8 +167,8 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
             }
             catch (Exception e)
             {
-                Log.Error(Owner.Default, $"Error executing primary node work, {e.Message}", exception: e);
-                Log.Local(Owner.Default, $"({e.Message})", emphasis: Log.LogType.ERROR);
+                Log.Error($"Error executing primary node work, {e.Message}", exception: e);
+                Log.Verbose($"({e.Message})");
             }
         else
             for (int count = SecondaryTaskCount; count > 0; count--)
@@ -236,7 +237,7 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
             update: Builders<QueueConfig>.Update.Set(config => config.Waitlist, trimmed)
         );
         
-        Log.Local(Owner.Will, $"Stopped waiting on {affected} tasks.");
+        Log.Verbose($"Stopped waiting on {affected} tasks.");
     }
 
     private void RemoveWaitlistOrphans()
@@ -264,7 +265,7 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
                     filter: Builders<string>.Filter.Where(id => orphans.Contains(id))
                 )
             );
-        Log.Warn(Owner.Will, "Found orphaned tasks in the waitlist.", data: new { Orphans = orphans });
+        Log.Warn("Found orphaned tasks in the waitlist.", data: new { Orphans = orphans });
     }
 
     /// <summary>
@@ -314,7 +315,7 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
         QueueConfig config = _config.Find(config => config.Type == TaskData.TaskType.Config).FirstOrDefault();
         if (config == null)
         {
-            Log.Error(Owner.Default, "QueueService config not found.");
+            Log.Error("QueueService config not found.");
             return;
         }
 
@@ -374,7 +375,7 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
                 .Set(task => task.Status, QueuedTask.TaskStatus.NotStarted)
         ).ModifiedCount;
         if (affected > 0)
-            Log.Warn(Owner.Default, "A queue stalled on at least one task and reset them for processing.", data: new
+            Log.Warn("A queue stalled on at least one task and reset them for processing.", data: new
             {
                 Help = "This likely happened because a service instance was in the middle of processing and was forcefully shut down.  If the claiming server is still running, however, it's possible that this will result in duplication of work.",
                 StalledTaskCount = affected
@@ -491,7 +492,7 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
         }
         catch (Exception e)
         {
-            Log.Error(Owner.Default, "Unable to complete queuedTask!", data: task.Data, exception: e);
+            Log.Error("Unable to complete queuedTask!", data: task.Data, exception: e);
             try
             {
                 if (!FailTask(task))
@@ -499,7 +500,7 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
             }
             catch (Exception nested)
             {
-                Log.Critical(Owner.Default, "Could not fail queuedTask!  It was probably deleted!", exception: nested);
+                Log.Alert("Could not fail queuedTask!  It was probably deleted!", exception: nested);
             }
         }
 
@@ -519,7 +520,7 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
                 Builders<QueueConfig>.Filter.Or(
                     Builders<QueueConfig>.Filter.Eq(config => config.PrimaryServiceId, Id),
                     Builders<QueueConfig>.Filter.Eq(config => config.PrimaryServiceId, null),
-                    Builders<QueueConfig>.Filter.Lte(config => config.LastActive, !PreferOffCluster || PlatformEnvironment.IsOffCluster
+                    Builders<QueueConfig>.Filter.Lte(config => config.LastActive, !PreferOffCluster
                         ? TimestampMs.FifteenMinutesAgo
                         : TimestampMs.ThirtyMinutesAgo
                     )
@@ -547,7 +548,7 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
             Builders<QueueConfig>.Filter.Or(
                 Builders<QueueConfig>.Filter.Eq(config => config.PrimaryServiceId, Id),
                 Builders<QueueConfig>.Filter.Eq(config => config.PrimaryServiceId, null),
-                Builders<QueueConfig>.Filter.Lte(config => config.LastActive, PreferOffCluster && PlatformEnvironment.IsOffCluster
+                Builders<QueueConfig>.Filter.Lte(config => config.LastActive, PreferOffCluster
                     ? TimestampMs.FifteenMinutesAgo
                     : TimestampMs.ThirtyMinutesAgo
                 )
@@ -570,7 +571,7 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
         ).ModifiedCount;
         
         if (affected > 0)
-            Log.Error(Owner.Default, "Abandoned old tracked quests.  Processed tasks were unable to update the queue config properly.", data: new
+            Log.Error("Abandoned old tracked quests.  Processed tasks were unable to update the queue config properly.", data: new
             {
                 DroppedTasks = affected
             });

@@ -268,11 +268,11 @@ _apiService
     .SetPayload(payload)
     .OnSuccess((sender, response) =>
     {
-        Log.Local(Owner.Will, "Token generation successful.");
+        Log.Local("Token generation successful.");
     })
     .OnFailure((sender, response) =>
     {
-        Log.Error(Owner.Will, "Unable to generate token.");
+        Log.Error("Unable to generate token.");
     })
     .Post(out GenericData response, out int code);
 ```

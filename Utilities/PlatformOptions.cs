@@ -2,8 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Rumble.Platform.Common.Enums;
+using Maynard.Logging;
 using Rumble.Platform.Common.Extensions;
+using Maynard.Extensions;
 
 namespace Rumble.Platform.Common.Utilities;
 
@@ -17,7 +18,6 @@ public class PlatformOptions
     public const int DEFAULT_THROTTLE_THRESHOLD = 100;
     public const int DEFAULT_THROTTLE_PERIOD    = 3_600; // 1 hour
 
-    internal Owner ProjectOwner { get; set; }
     internal string ServiceName { get; set; }
     internal Type[] DisabledServices { get; set; }
 
@@ -38,7 +38,6 @@ public class PlatformOptions
 
     internal PlatformOptions()
     {
-        ProjectOwner = Owner.Default;
         CustomFilters = new List<Type>();
         DisabledServices = Array.Empty<Type>();
         WebServerEnabled = false;
@@ -53,15 +52,6 @@ public class PlatformOptions
 
     private static T GetFullSet<T>() where T : Enum => ((T[])Enum.GetValues(typeof(T))).First().FullSet();
 
-    /// <summary>
-    /// Sets the default owner for logs.  This is a requirement to tag the appropriate point of contact for errors
-    /// in platform-common.
-    /// </summary>
-    public PlatformOptions SetProjectOwner(Owner owner) 
-    {
-        ProjectOwner = owner;
-        return this;
-    }
 
     public PlatformOptions OnBeforeStartup(Func<Task> action)
     {
@@ -149,23 +139,16 @@ public class PlatformOptions
         return this;
     }
 
-    public PlatformOptions SuppressStartupLogs()
-    {
-        Log.Suppressed = true;
-
-        return this;
-    }
-
     internal PlatformOptions Validate()
     {
         if (DisabledServices.Any())
-            Log.Local(ProjectOwner, "Some platform-common services have been disabled.  If you block a service that is used in dependency injection, the application will fail to start.  Other side effects are also possible.", data: new
+            Log.Verbose("Some platform-common services have been disabled.  If you block a service that is used in dependency injection, the application will fail to start.  Other side effects are also possible.", data: new
             {
                 DisabledServices = DisabledServices.Select(type => type.Name)
-            }, emphasis: Log.LogType.WARN);
+            });
         if (LogThrottleThreshold < MINIMUM_THROTTLE_THRESHOLD)
         {
-            Log.Info(ProjectOwner, "The log throttling threshold is too low and will be set to a minimum.", data: new
+            Log.Info("The log throttling threshold is too low and will be set to a minimum.", data: new
             {
                 MinimumThreshold = MINIMUM_THROTTLE_THRESHOLD
             });
@@ -173,7 +156,7 @@ public class PlatformOptions
         }
         if (LogThrottlePeriodSeconds < MINIMUM_THROTTLE_PERIOD)
         {
-            Log.Info(ProjectOwner, "The log throttling period is too low and will be set to a minimum.", data: new
+            Log.Info("The log throttling period is too low and will be set to a minimum.", data: new
             {
                 MinimumPeriod = MINIMUM_THROTTLE_PERIOD
             });

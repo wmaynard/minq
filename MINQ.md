@@ -239,19 +239,19 @@ mongo
     .Process(batchSize: 10, onBatch: data =>
     {
         Player[] batch = data.Results;
-        Log.Info(Owner.Default, "MINQ processing {data.PercentComplete}% complete.");
+        Log.Info("MINQ processing {data.PercentComplete}% complete.");
         foreach (Player player in batch)
         {
             // Do something with each player here
             if (...)          // critical error condition
             {
                 data.Stop();
-                Log.Error(Owner.Default, $"MINQ processing failed after {data.Processed} records.");
+                Log.Error($"MINQ processing failed after {data.Processed} records.");
             }
         }
         
         if (data.Remaining == 0)
-            Log.Info(Owner.Default, "MINQ processing complete.");
+            Log.Info("MINQ processing complete.");
     });
 ```
 

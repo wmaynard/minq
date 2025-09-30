@@ -3,8 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using Maynard.Json;
+using Maynard.Logging;
 using MongoDB.Driver;
-using Rumble.Platform.Common.Enums;
 using Rumble.Platform.Common.Utilities;
 
 namespace Rumble.Platform.Common.Minq;
@@ -24,7 +24,7 @@ public class SortChain<T> where T : Model
     public SortChain<T> OrderBy(Expression<Func<T, object>> field)
     {
         if (Definitions.Any())
-            Log.Warn(Owner.Default, $"Minq {nameof(OrderBy)}() called after a {nameof(OrderBy)}(); this is discouraged style");
+            Log.Warn($"Minq {nameof(OrderBy)}() called after a {nameof(OrderBy)}(); this is discouraged style");
         Definitions.Add(Builder.Ascending(field));
         return this;
     }
@@ -32,7 +32,7 @@ public class SortChain<T> where T : Model
     public SortChain<T> OrderByDescending(Expression<Func<T, object>> field)
     {
         if (Definitions.Any())
-            Log.Warn(Owner.Default, $"Minq {nameof(OrderByDescending)}() called after a {nameof(OrderBy)}(); this is discouraged style");
+            Log.Warn($"Minq {nameof(OrderByDescending)}() called after a {nameof(OrderBy)}(); this is discouraged style");
         Definitions.Add(Builder.Descending(field));
         return this;
     }
@@ -40,7 +40,7 @@ public class SortChain<T> where T : Model
     public SortChain<T> ThenBy(Expression<Func<T, object>> field)
     {
         if (!Definitions.Any())
-            Log.Warn(Owner.Default, $"Minq {nameof(ThenBy)}() called before an {nameof(OrderBy)}(); this is discouraged style");
+            Log.Warn($"Minq {nameof(ThenBy)}() called before an {nameof(OrderBy)}(); this is discouraged style");
         Definitions.Add(Builder.Ascending(field));
         return this;
     }
@@ -48,7 +48,7 @@ public class SortChain<T> where T : Model
     public SortChain<T> ThenByDescending(Expression<Func<T, object>> field)
     {
         if (!Definitions.Any())
-            Log.Warn(Owner.Default, $"Minq {nameof(ThenBy)}() called before an {nameof(OrderBy)}(); this is discouraged style");
+            Log.Warn($"Minq {nameof(ThenBy)}() called before an {nameof(OrderBy)}(); this is discouraged style");
         Definitions.Add(Builder.Descending(field));
         return this;
     }

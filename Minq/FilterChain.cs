@@ -4,11 +4,11 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Text.RegularExpressions;
 using Maynard.Json;
+using Maynard.Logging;
 using MongoDB.Bson;
 using MongoDB.Bson.IO;
 using MongoDB.Bson.Serialization;
 using MongoDB.Driver;
-using Rumble.Platform.Common.Enums;
 using Rumble.Platform.Common.Extensions;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Common.Utilities.JsonTools;
@@ -307,7 +307,7 @@ public class FilterChain<T>
         and.Invoke(filter);
         
         if (filter.Filters.Count <= 1)
-            Log.Warn(Owner.Default, "FilterChain.And called with one or fewer filters; this is probably an oversight.", data: new
+            Log.Warn("FilterChain.And called with one or fewer filters; this is probably an oversight.", data: new
             {
                 Help = "And() creates a && operation between all filters inside its body.  Consequently its intended use must have more than one filter to be effective.  It will work as is, but should be refactored out."
             });
@@ -331,7 +331,7 @@ public class FilterChain<T>
         or.Invoke(filter);
         
         if (filter.Filters.Count <= 1)
-            Log.Warn(Owner.Default, "FilterChain.Or called with one or fewer filters; this is probably an oversight.", data: new
+            Log.Warn("FilterChain.Or called with one or fewer filters; this is probably an oversight.", data: new
             {
                 Help = "Or() creates a || operation between all filters inside its body.  Consequently its intended use must have more than one filter to be effective."
             });

@@ -1,4 +1,4 @@
-using Rumble.Platform.Common.Enums;
+using Maynard.Logging;
 using Rumble.Platform.Common.Models;
 using Rumble.Platform.Common.Services;
 using Rumble.Platform.Common.Utilities;
@@ -38,7 +38,7 @@ public abstract class MinqService<Model> : PlatformService, IGdprHandler where M
         long output = 0;
 
         // if (!PlatformEnvironment.IsLocal || PlatformEnvironment.MongoConnectionString.Contains("-prod"))
-            Log.Critical(Owner.Default, "Code attempted to wipe a database outside of a local environment.  This is not allowed.");
+            Log.Alert("Code attempted to wipe a database outside of a local environment.  This is not allowed.");
         // else
             output = mongo.All().Delete();
 
@@ -56,11 +56,12 @@ public abstract class MinqService<Model> : PlatformService, IGdprHandler where M
     /// PII (personally identifiable information), whether by deletion or replacing with dummy text, and return the affected
     /// record count.
     /// </summary>
-    /// <param name="token">The token information of the user requesting a deletion request.</param>
+    /// <param name="accountId">The accountId of the user requesting a deletion request.</param>
+    /// <param name="dummyText">A dummy text string to replace PII with.</param>
     /// <returns>The affected record count.</returns>
-    public virtual long ProcessGdprRequest(TokenInfo token, string dummyText)
+    public virtual long ProcessGdprRequest(string accountId, string dummyText)
     {
-        Log.Verbose(Owner.Default, $"A GDPR request was received but no process has been defined", data: new
+        Log.Verbose($"A GDPR request was received but no process has been defined", data: new
         {
             Service = GetType().Name
         });

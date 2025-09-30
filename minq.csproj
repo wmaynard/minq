@@ -37,12 +37,7 @@
 	</ItemGroup>
 	
 	<ItemGroup>
-	  <ProjectReference Include="..\flex-json\flex-json.csproj" />
-	  <ProjectReference Include="..\Logging\basic-utilities.csproj" />
-	</ItemGroup>
-	
-	<ItemGroup>
-	  <Folder Include="Exceptions\" />
+	  <ProjectReference Include="..\basic-utilities\basic-utilities.csproj" />
 	</ItemGroup>
 	
 	<ItemGroup>

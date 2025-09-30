@@ -3,8 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
+using Maynard.Extensions;
+using Maynard.Logging;
 using MongoDB.Bson.Serialization.Attributes;
-using Rumble.Platform.Common.Enums;
 using Rumble.Platform.Common.Extensions;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Common.Utilities.JsonTools;
@@ -41,7 +42,7 @@ public interface ISearchable<T> where T : PlatformCollectionDocument
             
             if (string.IsNullOrWhiteSpace(value))
             {
-                Log.Warn(Owner.Will, "Unable to find property and cannot search on it.", data: new
+                Log.Warn("Unable to find property and cannot search on it.", data: new
                 {
                     Searchable = result
                 });

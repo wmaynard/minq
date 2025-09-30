@@ -3,13 +3,15 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
+using Maynard.Extensions;
 using Maynard.Json;
+using Maynard.Logging;
+using Maynard.Time;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization;
 using MongoDB.Bson.Serialization.Attributes;
 using MongoDB.Bson.Serialization.Conventions;
 using MongoDB.Driver;
-using Rumble.Platform.Common.Enums;
 using Rumble.Platform.Common.Exceptions;
 using Rumble.Platform.Common.Extensions;
 using Rumble.Platform.Common.Interfaces;
@@ -49,14 +51,14 @@ internal static class Minq
         //
         // if (PlatformEnvironment.IsProd)
         // {
-        //     Log.Critical(Owner.Will, $"Attempted call to {nameof(WipeLocalDatabases)} with a prod configuration.  This has been ignored, but should not happen.", data: new
+        //     Log.Critical($"Attempted call to {nameof(WipeLocalDatabases)} with a prod configuration.  This has been ignored, but should not happen.", data: new
         //     {
         //         Help = $"Disable the call to {nameof(WipeLocalDatabases)} in Startup.cs if this is intentional."
         //     });
         //     return;
         // }
         
-        Log.Local(Owner.Will, "Wiping local databases.");
+        Log.Verbose("Wiping local databases.");
 
         try
         {
@@ -71,12 +73,12 @@ internal static class Minq
                     continue;
                 object result = wipe.Invoke(svc, null);
                 if (result is long and > 0)
-                    Log.Local(Owner.Will, $"{svc.GetType().FullName} deleted {result} records.", emphasis: Log.LogType.INFO);
+                    Log.Verbose($"{svc.GetType().FullName} deleted {result} records.");
             }
         }
         catch (Exception e)
         {
-            Log.Error(Owner.Will, "Unable to wipe local databases.", exception: e);
+            Log.Error("Unable to wipe local databases.", exception: e);
         }
         #endif
     }
@@ -196,7 +198,7 @@ public class Minq<T> where T : PlatformCollectionDocument
         }
         catch (Exception e)
         {
-            Log.Warn(Owner.Will, "Unable to create index for MINQ cache.", data: new
+            Log.Warn("Unable to create index for MINQ cache.", data: new
             {
                 Cache = CachedQueries.CollectionNamespace.CollectionName
             }, exception: e);
@@ -370,7 +372,7 @@ public class Minq<T> where T : PlatformCollectionDocument
             }
             catch (Exception exception)
             {
-                Log.Error(Owner.Will, "Unable to get failed model from write exception", exception);
+                Log.Error("Unable to get failed model from write exception", exception);
             }
             if (e.WriteErrors.Any(error => error.Category == ServerErrorCategory.DuplicateKey))
                 throw new UniqueConstraintException<T>(failure, e);
@@ -448,7 +450,7 @@ public class Minq<T> where T : PlatformCollectionDocument
 
     internal void CreateIndex(MinqIndex index)
     {
-        Log.Local(Owner.Will, "Creating an index", emphasis: Log.LogType.ERROR);
+        Log.Verbose("Creating an index");
         CreateIndexModel<BsonDocument> model = index.GenerateIndexModel();
         GenericCollection.Indexes.CreateOne(model);
     }
@@ -461,7 +463,7 @@ public class Minq<T> where T : PlatformCollectionDocument
         }
         catch (Exception e)
         {
-            Log.Error(Owner.Default, "Unable to create mongo index", data: new
+            Log.Error("Unable to create mongo index", data: new
             {
                 MinqIndex = index
             }, exception: e);
@@ -708,7 +710,7 @@ public class Minq<T> where T : PlatformCollectionDocument
         }
         catch (Exception e)
         {
-            Log.Warn(Owner.Default, "Unable to parse MemberInfo for search purposes", exception: e);
+            Log.Warn("Unable to parse MemberInfo for search purposes", exception: e);
         }
         
         return cInfo.ToArray();

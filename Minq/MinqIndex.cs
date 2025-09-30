@@ -2,9 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Maynard.Json;
+using Maynard.Logging;
 using MongoDB.Bson;
 using MongoDB.Driver;
-using Rumble.Platform.Common.Enums;
 using Rumble.Platform.Common.Utilities;
 
 namespace Rumble.Platform.Common.Minq;
@@ -110,7 +110,7 @@ internal class MinqIndex : Model
         bool nameConflict = Name != null && (!name?.StartsWith(INDEX_PREFIX) ?? false);
         
         if (!constraintConflict && nameConflict)
-            Log.Warn(Owner.Default, "An index does not have a constraint conflict, but has a different name; it will be dropped", data: new
+            Log.Warn("An index does not have a constraint conflict, but has a different name; it will be dropped", data: new
             {
                 conflictIndex = conflict,
                 newName = Name

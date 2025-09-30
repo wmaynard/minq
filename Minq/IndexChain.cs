@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq.Expressions;
-using Rumble.Platform.Common.Enums;
+using Maynard.Logging;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Common.Utilities.JsonTools;
 
@@ -36,7 +36,7 @@ public class IndexChain<T> where T : PlatformCollectionDocument
     public IndexChain<T> EnforceUniqueConstraint()
     {
         if (Unique)
-            Log.Warn(Owner.Default, "The index definition is already marked as unique; remove the extra call");
+            Log.Warn("The index definition is already marked as unique; remove the extra call");
         Unique = true;
         return this;
     }
@@ -51,7 +51,7 @@ public class IndexChain<T> where T : PlatformCollectionDocument
     public IndexChain<T> SetName(string name)
     {
         if (!string.IsNullOrWhiteSpace(Name))
-            Log.Warn(Owner.Default, "The index name was already specified; remove the extra call");
+            Log.Warn("The index name was already specified; remove the extra call");
         Name = name;
         return this;
     }
