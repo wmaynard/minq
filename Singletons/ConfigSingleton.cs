@@ -8,11 +8,11 @@ namespace Rumble.Platform.Common.Services;
 /// Useful when a service needs to store configuration values specific to itself between runs.
 /// This service uses its own MongoDB collection to store RumbleJson values.
 /// </summary>
-public sealed class ConfigService : PlatformMongoService<ConfigService.ServiceConfig>
+public sealed class ConfigSingleton : MongoSingleton<ConfigSingleton.ServiceConfig>
 {
     private ServiceConfig _config;
     private ServiceConfig Config => _config ?? Refresh();
-    public static ConfigService Instance { get; private set; }
+    public static ConfigSingleton Instance { get; private set; }
 
     public T Value<T>(string key) => Config.Data.Optional<T>(key);
     private object Value(string key) => Config.Data.Optional(key);
@@ -32,13 +32,13 @@ public sealed class ConfigService : PlatformMongoService<ConfigService.ServiceCo
         Find(config => true).FirstOrDefault() 
         ?? Create(new ServiceConfig());
 
-    public ConfigService() : base("config")
+    public ConfigSingleton() : base("config")
     {
         Refresh();
         Instance = this;
     } 
 
-    public class ServiceConfig : PlatformCollectionDocument
+    public class ServiceConfig : MinqDocument
     {
         public FlexJson Data { get; set; }
         internal ServiceConfig() => Data = new FlexJson();

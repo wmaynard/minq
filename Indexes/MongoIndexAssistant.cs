@@ -10,7 +10,7 @@ namespace Rumble.Platform.Common.Utilities;
 
 public static class MongoIndexAssistant
 {
-    public static void CreateIndexes<T>(IMongoCollection<T> collection) where T : PlatformCollectionDocument
+    public static void CreateIndexes<T>(IMongoCollection<T> collection) where T : MinqDocument
     {
         PlatformMongoIndex[] indexes = collection.GetIndexes();
         if (!indexes.Any())

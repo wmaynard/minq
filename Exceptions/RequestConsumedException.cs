@@ -3,7 +3,7 @@ using Rumble.Platform.Common.Utilities.JsonTools;
 
 namespace Rumble.Platform.Common.MinqOld;
 
-public class RequestConsumedException<T> : Exception where T : PlatformCollectionDocument
+public class RequestConsumedException<T> : Exception where T : MinqDocument
 {
     public string RenderedFilter { get; set; }
     

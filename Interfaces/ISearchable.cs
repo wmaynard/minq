@@ -12,7 +12,7 @@ using Rumble.Platform.Common.Utilities.JsonTools;
 
 namespace Rumble.Platform.Common.Interfaces;
 
-public interface ISearchable<T> where T : PlatformCollectionDocument
+public interface ISearchable<T> where T : MinqDocument
 {
     internal const int MAXIMUM_TERMS = 5;
     internal const int MAXIMUM_FIELDS = 10;

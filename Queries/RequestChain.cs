@@ -6,6 +6,9 @@ using System.Linq.Expressions;
 using Maynard.Extensions;
 using Maynard.Json;
 using Maynard.Logging;
+using Maynard.Minq.Minq.Extensions;
+using Maynard.Minq.Minq.Indexes;
+using Maynard.Minq.Minq.Queries;
 using Maynard.Time;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization;
@@ -19,7 +22,7 @@ using Rumble.Platform.Common.Utilities.JsonTools;
 
 namespace Rumble.Platform.Common.MinqOld;
 
-public class RequestChain<T> where T : PlatformCollectionDocument
+public class RequestChain<T> where T : MinqDocument
 {
     private readonly string EmptyRenderedFilter = Minq<T>.Render(Builders<T>.Filter.Empty);
     internal bool FilterIsEmpty => Minq<T>.Render(_filter) == EmptyRenderedFilter;

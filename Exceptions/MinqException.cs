@@ -12,11 +12,9 @@ public class MinqException : Exception // TODO: Should probably be an abstract c
     public string Endpoint { get; private set; }
   
     public MinqException() : this("No message provided."){}
-#pragma warning disable CS0618
     public MinqException(string message, Exception inner = null) : base(message, inner)
     {
     }
-#pragma warning restore CS0618
 
     public string Detail
     {

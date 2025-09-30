@@ -15,7 +15,7 @@ namespace Rumble.Platform.Common.Extensions;
 
 public static class MongoCollectionExtension
 {
-    public static PlatformMongoIndex[] GetIndexes<T>(this IMongoCollection<T> collection) where T : PlatformCollectionDocument
+    public static PlatformMongoIndex[] GetIndexes<T>(this IMongoCollection<T> collection) where T : MinqDocument
     {
         Type type = collection.GetType();
         List<PropertyInfo> candidates = GetIndexCandidates(type).ToList();

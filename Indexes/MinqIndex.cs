@@ -5,9 +5,8 @@ using Maynard.Json;
 using Maynard.Logging;
 using MongoDB.Bson;
 using MongoDB.Driver;
-using Rumble.Platform.Common.Utilities;
 
-namespace Rumble.Platform.Common.MinqOld;
+namespace Maynard.Minq.Minq.Indexes;
 
 internal class MinqIndex : Model
 {

@@ -1,8 +1,8 @@
 using MongoDB.Driver;
 
-namespace Rumble.Platform.Common.MinqOld;
+namespace Maynard.Minq.Minq.Extensions;
 
-public static class IFindFluentExtension
+public static class FindFluentExtension
 {
     public static IFindFluent<T, T> ApplySortDefinition<T>(this IFindFluent<T, T> finder, SortDefinition<T> sort)
     {

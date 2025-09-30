@@ -9,7 +9,7 @@ using Rumble.Platform.Common.Utilities.JsonTools;
 
 namespace Rumble.Platform.Common.MinqOld;
 
-public abstract class MinqTimerService<T> : MinqService<T> where T : PlatformCollectionDocument, new()
+public abstract class MinqTimerService<T> : MinqService<T> where T : MinqDocument, new()
 {
     private const int ONE_HOUR = 3_600_000;
     private const int FAILURE_TOLERANCE = 100;

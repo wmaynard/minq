@@ -3,22 +3,21 @@ using System.Timers;
 using Maynard.Json;
 using Maynard.Logging;
 using Rumble.Platform.Common.Utilities;
-using Rumble.Platform.Common.Utilities.JsonTools;
 
 namespace Rumble.Platform.Common.Services;
 
-public abstract class PlatformMongoTimerService<T> : PlatformMongoService<T>, IDisposable where T : PlatformCollectionDocument
+public abstract class PlatformTimerService : Singleton, IDisposable
 {
     private readonly Timer _timer;
-    protected double IntervalMs { get; init; }
+    protected readonly double IntervalMs;
     public bool IsRunning => _timer.Enabled;
     public string Status => IsRunning ? "running" : "stopped";
 
-    protected PlatformMongoTimerService(string collection, double intervalMs, bool startImmediately = true) : base(collection)
+    protected PlatformTimerService(double intervalMS, bool startImmediately = true)
     {
-        IntervalMs = intervalMs;
+        IntervalMs = intervalMS;
         _timer = new Timer(IntervalMs);
-        _timer.Elapsed += (_, _) =>
+        _timer.Elapsed += (sender, args) =>
         {
             Pause();
             try
@@ -36,13 +35,33 @@ public abstract class PlatformMongoTimerService<T> : PlatformMongoService<T>, ID
     }
 
     protected void Pause() => _timer.Stop();
+
     protected void Resume() => _timer.Start();
+
     protected abstract void OnElapsed();
 
     public override FlexJson HealthStatus => new FlexJson
     {
         { Name, Status }
     };
+    
+    public double Interval
+    {
+        get => _timer.Interval;
+        set
+        {
+            try
+            {
+                _timer.Stop();
+                _timer.Interval = value;
+                _timer.Start();
+            }
+            catch (Exception e)
+            {
+                Log.Error("Unable to set timer service interval.", exception: e);
+            }
+        }
+    }
 
     public void Dispose()
     {

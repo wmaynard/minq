@@ -6,6 +6,7 @@ using System.Reflection;
 using System.Text.Json.Serialization;
 using Maynard.Json;
 using Maynard.Logging;
+using Maynard.Singletons;
 using Microsoft.AspNetCore.Http;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
@@ -20,7 +21,7 @@ using Rumble.Platform.Common.Utilities.JsonTools;
 
 namespace Rumble.Platform.Common.Services;
 
-public abstract class PlatformMongoService<Model> : PlatformService, IPlatformMongoService where Model : PlatformCollectionDocument
+public abstract class MongoSingleton<Model> : Singleton, IMongoSingleton where Model : MinqDocument
 {
     public const int DEFAULT_MONGO_MAX_POOL_CONNECTION_SIZE = 100; // 100 is from the docs
     
@@ -54,7 +55,7 @@ public abstract class PlatformMongoService<Model> : PlatformService, IPlatformMo
         return new MongoClient(settings);
     }
     
-    protected PlatformMongoService(string collection = null)
+    protected MongoSingleton(string collection = null)
     {
         // Connection = PlatformEnvironment.MongoConnectionString;
         // Database = PlatformEnvironment.MongoDatabaseName;
@@ -245,7 +246,7 @@ public abstract class PlatformMongoService<Model> : PlatformService, IPlatformMo
             );
             
             type = type.BaseType;
-        } while (type?.IsAssignableTo(typeof(IPlatformMongoService)) ?? false);
+        } while (type?.IsAssignableTo(typeof(IMongoSingleton)) ?? false);
 
         candidates = candidates
             .DistinctBy(info => info.Name)
@@ -307,7 +308,7 @@ public abstract class PlatformMongoService<Model> : PlatformService, IPlatformMo
         {
             FieldInfo[] generics = GetType()
                 .GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static)
-                .Where(info => info.FieldType.IsGenericType && info.FieldType.Name == typeof(IMongoCollection<PlatformCollectionDocument>).Name)
+                .Where(info => info.FieldType.IsGenericType && info.FieldType.Name == typeof(IMongoCollection<MinqDocument>).Name)
                 .ToArray();
 
             foreach (FieldInfo info in generics)
@@ -502,7 +503,7 @@ public abstract class PlatformMongoService<Model> : PlatformService, IPlatformMo
 
     protected IMongoDatabase GetDatabase(string name) => _client.GetDatabase(name);
 
-    protected IMongoCollection<T> GetCollection<T>(string name) where T : PlatformCollectionDocument => _database.GetCollection<T>(name);
+    protected IMongoCollection<T> GetCollection<T>(string name) where T : MinqDocument => _database.GetCollection<T>(name);
     
     /// <summary>
     /// Overridable method to handle incoming GDPR deletion requests.  GDPR requests may contain an account ID, an

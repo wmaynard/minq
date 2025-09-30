@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq.Expressions;
 using Maynard.Json;
+using Maynard.Minq.Minq.Queries;
 using Maynard.Time;
 using MongoDB.Driver;
 using Rumble.Platform.Common.Utilities;
@@ -10,7 +11,7 @@ using Rumble.Platform.Common.Utilities.JsonTools;
 
 namespace Rumble.Platform.Common.MinqOld;
 
-public class UpdateChain<T> where T : PlatformCollectionDocument
+public class UpdateChain<T> where T : MinqDocument
 {
     internal UpdateDefinition<T> Update => Builder.Combine(Updates);
     private UpdateDefinitionBuilder<T> Builder { get; init; }

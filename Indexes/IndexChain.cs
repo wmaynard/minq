@@ -2,12 +2,13 @@ using System;
 using System.Collections.Generic;
 using System.Linq.Expressions;
 using Maynard.Logging;
-using Rumble.Platform.Common.Utilities;
+using Maynard.Minq.Minq.Queries;
+using Rumble.Platform.Common.MinqOld;
 using Rumble.Platform.Common.Utilities.JsonTools;
 
-namespace Rumble.Platform.Common.MinqOld;
+namespace Maynard.Minq.Minq.Indexes;
 
-public class IndexChain<T> where T : PlatformCollectionDocument
+public class IndexChain<T> where T : MinqDocument
 {
     private Dictionary<string, bool> Rendered { get; set; }
     private bool Unique { get; set; }

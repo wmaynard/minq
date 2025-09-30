@@ -5,7 +5,7 @@ using MongoDB.Bson.Serialization.Attributes;
 
 namespace Rumble.Platform.Common.Utilities.JsonTools;
 
-public abstract class PlatformCollectionDocument : Model
+public abstract class MinqDocument : Model
 {
     public const string DB_KEY_CREATED_ON = "created";
     public const string FRIENDLY_KEY_CREATED_ON = "createdOn";

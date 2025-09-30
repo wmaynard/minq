@@ -1,4 +1,5 @@
 using Maynard.Logging;
+using Maynard.Singletons;
 using Rumble.Platform.Common.Models;
 using Rumble.Platform.Common.Services;
 using Rumble.Platform.Common.Utilities;
@@ -6,7 +7,7 @@ using Rumble.Platform.Common.Utilities.JsonTools;
 
 namespace Rumble.Platform.Common.MinqOld;
 
-public abstract class MinqService<Model> : PlatformService, IGdprHandler where Model : PlatformCollectionDocument, new()
+public abstract class MinqService<Model> : Singleton, IGdprHandler where Model : MinqDocument, new()
 {
     protected readonly Minq<Model> mongo;
     

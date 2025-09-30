@@ -4,7 +4,7 @@ using Rumble.Platform.Common.Utilities.JsonTools;
 
 namespace Rumble.Platform.Common.Exceptions;
 
-public class UniqueConstraintException<T> : MinqException where T : PlatformCollectionDocument
+public class UniqueConstraintException<T> : MinqException where T : MinqDocument
 {
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public T SuspectedFailure { get; set; }

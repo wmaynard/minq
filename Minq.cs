@@ -6,6 +6,9 @@ using System.Reflection;
 using Maynard.Extensions;
 using Maynard.Json;
 using Maynard.Logging;
+using Maynard.Minq.Minq.Indexes;
+using Maynard.Minq.Minq.Queries;
+using Maynard.Singletons;
 using Maynard.Time;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization;
@@ -62,7 +65,7 @@ internal static class Minq
 
         try
         {
-            foreach (IPlatformService svc in PlatformService.Registry.Values)
+            foreach (ISingleton svc in Singleton.Registry.Values)
             {
                 MethodInfo wipe = svc
                     .GetType()
@@ -84,9 +87,9 @@ internal static class Minq
     }
 }
 
-public class Minq<T> where T : PlatformCollectionDocument
+public class Minq<T> where T : MinqDocument
 {
-    public class CachedResult : PlatformCollectionDocument
+    public class CachedResult : MinqDocument
     {
         internal const string DB_KEY_MINQ_CACHE_FILTER = "query";
         internal const string DB_KEY_MINQ_CACHE_DATA = "data";

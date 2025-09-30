@@ -20,7 +20,7 @@ public interface IConfiscatable
     void Confiscate();
 }
 
-public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T>.TaskData>, IConfiscatable where T : Model
+public abstract class QueueSingleton<T> : MongoTimerSingleton<QueueSingleton<T>.TaskData>, IConfiscatable where T : Model
 {
     private const int MAX_FAILURE_COUNT = 5;
     private const string COLLECTION_PREFIX = "queue_";
@@ -44,7 +44,7 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
     /// <param name="secondaryNodeTaskCount">The number of tasks to attempt on every Elapsed timer event on the secondary node.  0 == unlimited.</param>
     /// <param name="sendTaskResultsWhenTheyAreCompleted">tasks results are sent as they complete instead of all at once at the end</param>
     /// <param name="preferOffCluster">If set to true, the primary node work will execute in the "off-cluster" environment.</param>
-    protected QueueService(string collection, int intervalMs = 5_000, [Range(1, int.MaxValue)] int primaryNodeTaskCount = 1, [Range(0, int.MaxValue)] int secondaryNodeTaskCount = 0, bool sendTaskResultsWhenTheyAreCompleted = false, bool preferOffCluster = false) 
+    protected QueueSingleton(string collection, int intervalMs = 5_000, [Range(1, int.MaxValue)] int primaryNodeTaskCount = 1, [Range(0, int.MaxValue)] int secondaryNodeTaskCount = 0, bool sendTaskResultsWhenTheyAreCompleted = false, bool preferOffCluster = false) 
         : base(collection: $"{COLLECTION_PREFIX}{collection}", intervalMs: intervalMs, startImmediately: true)
     {
         Id = Guid.NewGuid().ToString();
@@ -749,7 +749,7 @@ public abstract class QueueService<T> : PlatformMongoTimerService<QueueService<T
     }
     
     [BsonIgnoreExtraElements]
-    public abstract class TaskData : PlatformCollectionDocument
+    public abstract class TaskData : MinqDocument
     {
         protected const string GROUP_KEY_PRIMARY = "type_1_primary_1";
         protected const string GROUP_KEY_UPDATED = "type_1_updated_1";

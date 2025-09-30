@@ -5,15 +5,16 @@ using System.Linq.Expressions;
 using System.Text.RegularExpressions;
 using Maynard.Json;
 using Maynard.Logging;
+using Maynard.Minq.Minq.Extensions;
 using MongoDB.Bson;
 using MongoDB.Bson.IO;
 using MongoDB.Bson.Serialization;
 using MongoDB.Driver;
 using Rumble.Platform.Common.Extensions;
-using Rumble.Platform.Common.Utilities;
+using Rumble.Platform.Common.MinqOld;
 using Rumble.Platform.Common.Utilities.JsonTools;
 
-namespace Rumble.Platform.Common.MinqOld;
+namespace Maynard.Minq.Minq.Queries;
 
 public class FilterChain<T>
 {
@@ -75,7 +76,7 @@ public class FilterChain<T>
     /// <typeparam name="U"></typeparam>
     /// <returns></returns>
     /// <exception cref="PlatformException"></exception>
-    public FilterChain<T> Is<U>(U model) where U : PlatformCollectionDocument
+    public FilterChain<T> Is<U>(U model) where U : MinqDocument
     {
         if (model.Id == null || !model.Id.CanBeMongoId())
             throw new Exception("Record does not exist, is not a CollectionDocument or the ID is invalid.");
@@ -359,5 +360,5 @@ public class FilterChain<T>
 
 public static class MinqExpressionExtension
 {
-    public static string GetFieldName<T>(this Expression<Func<T, object>> field) where T : PlatformCollectionDocument => Minq<T>.Render(field);
+    public static string GetFieldName<T>(this Expression<Func<T, object>> field) where T : MinqDocument => Minq<T>.Render(field);
 }
