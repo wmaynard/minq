@@ -338,7 +338,9 @@ public class MinqClient<T> where T : MinqDocument
     /// <returns></returns>
     public RequestChain<T> CreateRequestChain() => new (this);
 
-    public T FirstOrDefault(Action<FilterChain<T>> query) => Where(query).FirstOrDefault();
+    public T FirstOrDefault(Action<FilterChain<T>> query = null) => query != null
+        ? Where(query).FirstOrDefault()
+        : All().Limit(1).FirstOrDefault();
 
     public RequestChain<T> ExactId(string id) => Where(query => query.EqualTo(doc => doc.Id, id));
 
