@@ -1,3 +1,8 @@
+# NOTE
+
+[10/1/25] This project is currently undergoing a major refactor; documentation and code will be a mess during this process.  The dust will settle soon.
+
+
 # platform-common
 
 A shared library for Rumble platform service development.
