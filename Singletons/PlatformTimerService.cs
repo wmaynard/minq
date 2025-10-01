@@ -2,6 +2,7 @@ using System;
 using System.Timers;
 using Maynard.Json;
 using Maynard.Logging;
+using Maynard.Singletons;
 using Rumble.Platform.Common.Utilities;
 
 namespace Rumble.Platform.Common.Services;

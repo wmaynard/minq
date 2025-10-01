@@ -1,6 +1,8 @@
 using System.Text.Json.Serialization;
 using Maynard.Json;
+using Maynard.Json.Serializers;
 using MongoDB.Bson;
+using MongoDB.Bson.Serialization;
 using MongoDB.Bson.Serialization.Attributes;
 
 namespace Rumble.Platform.Common.Utilities.JsonTools;
@@ -19,7 +21,6 @@ public abstract class MinqDocument : Model
     public long CreatedOn { get; set; }
 
     public void ChangeId() => Id = ObjectId.GenerateNewId().ToString();
-    public void NullifyId() => Id = null;
     
     [BsonIgnore]
     [JsonInclude, JsonPropertyName("cachedUntil"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]

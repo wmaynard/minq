@@ -78,7 +78,7 @@ public class FilterChain<T>
     /// <exception cref="PlatformException"></exception>
     public FilterChain<T> Is<U>(U model) where U : MinqDocument
     {
-        if (model.Id == null || !model.Id.CanBeMongoId())
+        if (model.Id == default)
             throw new Exception("Record does not exist, is not a CollectionDocument or the ID is invalid.");
         return AddFilter($"{{_id:ObjectId('{model.Id}')}}");
     }
@@ -360,5 +360,5 @@ public class FilterChain<T>
 
 public static class MinqExpressionExtension
 {
-    public static string GetFieldName<T>(this Expression<Func<T, object>> field) where T : MinqDocument => Minq<T>.Render(field);
+    public static string GetFieldName<T>(this Expression<Func<T, object>> field) where T : MinqDocument => MinqClient<T>.Render(field);
 }

@@ -24,10 +24,10 @@ namespace Rumble.Platform.Common.MinqOld;
 
 public class RequestChain<T> where T : MinqDocument
 {
-    private readonly string EmptyRenderedFilter = Minq<T>.Render(Builders<T>.Filter.Empty);
-    internal bool FilterIsEmpty => Minq<T>.Render(_filter) == EmptyRenderedFilter;
+    private readonly string EmptyRenderedFilter = MinqClient<T>.Render(Builders<T>.Filter.Empty);
+    internal bool FilterIsEmpty => MinqClient<T>.Render(_filter) == EmptyRenderedFilter;
 
-    internal string RenderedFilter => Minq<T>.Render(_filter);
+    internal string RenderedFilter => MinqClient<T>.Render(_filter);
     
     internal FilterDefinition<T> _filter { get; set; }
     internal UpdateDefinition<T> _update { get; set; }
@@ -38,7 +38,7 @@ public class RequestChain<T> where T : MinqDocument
     
     private long CacheTimestamp { get; set; }
     private bool Consumed { get; set; }
-    private Minq<T> Parent { get; set; }
+    private MinqClient<T> Parent { get; set; }
     private bool UseCache => CacheTimestamp > 0; 
 
     private int _limit;
@@ -55,7 +55,7 @@ public class RequestChain<T> where T : MinqDocument
     /// </summary>
     /// <param name="parent">The parent Minq object.</param>
     /// <param name="filterChain">An optional FilterChain to begin with.  If unspecified, the filter starts off empty.</param>
-    internal RequestChain(Minq<T> parent, FilterChain<T> filterChain = null)
+    internal RequestChain(MinqClient<T> parent, FilterChain<T> filterChain = null)
     {
         filterChain ??= new FilterChain<T>().All();
         UpdateIndexWeights(filterChain);
@@ -393,7 +393,7 @@ public class RequestChain<T> where T : MinqDocument
 
     private void WarnOnFilterOverwrite(string method)
     {
-        if (_filter != null && Minq<T>.Render(_filter) != EmptyRenderedFilter)
+        if (_filter != null && MinqClient<T>.Render(_filter) != EmptyRenderedFilter)
             Log.Warn($"Filter was not empty when {method}() was called.  {method}() overrides previous filters.  Is this intentional?");
     }
     
@@ -413,7 +413,7 @@ public class RequestChain<T> where T : MinqDocument
         if (suggested.IsProbablyCoveredBy(existing))
             return;
         
-        bool deliberateEmptyFilter = Minq<T>.Render(_filter) == Minq<T>.Render(Builders<T>.Filter.Empty);
+        bool deliberateEmptyFilter = MinqClient<T>.Render(_filter) == MinqClient<T>.Render(Builders<T>.Filter.Empty);
         if (deliberateEmptyFilter)
             return;
 
@@ -440,7 +440,7 @@ public class RequestChain<T> where T : MinqDocument
             Parent.GenericCollection.Indexes.CreateOne(model);
 
 
-            Minq<T>.TryRender(_filter, out FlexJson filterJson, out string filterString);
+            MinqClient<T>.TryRender(_filter, out FlexJson filterJson, out string filterString);
             
             Log.Info("MINQ automatically created an index", data: new
             {
@@ -457,7 +457,7 @@ public class RequestChain<T> where T : MinqDocument
                 : "Unable to create automatic MINQ index; investigation possibly needed",
                 data: new
                 {
-                    Filter = (FlexJson)Minq<T>.Render(_filter),
+                    Filter = (FlexJson)MinqClient<T>.Render(_filter),
                     Stats = stats
                 }, exception: e
             );
@@ -803,7 +803,7 @@ public class RequestChain<T> where T : MinqDocument
             if (!UseCache)
                 return FindWithLimitAndSort().ToList();
     
-            if (Parent.CheckCache(Minq<T>.Render(_filter), out T[] data))
+            if (Parent.CheckCache(MinqClient<T>.Render(_filter), out T[] data))
                 return data.ToList();
     
             List<T> output = FindWithLimitAndSort().ToList();
@@ -939,7 +939,7 @@ public class RequestChain<T> where T : MinqDocument
         //     
         // };
 
-        string renderedField = Minq<T>.Render(field);
+        string renderedField = MinqClient<T>.Render(field);
         _collection
             .Aggregate()
             .Match(_filter)
@@ -1299,7 +1299,7 @@ public class RequestChain<T> where T : MinqDocument
         T searchModel = (T)Activator.CreateInstance(typeof(T));
         if (searchModel is not ISearchable<T> searchable)
         {
-            Log.Error($"In order to use {nameof(Minq<T>)}.{nameof(Search)}, your model must implement {nameof(ISearchable<T>)}.");
+            Log.Error($"In order to use {nameof(MinqClient<T>)}.{nameof(Search)}, your model must implement {nameof(ISearchable<T>)}.");
             return Array.Empty<T>();
         }
 
@@ -1308,7 +1308,7 @@ public class RequestChain<T> where T : MinqDocument
         
         if (typeof(T).IsAssignableFrom(typeof(ISearchable<T>)))
         {
-            Log.Error($"In order to use {nameof(Minq<T>)}.{nameof(Search)}, your model must implement {nameof(ISearchable<T>)}.");
+            Log.Error($"In order to use {nameof(MinqClient<T>)}.{nameof(Search)}, your model must implement {nameof(ISearchable<T>)}.");
             return Array.Empty<T>();
         }
 
