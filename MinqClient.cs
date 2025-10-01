@@ -5,6 +5,7 @@ using System.Linq.Expressions;
 using System.Reflection;
 using Maynard.Extensions;
 using Maynard.Json;
+using Maynard.Json.Serializers;
 using Maynard.Logging;
 using Maynard.Minq.Minq.Indexes;
 using Maynard.Minq.Minq.Queries;
@@ -412,10 +413,35 @@ public class MinqClient<T> where T : MinqDocument
             new IgnoreExtraElementsConvention(true)
         }, filter: t => true);
 
+        // Register serializer for CachedResult with concrete T
+        RegisterCachedResultSerializer();
+
         return new(
             collection: MinqConnection.Database.GetCollection<T>(collectionName), 
             cache: MinqConnection.Database.GetCollection<CachedResult>($"{collectionName}_cache")
         );
+    }
+
+    private static void RegisterCachedResultSerializer()
+    {
+        Type cachedResultType = typeof(CachedResult);
+        
+        // Check if serializer is already registered to avoid duplicate registration
+        if (BsonSerializer.SerializerRegistry.GetSerializer(cachedResultType) != null)
+            return;
+
+        try
+        {
+            Type serializerType = typeof(FlexKeysBsonSerializer<>).MakeGenericType(cachedResultType);
+            IBsonSerializer serializer = (IBsonSerializer)Activator.CreateInstance(serializerType);
+            BsonSerializer.RegisterSerializer(cachedResultType, serializer);
+            
+            Log.Verbose($"Registered BSON serializer for CachedResult<{typeof(T).Name}>");
+        }
+        catch (Exception e)
+        {
+            Log.Error($"Unable to register BSON serializer for CachedResult<{typeof(T).Name}>", exception: e);
+        }
     }
 
     public long UpdateAll(Action<UpdateChain<T>> action)

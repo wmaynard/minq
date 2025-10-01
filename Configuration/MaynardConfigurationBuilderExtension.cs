@@ -10,6 +10,7 @@ using Maynard.Singletons;
 using Microsoft.AspNetCore.Hosting;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization;
+using Rumble.Platform.Common.Services;
 
 namespace Maynard.Minq.Extensions;
 
@@ -23,15 +24,16 @@ public static class MaynardConfigurationBuilderExtension
         BsonSerializer.RegisterSerializer(new BsonGenericConverter());
         
         Type[] types = Assembly
-            .GetEntryAssembly()
-            ?.GetExportedTypes() // Add the project's types 
-            .Concat(Assembly.GetExecutingAssembly().GetExportedTypes()) // Add platform-common's types
-            .Where(type => type.IsClass && !type.IsAbstract)
-            .Where(type => type.GetProperties(BindingFlags.Public | BindingFlags.Instance)
-                .Any(p => p.GetCustomAttribute<FlexKeys>() != null)
-            )
-            .ToArray()
-            ?? Array.Empty<Type>();
+           .GetEntryAssembly()
+           ?.GetExportedTypes() 
+           .Concat(Assembly.GetExecutingAssembly().GetExportedTypes())
+           .Where(type => type.IsClass && !type.IsAbstract)
+           .Where(type => !type.ContainsGenericParameters) // Filter out open generic types
+           .Where(type => type.GetProperties(BindingFlags.Public | BindingFlags.Instance)
+               .Any(p => p.GetCustomAttribute<FlexKeys>() != null)
+           )
+           .ToArray()
+           ?? [];
 
         foreach (Type type in types)
         {

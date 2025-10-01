@@ -1,5 +1,6 @@
 using System.Text.Json.Serialization;
 using Maynard.Json;
+using Maynard.Json.Attributes;
 using Maynard.Json.Serializers;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization;
@@ -13,16 +14,14 @@ public abstract class MinqDocument : Model
     public const string FRIENDLY_KEY_CREATED_ON = "createdOn";
     
     [BsonId, BsonRepresentation(BsonType.ObjectId)]
-    [JsonInclude]
+    [FlexIgnore(Ignore.Never)]
     public string Id { get; protected set; }
     
-    [BsonElement(DB_KEY_CREATED_ON)]
-    [JsonInclude, JsonPropertyName(FRIENDLY_KEY_CREATED_ON)]
+    [FlexKeys(json: "createdOn", bson: "created")]
     public long CreatedOn { get; set; }
 
     public void ChangeId() => Id = ObjectId.GenerateNewId().ToString();
     
-    [BsonIgnore]
-    [JsonInclude, JsonPropertyName("cachedUntil"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    [FlexKeys(json: "cachedUntil", Ignore = Ignore.InBson | Ignore.WhenJsonNullOrDefault)]
     public long CachedUntil { get; set; }
 }
