@@ -1,5 +1,6 @@
 using System.Linq;
 using Maynard.Json;
+using Maynard.Json.Attributes;
 using Rumble.Platform.Common.Utilities.JsonTools;
 
 namespace Rumble.Platform.Common.Services;
@@ -40,6 +41,7 @@ public sealed class ConfigSingleton : MongoSingleton<ConfigSingleton.ServiceConf
 
     public class ServiceConfig : MinqDocument
     {
+        [FlexKeys(json: "data", bson: "data")]
         public FlexJson Data { get; set; }
         internal ServiceConfig() => Data = new FlexJson();
     }
