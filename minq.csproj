@@ -45,6 +45,10 @@
 	  <PackageReference Include="MongoDB.Driver" Version="3.5.0" />
 	</ItemGroup>
 	
+	<ItemGroup>
+	  <Content Include=".github\workflows\dotnet-desktop.yml" />
+	</ItemGroup>
+	
 
 
 

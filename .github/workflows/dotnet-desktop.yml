@@ -34,7 +34,7 @@ jobs:
         uses: actions/delete-package-versions@v3
         with:
           owner: 'wmaynard'
-          repo: 'platform-common'
-          package-name: 'rumble-platform-common'
+          repo: 'minq'
+          package-name: 'minq'
           token: ${{ secrets.PAT }}
           min-versions-to-keep: 10
