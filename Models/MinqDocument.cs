@@ -1,6 +1,7 @@
 using System.Text.Json.Serialization;
 using Maynard.Json;
 using Maynard.Json.Attributes;
+using Maynard.Json.Enums;
 using Maynard.Json.Serializers;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization;

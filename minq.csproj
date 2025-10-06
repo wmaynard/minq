@@ -37,16 +37,17 @@
 	</ItemGroup>
 	
 	<ItemGroup>
-	  <ProjectReference Include="..\basic-utilities\basic-utilities.csproj" />
-	</ItemGroup>
-	
-	<ItemGroup>
+	  <PackageReference Include="Maynard.Utilities" Version="0.8.0" />
 	  <PackageReference Include="MongoDB.Bson" Version="3.5.0" />
 	  <PackageReference Include="MongoDB.Driver" Version="3.5.0" />
 	</ItemGroup>
 	
 	<ItemGroup>
 	  <Content Include=".github\workflows\dotnet-desktop.yml" />
+	</ItemGroup>
+	
+	<ItemGroup>
+	  <Folder Include="Attributes\" />
 	</ItemGroup>
 	
 
