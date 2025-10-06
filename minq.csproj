@@ -4,23 +4,24 @@
 		<RootNamespace>Maynard.Minq</RootNamespace>
 		<RepositoryUrl>https://github.com/wmaynard/minq</RepositoryUrl>
 		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-		<PackageVersion>1.0.0</PackageVersion>
+		<PackageVersion>0.8.0</PackageVersion>
 		<Title>MINQ</Title>
 	  <UserSecretsId>40214af1-e433-47e0-81d5-98c27cc1b0ba</UserSecretsId>
 	  <LangVersion>13</LangVersion>
-	  <AssemblyVersion>1.0.0</AssemblyVersion>
+	  <AssemblyVersion>0.8.0</AssemblyVersion>
 	  <Company>Will Maynard</Company>
 	  <Configurations>Debug;Release;Local;UnitTest</Configurations>
 	  <Platforms>AnyCPU</Platforms>
 	  <TargetFramework>net9.0</TargetFramework>
-	  <PackageId>minq</PackageId>
+	  <PackageId>Maynard.Minq</PackageId>
 	  <Authors>Will Maynard</Authors>
 	  <Description>A NuGet package for working easily with MongoDB</Description>
 	  <Copyright>Will Maynard</Copyright>
 	  <PackageProjectUrl>https://github.com/wmaynard/minq</PackageProjectUrl>
 	  <PackageLicenseUrl>https://github.com/wmaynard/minq/LICENSE</PackageLicenseUrl>
 	  <AssemblyName>minq</AssemblyName>
-	  <Product>minq</Product>
+	  <Product>Maynard.Minq</Product>
+	  <PackageIcon>icon.png</PackageIcon>
 	</PropertyGroup>
 
 	<PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
@@ -37,7 +38,8 @@
 	</ItemGroup>
 	
 	<ItemGroup>
-	  <PackageReference Include="Maynard.Utilities" Version="0.8.0" />
+	  <PackageReference Include="Maynard.FlexJson" Version="1.0.2" />
+	  <PackageReference Include="Maynard.Utilities" Version="0.8.1" />
 	  <PackageReference Include="MongoDB.Bson" Version="3.5.0" />
 	  <PackageReference Include="MongoDB.Driver" Version="3.5.0" />
 	</ItemGroup>
