@@ -3,470 +3,375 @@
 [10/1/25] This project is currently undergoing a major refactor; documentation and code will be a mess during this process.  The dust will settle soon.
 
 
-# platform-common
+# MINQ: The Mongo Integrated Query
 
-A shared library for Rumble platform service development.
-
-## Acknowledgment
-
-Platform Common was originally created for Rumble Entertainment (which later became R Studios), a mobile gaming company.  Platform Common became the foundational framework for dozens of microservices for the game Towers & Titans, replacing a legacy Java / Groovy stack.  The primary focus is to prototype and iterate as quickly as possible.
-
-R Studios unfortunately closed its doors in July 2024.  This project has been released as open source with permission.
-
-As of this writing, there are still existing references to Rumble's resources, such as Confluence links, but they don't have any significant impact.  Some documentation will also be missing until it can be recreated here, since with the company closure any feature specs and explainer articles originally written for Confluence / Slack channels were lost.
-
-While Rumble is shutting down, I'm grateful for the opportunities and human connections I had working there.
-
-## License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE.txt) file for details.
-
-# Introduction
-
-**Note: This readme file is a little dated in favor of [the newer intro](Docs/01%20-%20Introduction.md) and some now-missing internal documentation.**
-
-This library has a single purpose: make service development less painful.  By inheriting from the classes in this project, we can better enforce standards for code quality, inputs and outputs, and more rapidly get new services up and running.
-
-Since this library is used with every C# platform project, be very mindful when making potentially breaking changes.  Especially since it's a young project, this will be unavoidable, but make sure any changes are communicated clearly to respective project owners.
-
-# Glossary
-
-| Term            | Definition                                                                                                                                                                                                                           |
-|:----------------|:-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Client          | The application that consumes a web service.  This could be a phone app / game, an internal website like the publishing app, or even a tool like Postman.                                                                            |
-| Controller      | A static class that handles API routing for requests.  Controllers contain most of the logic for requests and send data back to the client.                                                                                          |
-| JWT / Token     | A JSON Web Token.  This is an encrypted token issued by one of our servers.  It can be decrypted to guarantee clients are who they say they are, as well as contain relevant permissions.                                            |
-| Model           | A representation of a data object.  If the model represents a MongoDB object, it should have both database and friendly keys for JSON serialization. Models should only contain logic that is relevant to the object they represent. |
-| Request         | The incoming message from the client that's asking the service to do something.  Requests should always be JSON.                                                                                                                     |
-| Response        | The outgoing message to the client containing relevant data.  Responses should always be JSON.                                                                                                                                       |
-| Response Object | A JSON-serialized object.  The standard for platform is to use the class name as the field name in a JSON response, e.g. `"foo": { /* foo object data */ }`.                                                                         |
-| Route           | The relative URL path a client uses to access the API.  Example: `/chat/messages/send`                                                                                                                                               |
-| Service         | A static class acting as an interface between a Controller and a data layer such as MongoDB. For Mongo specifically, every collection should have a corresponding Service.                                                           |
-
-# Adding The Library
-
-1. Create a personal access token (PAT) on [github](https://github.com/settings/tokens).
-2. In Terminal, run the following command with appropriate replacements:
-```
-dotnet nuget add source --username {USERNAME} --password {PAT} --store-password-in-clear-text --name wmaynard/platform-common "https://nuget.pkg.github.com/wmaynard/index.json
-```
-3. Search for `rumble-platform-common`.  If everything is configured correctly, you should see the current version with `wmaynard/platform-common` as the source.
-4. Select it, then click the `+` button in the right panel to add the library to the project.
-
-#### **Important:** Do not use Rider to add to your nuget config.  At the time of this writing, a PAT added this way can read the packages, but not install them.
-
-Github official documentation: https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-nuget-registry
-
-# Core Concepts
-
-### Secured by JWT
-
-All endpoints that affect any of our data should be secured by a JSON Web Token (JWT).  JWTs can be encoded with data to indicate permissions and relevant user information.  For security reasons, all information that is used to uniquely identify users should be embedded in the JWT, not accepted from a request body.
-
-Currently, JWTs are generated by `player-service` and decoded via a web request `/player/verify`.
-
-### Everything JSON
-
-Every endpoint should accept a JSON body (unless it's a GET request) and return a JSON body.  No exceptions; consistency and maintainability is important.
-
-### Built on Models, Controllers, and Services
-
-All Platform microservices should be built around MVC methodologies.  Particularly for MongoDB services:
-
-* **Models** should store all of your data, and can be used to serialize to and from JSON data.  Every property should contain two attributes:
-	* `[BsonElement(DB_KEY_{NAME})]`: An abbreviated key for the field.  For example, "timestamp" could be shortened to "ts".  Given the potential scale of millions of players, any and all savings can be significant.
-	* `[JsonProperty(PropertyName = FRIENDLY_KEY_{NAME})]`: A human-readable key.  This is what gets sent out in responses, and is what frontend devs will use.
-* **Services** are interfaces between your project and the MongoDB databases.  Every time you need to access a new Mongo Collection, you should have a corresponding Service to go with it, and vice versa.  Services are essentially static classes with an open connection Mongo and should handle all of the I/O operations for it.
-* **Controllers** handle all the routing and for API requests.  Use controllers to validate data, manipulate it, and issue requests to your services.
-
-### Standardized Responses
-
-When sending data to clients, any models should be contained in an appropriately named **response object**.  If the endpoint is supposed to return an array of `Foo` objects and a `Bar` object, the response data should look like:
-
-	{
-	  "success": true,
-	  "foos": [
-	    { /* foo1 */ },
-	    { /* foo2 */ }
-	  ],
-	  "bar": {
-	    /* data for a Bar */
-	  }
-	}
-
-Objects should never mix their data, and should be contained in their own key.  Previous Platform projects written in Groovy tended to be flat, returning unrelated data together at the top level of the response JSON.  Organization adds a little more overhead in payload, but makes the code much easier to maintain and work with, especially when working on model-focused design.
-
-### Magic Through Filters
-
-This library uses several filters in the creation of APIs.  The filters contain methods that execute both before and after an endpoint does its work.  Token authorization, exceptions, and performance metrics are among the powerful tools included in every API.
-
-### Detailed Exceptions
-
-If you need to throw an Exception, consider making a custom Exception class that inherits from `PlatformException`.  All PlatformExceptions should have relevant data properties.  Any uncaught PlatformException that hits the filter mentioned above will be serialized into JSON and sent to Loggly, so the more data you include in the class, the easier it will be to diagnose issues.
-
-### Accountability in Logs
-
-Every entry in Loggly has an `owner`.  While the problem may not be that person's fault, they are the point of first contact should something go wrong, as they'll have a good understanding of what could have gone wrong.  The owner should generally be whoever wrote the call to send data to Loggly.
-
-### Hardened Responses
-
-Avoid sending any data to clients when they don't need it.  Failed responses should contain minimalistic responses with a vague message.  We don't want malicious actors hitting our API and receiving detailed information that can help them.  Internal users diagnosing their problems can always use Loggly data to troubleshoot, after all.
-
-However, if you have an environment variable for `RUMBLE_DEPLOYMENT` that contains the text "local", failed responses will contain the same details Loggly gets.
-
-### Use Environment Variables & Dynamic Config
-
-It doesn't make sense to hard-code configuration values into projects.  URLs can change, and values might need to be swapped around on the fly, and occasionally you'll want different environments to behave slightly differently, like getting more diagnostics when working locally.
-
-Dynamic Config is something Platform will need to re-evaluate and address in the near future, so more information will be available soon on that.
-
-When working locally, always add an `environment.json` file to your project's base directory, then add the file to your `.gitignore`.  You may need to right click the file within Rider and set the `Build Action` to `Content` in order for it to be copied to the `bin` directory.
-
-### Documentation, Documentation, Documentation
-
-Documentation is a chore, but maintaining projects is far less painful when it's done right.  It's natural for documentation to fall behind or get pushed into a backlog.  Whenever it's time to step away from a project for a while, make sure you've left an updated README and comments in your code.  Even if it's a project that no one else will be touching, having notes handy will reduce the time it takes to resume work on a project for future iterations or maintenance.
-
-Write with the assumption that your reader has no knowledge of the topic.  Important factors to consider:
-
-1. Are there any identifiable inefficiencies anywhere?
-2. Were there features you wanted to add, but didn't get around to?
-3. Were there any kluges you had to add?
-4. How would someone else consume the service / project?
-5. How would someone get set up to run the service / project on their local machine?
-6. Any important notes to someone who has to maintain the project in your absence?
-
-# Class Overview
-
-## Exceptions
-
-| Name                             | Description                                                                                                                                                                                                              |
-|:---------------------------------|:-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `AuthNotAvailableException`      | Raised when a request attempts to use the authorization filter but the server does not have an auth endpoint configured in its environment variables.                                                                    |
-| `ConerterException`              | Raised when a custom JSON / BSON converter encounters in issue in either serialization or deserialization.                                                                                                               |
-| `FailedRequestException`         | Raised when a Web Request fails.  Tracks the endpoint and data used for the request.                                                                                                                                     |
-| `FieldNotProvidedException`      | Raised when JSON bodies are missing expected values. Contains the missing field's name as a property.                                                                                                                    |
-| `InvalidTokenException`          | Raised when the token passed in the Authorization header fails validation.                                                                                                                                               |
-| `PlatformException`              | The abstract base class for all custom Exceptions.  Contains an `Endpoint` property, which uses the stack trace to look up the routing for the endpoint that raised it.                                                  |
-| `PlatformMongoException`         | A klugey wrapper for MongoCommandExceptions.  MongoExceptions don't like being serialized to JSON, so it's a workaround for them.                                                                                        |
-| `PlatformSerializationException` | A kind of catch-all Exception to use when JSON serialization fails.                                                                                                                                                      |
-| `PlatformStartupException`       | Thrown when there's an issue in `Startup.cs`.  These are probably critical errors and should raise alarms when thrown.                                                                                                   |
-| `ResourceFailureException`       | This indicates a failure when parsing the request query or body.  The root cause is likely either invalid JSON or a `GenericData` deserialization error.  If it's the latter, debugging platform-common may be required. |
-
-## Filters
-
-| Name                             | Description                                                                                                                                                                                                                                                                                                                                                        |
-|:---------------------------------|:-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `PlatformAuthorizationFilter`    | This filter looks for `RequireAuth` and `NoAuth` attributes on methods and classes.  When it finds these attributes, it attempts to verify request's authorization token against the `RUMBLE_TOKEN_VERIFICATION` environment variable.  Token information can then be used by Controllers via the `Token` property.                                                |
-| `PlatformBaseFilter`             | An abstract class that all Platform filters inherit from.                                                                                                                                                                                                                                                                                                          |
-| `PlatformExceptionFilter`        | This filter is responsible for catching all Exceptions within a project's endpoints.  It standardizes logs and responses to the client.                                                                                                                                                                                                                            |
-| `PlatformMongoTransactionFilter` | This filter handles logic for Mongo transactions.  Endpoints can be easily encapsulated with a Mongo transaction via the `UseMongoTransaction` attribute on either a method or a Controller.  By adding this attribute, a transaction will be started as soon as a data modification operation starts and is committed if no unhandled exceptions are encountered. |
-| `PlatformPerformanceFilter`      | This filter monitors performance metrics and occasionally generates Loggly reports.  When grafana integration is added, it will also be implemented in this filter.                                                                                                                                                                                                |
-| `PlatformResourceFilter`         | A request's body can only be read once without painful workarounds.  Microsoft's tutorial suggests using attributes within parameter declarations, but this filter instead reads all request bodies before the request even gets there.  It can then be accessed by Controllers via the `Body` property any number of times.                                       |
-
-## Interop
-
-| Name                 | Description                                                                                                                                                                            |
-|:---------------------|:---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `Graphite`           | A TCP messaging client that sends data points to Graphite (Grafana's data store).                                                                                                      |
-| `LogglyClient`       | A simple wrapper for Loggly integration, solely used to POST logs.                                                                                                                     |
-| `SlackAttachment`    | A model representing an `Attachment` for Slack's API.  Attachments are messages with text set to the right of a colored bar.                                                           |
-| `SlackBlock`         | A model representing a `Block` for Slack's API.  This is the standard for a message body.                                                                                              |
-| `SlackFormatter`     | Utility class to help format data for Slack.                                                                                                                                           |
-| `SlackMessage`       | A model representing a `Message` for Slack's API.  A message consists of one or more blocks or attachments.                                                                            |
-| `SlackMessageClient` | A helper class to send messages to Slack.  Accepts a channel ID and API token (issued by Slack) in its constructor so that multiple channels and multiple Slack apps can be supported. |
-
-### Grafana Integration
-
-This library automatically tracks several data points in any project that uses the `PlatformStartup` class and has a `GRAPHITE` environment variable.  The following data points are tracked automatically:
-
-* Average response time (ms), by endpoint.  Ignores `/health` endpoints.
-* Minimum response time (ms), by endpoint.  Ignores `/health` endpoints.
-* Maximum response time (ms), by endpoint.  Ignores `/health` endpoints.
-* Number of requests, by endpoint.
-* Unhandled exceptions encountered, by endpoint.  Ignores invalid authorizations.
-* Valid authorizations.
-* Invalid authorization attempts.
-* Invalid admin authorization attempts.
-* Number of messages sent to Slack, if using Slack integration.
-* Number of entries sent to Loggly.
-
-Tracking new data points requires one line of code where applicable.
-
-	Graphite.Track("foo", fooValue, endpoint: "/foo/calculation", type: Graphite.Metrics.Type.AVERAGE);
-
-The data types available are:
-
-* `AVERAGE`: Divides the total value by the number of times that particular data point was tracked.
-* `CUMULATIVE`: The value persists even after sending.  Resets when the environment restarts.
-* `FLAT`: The value is incremented (or decremented) and the total is sent.
-* `MAXIMUM`: The value persists even after sending.  The value is only updated if the new value is higher.
-* `MINIMUM`: The value persists even after sending.  The value is only updated if the new value is lower.
-
-When querying data in Grafana, the selectors will follow the following format:
-
-	rumble.platform-csharp.{service}.{deployment}.{endpoint}.{statType}-{statName}
-
-* Service: Uses reflection to pull the top-level namespace from your Startup class.  If "service" isn't found in your namespace path, defaults to `unknown-service`.
-* Deployment is the identifier for our games and environment (e.g. 107, 207, 307).  Defaults to `unknown`.
-* Endpoint: defaults to `general`.
-* StatType: Generated prefix based on the stat type.
-* StatName: Provided in the `Graphite.Track` method call.
-
-### Slack Integration | "Hello, World!" Example
-
-Functionality with Slack is easy with the interop classes.  This section assumes that you have created a Slack channel and a Slack app before continuing.
+Welcome to MINQ - The Mongo Integrated Query!
 
 ```
-string channel = "ABCDEFGHI"; // your Slack channel's ID
-string token = "xoxb-deadbeefdeadbeefdeadbeef"; // your Slack app's token, issued from Slack
+                                _,-/"---,
+         ;"""""""""";         _/;; ""  <@`---v
+       ; :::::  ::  "\      _/ ;;  "    _.../
+      ;"     ;;  ;;;  \___/::    ;;,'""""
+     ;"          ;;;;.  ;;  ;;;  ::/
+    ,/ / ;;  ;;;______;;;  ;;; ::,/
+    /;;V_;;   ;;;       \       /
+    | :/ / ,/            \_ "")/
+    | | / /"""=            \;;\""=
+    ; ;{::""""""=            \"""=
+ ;"""";
+ \/"""
+ ```
+ Source: https://ascii.co.uk/art/weasel (Ermine)
 
-SlackMessageClient slack = new SlackMessageClient(channel, token);
+## Introduction
 
-List<SlackBlock> content = new List<SlackBlock>()
+After a couple of years using MongoDB's official driver, there have been many pain points in the near-complete lack of documentation, and behavior that can be somewhat counter-intuitive.  The base driver allows you to do a lot - but it has a steep learning curve and is very verbose.  MINQ isn't a replacement for the driver; instead, it's a wrapper built as an additional layer to make it more accessible.
+
+MINQ aims to improve:
+
+* Readability
+* Documentation
+* Expanded functionality
+* Maintaining indexes
+* Transaction management
+
+This project is still young; at the peak of its use at R Studios, we only had ~180k unique user accounts.  This has not been tested at a significantly large scale.
+
+## Glossary
+
+| Term              | Definition                                                                                                                                                                                                                                                                                                                                                                                                           | 
+|:------------------|:---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Auto-Index        | An Index that was automatically created based on MINQ usage.  MINQ attempts to intelligently detect and resolve non-performant queries, but may fail occasionally to do so.  Auto-Indexes are named "minq_X".  **An Auto-Index can never have a unique constraint.**                                                                                                                                                 |
+| Consumed          | MINQ requests can be used exactly once.  Once you've issued a Terminal Command, the request is then **Consumed**, and trying to issue further Terminal Commands on it will throw an exception.                                                                                                                                                                                                                       |
+| Covered Query     | Indicates that the current request can be completed entirely using Indexes.  Virtually all queries should be Covered to be considered performant.                                                                                                                                                                                                                                                                    |
+| Filter Chain      | A lambda expression resulting in a Method Chain to build out a Mongo filter.  A FilterChain must always be the first chain defined in a RequestChain.  Once a FilterChain is defined, you can lead into UpdateChain or Terminal Methods to complete your query.                                                                                                                                                      |
+| Index             | A constantly-maintained lookup table used by Mongo to optimize queries.  Indexes are incredibly important to keep performant queries.  Manual indexes can be specified with `mongo.DefineIndexes()` in any MinqService.                                                                                                                                                                                              |
+| Index Chain       | A lambda expression resulting in a Method Chain to build out an index.                                                                                                                                                                                                                                                                                                                                               |
+| Method Chain      | A practice more common in JavaScript than C#, this is when an object performs updates or other actions but keeps returning itself.  This results in stylistically-different code, but is particularly useful because you get code completion prompts / comments that can help guide you through a full update on the object you're using.  MINQ is heavily reliant on chains and should be used as much as possible. |
+ | MINQ              | Pronounced "mink", like the weasel-cousin.  It stands for **M**ongo **IN**tegrated **Q**uery.  A MINQ is the shorthand term for any single MinqSingleton built with this utility, but also refers to the library itself.                                                                                                                                                                                             |
+| Request Chain     | A lambda expression resulting in a Method Chain to build out a complete Mongo request.  This acts as an entry point to FilterChains and UpdateChains.                                                                                                                                                                                                                                                                |
+| Terminal Method   | Any method that completes the request.  This can be an update command or one that returns data, such as `ToList()` or `Project()`.  Once the request is completed, it is **Consumed** and cannot be used again.                                                                                                                                                                                                      |
+| Unique Constraint | An optional component of an Index.  When an Index is Unique, it means that the combination of fields that make up the index can never result in a duplicate partial object.  See the Using Indexes section for more.                                                                                                                                                                                                 |
+| Update Chain      | A lambda expression resulting in a Method Chain to build out an update statement.                                                                                                                                                                                                                                                                                                                                    |
+
+## Creating a Singleton (a "mink")
+
+Every collection document model should have at least one corresponding singleton for access.  This keeps maintenance straightforward.  If you're using the same model in multiple collections, use multiple Minqs.
+
+First, you'll need your model:
+
+```csharp
+public class Foo : MinqDocument
 {
-    new SlackBlock("Hello, World!")
-};
-SlackMessage message = new SlackMessage(content);
-slack.Send(message);
-```
-
-A `SlackMessage` may also contain attachments, each of which containing its own List of SlackBlocks.  Note that there are some limitations to Slack's API; each block must be less than a certain length and a message has a maximum limit on the number of blocks and attachments it can contain.  The interop classes handle some of these issues, but will need to be touched up to split messages when these limits are exceeded.
-
-Helpful resources for working with Slack:
-* [Slack Apps Page](https://api.slack.com/apps)
-* [Block Kit Builder](https://slack.com/workspace-signin?redir=%2Fapi%2F%2Ftools%2Fblock-kit-builder)
-
-
-## Services
-
-| Name                   | Description                                                                                                                                                                                                                                                                                   |
-|:-----------------------|:----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `ApiService`           | A service that handles JSON API calls.  Requests are built through object chaining and supports both synchronous and asynchronous requests.                                                                                                                                                   |
-| `ConfigService`        | This service allows developers to easily store runtime configs for their services which persist between sessions.  This service requires a MongoDB connection, and stores values in the `serviceConfig` collection.                                                                           |
-| `DynamicConfigService` | A client for grabbing values from `DynamicConfig` using GenericData objects.  Automatically added as a singleton to any project using `PlatformStartup`.                                                                                                                                      |
-| `HealthService`        | This service makes continuous checks to act as a safeguard against downtime.  Health is monitored by a percentage; if health drops too low, the project owner will be sent a direct message in Slack.  If the problem remains unresolved, a public message is posted in #platform-log-notifs. |
-| `MasterService`        | This abstract service enables developers to guarantee that only one node in a cluster performs a specific task.  In the future, this will also provide a message queue to allow other nodes to perform work.                                                                                  |
-
-### Using the `ApiService`
-
-A replacement for `PlatformRequest`, the `ApiService` provides clean wrappers for the built-in .NET HTTP requests and can help with self-documenting code.  Each available HTTP method is available as a C# method to end the chain, such as `.Post()` and `.PostAsync()`.
-
-While these methods return an `ApiResponse` object which can then be used to get the json output (in the form of `GenericData`) or the status code, you have the option to simplify this further with 0, 1, or 2 **out parameters** as shown below.
-
-```
-// This example comes from player-service-v2's token generation code:
-string token = "..." // Your JWT here
-GenericData payload = new GenericData() 
-{
-    { "aid", accountId },
-    { "screenname", screenname },
-    { "origin", "player-service-v2" },
-    { "email", email },
-    { "discriminator", discriminator },
-    { "ipAddress", geoData?.IPAddress },
-    { "countryCode", geoData?.CountryCode }
+    public string Bar { get; set; }
+    public int Count { get; set; }
+    public long CreatedOn { get; set; }
+    public string[] Names { get; set; }
 }
-
-_apiService
-    .Request(url)
-    .AddAuthorization(token)
-    .SetPayload(payload)
-    .OnSuccess((sender, response) =>
-    {
-        Log.Local("Token generation successful.");
-    })
-    .OnFailure((sender, response) =>
-    {
-        Log.Error("Unable to generate token.");
-    })
-    .Post(out GenericData response, out int code);
 ```
 
-### Using the `DynamicConfigService`
+Then you'll need your singleton:
 
-As with any other Service, you can use dependency injection to use DynamicConfig now.  In a constructor for a Service or Controller, you can reference it like this:
-
-```
-public class SampleService : PlatformService
+```csharp
+public class FooMinq : Minq<Foo>
 {
-    private readonly DynamicConfigService _dynamicConfigService;
+    public FooMinq() : base("foos") { }
+}
+```
+
+### Queries & Updates
+
+MINQ is designed to borrow heavily from LINQ syntax so it feels familiar.  Method names are borrowed - where applicable - and every request is built on a single method chain.  Every request ends in a Terminal Method; one that consumes the request and cannot be reused or chained further.  Specifying fields relies on field expressions, something the Mongo driver used.
+
+Let's try some simple queries our Foo objects:
+
+```csharp
+mongo
+    .Where(query => query.EqualTo(foo => foo.Count, 15))
+    .Limit(10)
+    .ToList();
+
+mongo
+    .Where(query => query
+        .EqualTo(foo => foo.Bar, "Hello, World!")
+        .GreaterThan(foo => foo.Count, 15)
+    )
+    .Or(query => query.Contains(foo => foo.Names, "Will"))
+    .Limit(10)
+    .ToList();
+
+mongo
+    .Where(query => query.LessThanOrEqualTo(foo => foo.CreatedOn, Timestamp.Now))
+    .Update(query => query.Set(foo => foo.Count, 42));
+
+mongo
+    .Where(query => query.EqualTo(foo => foo.Id, "deadbeefdeadbeefdeadbeef")
+    .Delete();
+```
+
+Ideally, these method chains read easily enough that no further explanation is needed.  Unlike Mongo's driver - which has a half dozen overloads for every method - the code completion popups should also be helpful here, allowing developers to explore the tools within their IDE of choice.
+
+### Using Transactions
+
+MINQ attempts to make transactions as easy to manage as possible.
+
+#### What is a Transaction and when should I use one?
+
+Transactions are valuable tools you can employ when you want to perform multiple actions against a dataset that must take effect together.  In other words, you're using a set of commands that should only modify the data when **all of them** are successful, and if any operation fails, no changes are committed.
+
+Imagine you're writing an endpoint that transfers money from a user's checking account to their savings account.  There are two operations that are absolutely critical: first, you have to deduct the amount from the checking, then add the same amount to the savings.  If your code fails for any reason between these steps, you don't want an account to lose money, or another to gain money, without the other operation.
+
+If you wrap these two operations in a single transaction, we can guarantee that they'll only take effect if they're both successful.
+
+There are a couple of noteworthy rules when working with Transactions:
+1. All operations in a Transaction must be completed within 30 seconds of starting one.  This is a limit imposed by MongoDB.  _If you need to debug your code, be aware your transactions may time out while you're paused on a breakpoint._
+2. The database won't reflect **any** changes until the Transaction is committed.
+
+#### Example Usage in MINQ
+
+Let's take those previous two query examples from above, but add Transaction support to them:
+
+```csharp
+mongo
+    .WithTransaction(out Transaction transaction)
+    .Where(query => query.LessThanOrEqualTo(foo => foo.CreatedOn, Timestamp.UnixTime))
+    .Update(query => query.Set(foo => foo.Count, 42));
+
+mongo
+    .WithTransaction(transaction)
+    .Where(query => query.EqualTo(foo => foo.Id, "deadbeefdeadbeefdeadbeef")
+    .Delete();
     
-    public SampleService(DynamicConfigService dynamicConfigService)
+transaction.Commit();
+```
+
+If for any reason that first update fails, the following delete call won't affect anything.  MINQ is also smart enough to ignore method chains if the transaction has previously been consumed.  At the time of writing, if you want to use a transaction, you need to manually close it out with either `Abort()` or `Commit()`.  MINQ will get a future update that warns on any detected transactions that weren't finalized, but it will always be safest to close them out yourself.
+
+### Using Indexes
+
+Indexes are crucial in keeping a database performant.  If you've ever used a cookbook before, you know how important the index at the back can be.  If you're looking for a recipe that uses leeks, you can use the index at the back to look up "leek", alphabetically, and get a list of page numbers where the ingredient is used.  Databases are no different.
+
+To create indexes with MINQ, you need to use the method `mongo.DefineIndexes()`; but before we get there, lets go over a few things first.
+
+#### The Golden Rule
+
+Whenever you create a filter, you _almost always_ should have an index to cover it.  The fields you use in your filter should correspond to a separate index.  Let's say you have the following query:
+
+```csharp
+mongo
+    .Where(query => query
+        .EqualTo(model => model.Foo, 5)
+        .EqualTo(model => model.Bar, 10)
+        .LessThan(model => model.Fubar, 100)
+    )...
+```
+
+In this case, you should have an index created for `model.Foo`, `model.Bar`, and `model.Fubar`.*  Any time any of these fields are updated on Mongo - either from updates, insertions, or deletions - the index will be updated and the database will have an easier time finding the records.
+
+Notes:
+
+1. The order that indexes are defined in is important, but this is better explained by reading Mongo's documentation for it instead.  For a tl;dr, know that you should have fields testing Equality listed before those that are tested for Ranges (e.g. `LessThan()`).
+2. \* Assume you have an index with five fields defined, on A, B, C, D, and E.  If a request comes in with a filter on A, B, and C, that request is covered by the index.  However, if the request comes in with A, D, B, it won't be covered, and will need a separate index.  Refer to Mongo's documentation for more information.
+3. Try to keep your queries limited in the fields they're searching on.  The more varied your filters are, the more indexes Mongo has to maintain, which can become very taxing on performance and storage requirements if abused.
+
+#### Automatic Indexes
+
+MINQ will always attempt to create indexes based on usage.  When MINQ detects that a query is not covered, it will guess what the appropriate index is, then create it on the database as a background task.  An Auto-Index will always be created with the name `minq_X`, where X is the largest numbered Auto-Index currently existing on the database plus one.
+
+While this can be relied upon for most general use, you should be aware of a few potential issues:
+
+1. Mongo has some restrictions on what indexes can cover.  For example, an index can only cover one array (or other collection type) in a model.  So, if you write a MINQ query that filters on two separate arrays (updates are OK), you will inevitably see errors that index creation is failing.  Auto-Index creation failures won't crash your service, but they can be indicators that you've built an anti-pattern into your model structure.
+2. Auto-Indexes never use Unique Constraints
+3. Auto-Indexes never use a descending order on a field
+
+You can obtain slightly better performance with manually-specified indexes.  However, Auto-Indexes are still important in guaranteeing that we don't have a compute- or memory-bound database if there's an oversight - we don't want a collection missing a few indexes to bring down the entire database, or force it to scale up artificially.
+
+#### Manual Indexes
+
+You can obtain precise control over your indexes using MINQ's `DefineIndex()` or `DefineIndexes()` methods.  As a code style guideline, this should be called from within your `MinqService` constructor:
+
+```csharp
+public MyMinqService() : base("foos")
+{
+    mongo.DefineIndexes(
+        index => index.Add(model => model.Foo),
+        index => index.Add(model => model.Bar, ascending: false),
+        index => index
+            .Add(model => model.Fubar)
+            .EnforceUniqueConstraint()
+            .SetName("uniq")
+    )
+}
+```
+
+This bit of code has a lot going on.  Firstly, `DefineIndexes` accepts a `params` of lambda expressions.  Each of these expressions will build an index that is then created on the database.
+
+A descending sort is less often used, but can be useful if the query you're going to use is looking for recent records first, as an example, and the field is a timestamp.
+
+The third index has a Unique Constraint added to it.  These index chains are the only way to specify a unique index with MINQ.  It also manually specifies the index name - which is purely a cosmetic choice, but can help differentiate your manual indexes from Auto-Indexes.
+
+When this method completes, MINQ will create all three of these indexes if they don't already exist.
+
+#### Unique Indexes
+
+You can enforce unique values on your collection with a Unique Constraint, as illustrated above.  When this constraint is specified, it guarantees that the collection you're working with never sees a duplicate record based on the fields the index contains.
+
+Let's say you have a mailbox for every user, and your Mailbox model has an `AccountId` field.  Creating a Unique Constraint on this will provide you with a promise that you never have a situation where the same user has more than one Mailbox.
+
+It's worth noting that this can apply to multiple fields, too.  If your index has a unique constraint on both `AccountId` and `OperatingSystem`, you could effectively separate your Mailboxes based on the system the user is on.
+
+**IMPORTANT:** Unique constraints will cause index creation to fail if there's already a violation in the data.  You will have to prune the offending data before you can create the index.  Keep an eye out for failed events in logs!
+
+#### Deleting Indexes
+
+Currently not supported.
+
+### Paging
+
+Paged queries is a very useful tool when building a UI that needs to connect to a large data set.  As an example, when you're searching Amazon for cat toys, you don't want a server to be returning 20 million different toys at once.  Instead, you only want 25/50/100 results per page.  Use
+paging to accomplish this.  Let's say you're looking through the fourth page of cat toys with 100 results per page:
+
+```csharp
+mongo
+    .All()
+    .Page(size: 100, number: 4, out long remaining);
+```
+
+The `out long` there tells you how many more records there are, which can be used to deduce how many more pages there are left to view.  There is an overload to `Page()` that also provides an `out long total`, should you need it.
+
+#### Processing
+
+Should you ever need to process data in batches, MINQ provides a way for you to do this as an extension of its paging functionality.  Note that this kind of data manipulation is not intended for frequent use, but mostly exists for flexibility down the line to support future needs, but at a high level this:
+
+1. Uses a paged query to create batches
+2. Loads each batch into memory one at a time
+3. Performs a defined action / lambda expression to access / transform these batches
+
+Theoretical example: we need a scheduled task that runs once per week, takes all players created since the last run, cross-references another service for some additional data, and does something with it.
+
+```csharp
+long now = Timestamp.UnixTime;
+long lastRunTime = GetLastRunTime();
+SetLastRunTime(now);
+
+mongo
+    .Where(query => query
+        .GreaterThan(player => player.CreatedOn, lastRunTime)
+        .LessThanOrEqualTo(player => player.CreatedOn, now)   // Possibly redundant; edge cases might see a record created after our "now" timestamp
+    )
+    .Process(batchSize: 10, onBatch: data =>
     {
-        _dynamicConfigService = dynamicConfigService;
-    }
-}
+        Player[] batch = data.Results;
+        Log.Info("MINQ processing {data.PercentComplete}% complete.");
+        foreach (Player player in batch)
+        {
+            // Do something with each player here
+            if (...)          // critical error condition
+            {
+                data.Stop();
+                Log.Error($"MINQ processing failed after {data.Processed} records.");
+            }
+        }
+        
+        if (data.Remaining == 0)
+            Log.Info("MINQ processing complete.");
+    });
 ```
 
-If you have `GAME_GUKEY` in your environment variables, the game config scope is automatically tracked by the service, and the values are stored as `GenericData`.  An example on accessing the Game scope:
+Note that while Transactions are still supported for processing, this is necessarily going to be a slow operation.  Transactions will fail if they take more than 30 seconds, so if you're going to use one, make sure your initial query doesn't return an extremely large data set.  This kind of processing can be useful for scheduled tasks, analysis, or upgrade scripts, and is generally discouraged from use in regular services and designed more for one-off scripts or on-demand programs.
 
-```
-string chatAdminToken = _dynamicConfigService.GameScope.Require<string>("chatToken");
-```
+Before using processing, consider if there are more efficient ways to achieve what you want - using projection, or flat updates, et cetera.  However, the flexibility is there should you need it.
 
-If you need to use other scopes in your project, you can do so with:
+**Important:** It's heavily discouraged to modify the collection you're querying against during processing, as this will affect the paging results.  Modifying other collections is fine.
 
-```
-_dynamicConfigService.Track(scope: "foo");
-```
+## Searching with MINQ
 
-## Utilities
+You can now perform searches on your collection with MINQ as a built-in feature.  Before you can use it, though, there's a little bit of setup.  First, you need to update your model to implement the `ISearchable<T>` interface:
 
-| Name                      | Description                                                                                                                                                                                                                                                           |
-|:--------------------------|:----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `Async`                   | A helper utility to make Asynchronous programming in C# a little less painful.  It's still a little barebones, but is good for fire-and-forget tasks like interfacing with external APIs.                                                                             |
-| `Converter`               | A helper class for various conversions.                                                                                                                                                                                                                               |
-| `Crypto`                  | Used to encrypt or decrypt string values.                                                                                                                                                                                                                             |
-| `Diagnostics`             | If you need something done using reflection or the stack trace, Diagnostics is the tool to use.                                                                                                                                                                       |
-| `GenericData`             | Represents any JSON we don't have a model for.  By default, C# can't create actual objects from JSON without a model as a data contract.  This class, along with its custom serializers, transform JSON into a `Dictionary<string, object>` that can be used.         | 
-| `JsonHelper`              | A wrapper for Newtonsoft's `ToObject<T>()` among other helper methods.                                                                                                                                                                                                |
-| `Log`                     | Contains methods for each event severity level.  In ascending order, they are: VERBOSE, LOCAL, INFO, WARNING, ERROR, CRITICAL.  Only events of INFO severity or above are sent to Loggly; others are printed out to the console window.                               |
-| `NoAuth`                  | Attribute valid on methods only.  Can be used to bypass class-level `RequireAuth` attributes.                                                                                                                                                                         |
-| `Owner`                   | An enum of Rumble employees who can own log events.  This will almost exclusively be reserved for Platform engineers in projects here, though.                                                                                                                        |
-| `PerformanceFilterBypass` | An attribute used to exempt specific endpoints from being monitored by the performance filter.                                                                                                                                                                        | 
-| `PlatformEnvironment`     | A class used to grab environment variables via the method `Variable(string)`.                                                                                                                                                                                         |
-| `RequireAuth`             | Attribute valid on classes or methods.  Indicates that the Controller or individual endpoint needs to have a valid token.  May use a `TokenType` as a parameter; defaults to `TokenType.STANDARD`.                                                                    |
-| `Timestamp`               | Helper class to handle various timestamps, e.g. getting the current Unix Timestamp.                                                                                                                                                                                   |
-| `TokenType`               | Enum for which type of token to use.                                                                                                                                                                                                                                  |
-| `UseMongoTransaction`     | An attribute valid on classes (specifically, Controllers) or methods.  By adding this attribute, all of an endpoint's Mongo interactions will be encapsulated in a transaction.  The transaction is rolled back if an unhandled Exception is encountered via filters. |
-
-### Serializers
-
-Occasionally, it's necessary to exercise manual control over the way certain objects are de/serialized.  This is particularly important for the `GenericData` class.  With .NET's built-in JSON handling, JSON defaults to `JsonDocument` / `JsonElement` / `JsonProperty` types.  These aren't proper objects in that they require type information to be stored as strings in order to properly serialize.
-
-This was a problem for Mongo DB.  Take a use case where you want to store data in an agnostic way.  An endpoint accepts any JSON the client sends and stores it in MongoDB.  Your first thought is to parse the data to store as a `JsonDocument`, then just save that to Mongo.
-
-While this does technically save something to Mongo, the data that's actually stored isn't actionable.  The way Mongo DB serializes non-primitive types by default is to store the type names, similar to what you get in a debugger when you call `ToString()` without a custom override, and then tries to instantiate that object at runtime with that time information when reading.
-
-This results in data that's not useful anywhere outside of the project that stored it.  You can't cleanly query it from Compass or command line, it's a pain to read, and if your libraries change, it may break the deserialization.  Rather than rely on brittle handling, we can use custom serializers to prevent this behavior.
-
-There are two flavors that we use: `SerializerBase<T>` for BSON and `JsonConverter<T>` for JSON.
-
-| Name                     | Description                                                                                                                                |
-|:-------------------------|:-------------------------------------------------------------------------------------------------------------------------------------------|
-| `BsonGenericConverter`   | Handles `GenericData` <-> BSON document conversions for Mongo DB insertion.                                                                |
-| `BsonSaveAsString`       | Forces a field to be saved as a string when written to MongoDB.  Initially required for player-service v2's version number fields.         |
-| `JsonExceptionConverter` | Override for serializing Exceptions as JSON.  With the built-in JSON handler, circular references caused the current `Log` tools to crash. |
-| `JsonGenericConverter`   | Handles `GenericData` <-> JSON conversions for generating API responses.                                                                   |
-| `JsonIntConverter`       | Handles **int** conversions.  Necessary for proper `GenericData` serialization.                                                            |
-| `JsonLongConverter`      | Handles **long** conversions.  Necessary for proper `GenericData` serialization.                                                           |
-| `JsonShortConverter`     | Handles **short** conversions.  Necessary for proper `GenericData` serialization.                                                          |
-| `JsonTypeConverter`      | Serializes `Type` values to and from strings for proper `GenericData` serialization.                                                       |
-
-### Using `RumbleJson`
-
-As of this writing, neither `System.Text.Json` nor `Newtonsoft` can create actual objects from JSON without a model to use as a contract.  This causes problems when storing data in MongoDB.  Sometimes the frontend developers will need a flexible structure to send data to Mongo, and it would be difficult to maintain a model on both the frontend and the backend.
-
-`GenericData` provides a way around the restrictions of these JSON libraries.  It translates JSON into a `Dictionary<string, object>` and vice versa, where `object` is a primitive type that's easily stored in Mongo DB.
-
-Consider what happens when we try to store a `JsonElement` in Mongo:
-
-```
-public class Model : PlatformDataModel
+```csharp
+public class MyModel : MinqDocument, ISearchable<MyModel>
 {
-    public bool ABool => true;
-    public int AnInt => 88;
-    public JsonElement Data => ...
+    public string SomeString { get; set; }
+    public string OtherString { get; set; }
+    public string ImportantString { get; set; }
+    ...
+    
+    // The following are required by the ISearchable interface.
+    public long SearchWeight { get; set; }                            // The score the search assigned when weighing search terms.
+    public double SearchConfidence { get; set; }                      // A percentage indicating how relevant the result is compared to other returned models.
+    
+    // After Mongo returns records, these weights are used to calculate a model's relevance.  For accurate results, 
+    // these should match all the fields you use in the Search() call.  These weights allow you to prefer certain fields
+    // as you see fit.  Being a method, you have the flexibility to alter the weights at runtime if you don't use magic
+    // or constant values, e.g. via Dynamic Config.
+    public Dictionary<Expression<Func<Guild, object>>, int> DefineSearchWeights() => new()
+    {
+        { model => model.ImportantString, 100 },
+        { model => model.SomeString, 10 },
+        { model => model.OtherString, 1 }
+    };
 }
-
-model: Object
-  aBool: true
-  anInt: 88,
-  data: Object
-    _t: "System.Text.Json.JsonElement"
-    _v: (garbage)
 ```
 
-With `GenericData`, we instead see values recorded accurately:
+**Important Note:** Weights are only used _after_ Mongo returns results.  If your search matches 100k records, the weights will only apply to the few records returned, and won't return the most relevant results from the entire database.  If you find yourself in this situation, leverage the other features of a MINQ request to refine your search.
 
-```
-public class Model : PlatformDataModel
+Once your model is updated, you can use `Search()` in your MinqService:
+
+```csharp
+public class MyModelMinq : Minq<MyModel>
 {
-    public bool ABool => true;
-    public int AnInt => 88;
-    public GenericData Data => ...
+    ...
+    public MyModel[] Search(params string[] terms) => mongo
+        .Where(query => query.GreaterThan(model => model.CreatedOn, Timestamp.OneWeekAgo))
+        .Limit(25)
+        .Cache(Interval.TwoHours)
+        .Sort(sort => sort.OrderByDescending(model => model.CreatedOn)
+        .Search(terms);
 }
-
-model: Object
-  aBool: true
-  anInt: 88,
-  data: Object
-    anotherBool: false
-    anotherInt: 13
 ```
 
-Use `GenericData` whenever you need a service to be agnostic about the data that it's sending.  Use it sparingly, though, as project maintenance is much easier with more structured data.
+In order of execution, this is telling minq:
 
-## Web
+1. Only return documents that are less than one week old AND contain one of the specified search terms.
+2. If the results contain too many documents, return the most recently created documents first.
+3. Limit the results to a maximum of 25 documents.
+4. Once the query comes back, store this query as a cached search for two hours.  If this exact query is run during this time, the same exact data will be returned.
+5. Calculate the relevance of all the returned documents and return them in descending order of confidence.
 
-| Name                         | Description                                                                                                                                                                   |
-|:-----------------------------|:------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `ErrorResponse`              | Whenever a request encounters an Exception, the `PlatformExceptionFilter` class sends one of these out.  They contain debug data in local environments.                       |
-| `PlatformCollectionDocument` | An abstract subclass of `PlatformDataModel`; this adds a `BsonId` and is intended for MongoDB collection-level models.  More features may be added later.                     |
-| `PlatformDataModel`          | An abstract class that contains helpful methods for all models, such as `JSON` and `ResponseObject` properties.                                                               |
-| `PlatformController`         | An abstract class that all Platform controllers should inherit from.  Contains standard methods for validating JWTs and creating response objects.                            |
-| `PlatformMongoService`       | An abstract class that all services that connect to MongoDB should inherit from.                                                                                              |
-| `PlatformRequest`            | A replacement for the previous web request tools using `GenericData`.                                                                                                         |
-| `PlatformService`            | An abstract base class for all platform services.                                                                                                                             |
-| `PlatformStartup`            | Adds a layer of abstraction for every Service.  Make your Startup class inherit from this to automatically add the `PlatformExceptionFilter` and `PlatformPerformanceFilter`. |
-| `PlatformTimerService`       | A singleton service that runs a task on a specified interval.                                                                                                                 |
-| `StandardResponse`           | Deprecated.                                                                                                                                                                   |
-| `TokenInfo`                  | A model that contains all identifiable information for a given token.                                                                                                         |
+### How Relevance is Calculated
 
-### Routing
+In `ISearchable.cs`, the method `CalculateSearchWeight(ISearchable<T> result, string[] terms)` is the magic that guesses the importance of each model in the result set:
 
-For projects that need to serve their own web pages, these routing rules are used to clean up URLs.  While this can be done in Apache / IIS configurations, .NET core does allow us to take care of this internally and keep the changes within the code base, as well as letting us step through it in a debugger.  It's also nice to use full C# code rather than debugging regex.
+1. Call `DefineSearchWeights<T>()` to get the dictionary of weights to use in the scoring algorithm.
+2. For every field specified in `Model.DefineSearchWeights()`, when a term is found in the field, add score:
+   1. Take {term length}^2.  This adds preference for longer terms.
+   2. Multiply by {term length - index of term}^2.
+   3. Multiply by the dev-specified weight.
+   4. Repeat for every occurrence of the term in the field (so `foo bar` would be less relevant than `bar foo foo bar`)
 
-| Name                        | Description                                                                                                                |
-|:----------------------------|:---------------------------------------------------------------------------------------------------------------------------|
-| `OmitExtensionsRule`        | Drops extensions for recognized file types such as **.html**.                                                              |
-| `PlatformRewriteRule`       | Base class that encapsulates rule applications in a try / catch block to prevent breaking rules when something goes wrong. |
-| `RedirectExtensionlessRule` | Attempts to route requests to known file types, e.g. /foo/bar -> /wwwroot/foo/bar.html.                                    |
-| `RemoveWwwRule`             | Removes the `www` from the url if explicitly added.                                                                        |
+### No Fuzzy Search
 
-# Getting Started
+Mongo _does_ support fuzzy search, but it comes with limitations.  A collection only supports a single text search index, and the fields the index is built on are static, requiring it to be rebuilt when you want to include a different field as part of the search.  MINQ's kind of search is just a naive check for case-insensitive substrings with a regex - however, it does allow us to create searches easily without heavy indexing.
 
-1. Create a directory in your development folder for the Platform .NET projects.
-2. Clone all Platform projects you plan on working on to this directory, including `platform-csharp-common`.
-3. Open Rider.  Create an empty solution named `Platform` in the same directory.
-4. In the Solution window, right click on `Platform` > `Add` >  `Add Existing Project...`.
-5. Add any cloned projects to the solution.
+MINQ _does_ still create indexes to efficiently handle all queries, so as with every other MINQ command you use, it's best practice to use the same fields and same order wherever possible to keep indexing low.
 
-Your directory structure should look like:
+### Limitations
 
-* `{PROJECT_FOLDER}`
-	* `{PROJECT 1}`
-	* `{PROJECT 2}`
-	* `platform-csharp-common`
-	* `Platform.sln`
+Due to its expensive nature, MINQ Search has some initial limitations.  Future versions may improve them, but they are currently:
 
-If you haven't done so yet, you will need to add gitlab to your NuGet sources.  See the above section `Adding the Library` for more details on how to do this.
+* Terms are split by commas and whitespace.  A term with whitespace includes the initial value as a term: e.g. "foo bar" becomes `["foo bar", "foo", "bar"].`  Terms of length 0-2 are **ignored**.
+* A maximum of 5 terms is allowed. 
+* A maximum of 10 fields are allowed for searching.
+* A maximum of 1,000 records can be returned.
 
-# Deploying a New Version
+Terms and fields create multiplicative queries; it's effectively building a complex "Or" clause on top of whatever your existing filter is.
 
-Whenever you make changes to `platform-csharp-common`, you'll need to bump the NuGet version for any updates to be available to other services.
+Because there's no way to score all results on the database with search, any time your search returns the maximum number of results, you will not be getting the most relevant results.  Narrowing the query down will help.
 
-1. Right click on the `platform-csharp-common` project and select `Properties`.
-2. In the NuGet section, increase the version number.
-3. Commit and push your changes.  GitLab will automatically build a new version.
-4. After GitLab's job has finished, update your `platform-csharp-common` NuGet package from your other service.  Be careful: if you are several versions behind, there may be side effects.
+### Caching
 
-You can check the status of GitLab's jobs either through `{project}` > CI/CD > Pipelines or by monitoring the `#platform-ops` channel in Slack.
+(TODO: Docs)
 
-# Troubleshooting
+Depending on your use case, leveraging MINQ's caching could dramatically improve your Search performance.  However, this could also do the opposite; each cached result creates temporary copies of query responses in a separate collection.  If your search is user-facing, caching garbage input could create enormous amounts of data.
 
-#### *I suspect there's a problem in the platform-csharp-common code and want to debug it, or I want to test changes to platform-csharp-common without pushing.*
-
-You can remove the NuGet package from each project and directly reference `platform-csharp-common` as a project dependency.  However, if your project is using a previous version of common, you might want to try upgrading to the latest version instead.
-
-#### *I made changes to `platform-csharp-common` and pushed a new version up, but I don't see an option to upgrade in Rider's NuGet package manager.*
-
-If you're sure the gitlab build process has completed, there's a refresh button off to the left side of Rider's NuGet panel.  Sometimes Rider needs a little kick to look for the updated package.
-
-#### *I'm seeing ugly Exceptions in my output window with stack traces that aren't particularly helpful.*
-
-Almost all runtime Exceptions are caught by the `PlatformExceptionFilter` and are reduced to pretty-printed console logs with details in Loggly.  However, Exceptions in the common library sometimes evade the filter since they're sometimes thrown outside of the user's flow.  It's possible that it's not your code and the bug exists in common.  Even if the cause ultimately comes from your project, report the issue so it can be handled by common appropriately in the future.
-
-#### _I need to bypass a filter that Startup is adding._
-
-The filters are an important part of Platform's boilerplate reduction and unified behaviors, but if you're certain you must ignore one of the common filters, you can do so by calling `BypassFilter<T>()` in your project's `Startup.ConfigureServices()`.  Be warned, though, that you may not have some expected functionality if you do this.
+As a rule of thumb, caching makes more sense for admin users rather than something that may be UGC (user-generated content).
