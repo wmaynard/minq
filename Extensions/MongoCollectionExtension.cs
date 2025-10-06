@@ -22,7 +22,7 @@ public static class MongoCollectionExtension
         candidates.AddRange(type
             .GetGenericArguments()
             .Union(type.GetNestedTypes(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic))
-            .Where(model => model.IsAssignableTo(typeof(Model)))
+            .Where(model => model.IsAssignableTo(typeof(FlexModel)))
             .SelectMany(GetIndexCandidates)
         );
         
@@ -31,7 +31,7 @@ public static class MongoCollectionExtension
             .GetGenericArguments()
             .Where(t => t.DeclaringType != null)
             .SelectMany(t => t.DeclaringType.GetNestedTypes(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic))
-            .Where(model => model.IsAssignableTo(typeof(Model)))
+            .Where(model => model.IsAssignableTo(typeof(FlexModel)))
             .SelectMany(GetIndexCandidates)
         );
 
@@ -123,7 +123,7 @@ public static class MongoCollectionExtension
         foreach (CompoundIndex compound in output.OfType<CompoundIndex>())
             compound.AddKeys(additionalKeys.Where(adds => adds.GroupName == compound.GroupName));
         
-        if (property.PropertyType.IsAssignableTo(typeof(Model)))
+        if (property.PropertyType.IsAssignableTo(typeof(FlexModel)))
             foreach (PropertyInfo nested in GetIndexCandidates(property.PropertyType))
                 output.AddRange(ExtractIndexes(nested, property.Name, parentDbKey, depth - 1));
 

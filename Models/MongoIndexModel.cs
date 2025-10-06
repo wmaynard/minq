@@ -7,7 +7,7 @@ using MongoDB.Driver;
 
 namespace Maynard.Minq.Models;
 
-public class MongoIndexModel : Model
+public class MongoIndexModel : FlexModel
 {
     [BsonElement("v")]
     [JsonPropertyName("v")]

@@ -2,7 +2,7 @@ using Maynard.Json;
 
 namespace Maynard.Minq.Queries;
 
-public class BatchData<T> where T : Model
+public class BatchData<T> where T : FlexModel
 {
     /// <summary>
     /// If set to false, this batch will be the final one processed.

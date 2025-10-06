@@ -52,9 +52,20 @@
 	  <Folder Include="Attributes\" />
 	</ItemGroup>
 	
+    
+    <PropertyGroup>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+    </PropertyGroup>
+    
+    <ItemGroup>
+        <None Include="README.md" Pack="true" PackagePath="\"/>
+        <None Update="icon.png">
+          <Pack>True</Pack>
+          <PackagePath></PackagePath>
+        </None>
+    </ItemGroup>
 
-
-
-
-
+    <Target Name="PushToNuGet" AfterTargets="Pack" Condition="'$(Configuration)' == 'Release'">
+        <Exec Command="dotnet nuget push $(PackageOutputPath)\*.nupkg --skip-duplicate --api-key $(NugetApiKey) --source https://api.nuget.org/v3/index.json" />
+    </Target>
 </Project>

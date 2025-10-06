@@ -195,7 +195,7 @@ public class UpdateChain<T> where T : MinqDocument
     /// <param name="filter">A filter chain to select items for removal.</param>
     /// <typeparam name="U"></typeparam>
     /// <returns>The UpdateChain for method chaining.</returns>
-    public UpdateChain<T> RemoveWhere<U>(Expression<Func<T, IEnumerable<U>>> field, Action<FilterChain<U>> filter) where U : Model
+    public UpdateChain<T> RemoveWhere<U>(Expression<Func<T, IEnumerable<U>>> field, Action<FilterChain<U>> filter) where U : FlexModel
     {
         FilterChain<U> _filter = new();
         filter.Invoke(_filter);

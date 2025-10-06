@@ -7,7 +7,7 @@ using MongoDB.Driver;
 
 namespace Maynard.Minq.Indexing;
 
-internal class MinqIndex : Model
+internal class MinqIndex : FlexModel
 {
     internal const string INDEX_PREFIX = "minq_";
     internal string Name { get; set; }

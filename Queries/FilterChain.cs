@@ -249,7 +249,7 @@ public class FilterChain<T>
     /// <param name="builder"></param>
     /// <typeparam name="U"></typeparam>
     /// <returns></returns>
-    public FilterChain<T> Where<U>(Expression<Func<T, IEnumerable<U>>> field, Action<FilterChain<U>> builder) where U : Model
+    public FilterChain<T> Where<U>(Expression<Func<T, IEnumerable<U>>> field, Action<FilterChain<U>> builder) where U : FlexModel
     {
         FilterChain<U> filter = new();
         builder.Invoke(filter);

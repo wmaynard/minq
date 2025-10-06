@@ -8,7 +8,7 @@ namespace Maynard.Minq.Models;
 /// <summary>
 /// An object containing information about keys/records scanned and whether or not the query was covered by indexes.
 /// </summary>
-public class MongoQueryStats : Model
+public class MongoQueryStats : FlexModel
 {
     public bool IndexScan { get; private set; }
     public bool CollectionScan { get; private set; }

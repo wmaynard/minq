@@ -6,7 +6,7 @@ using MongoDB.Bson.Serialization.Attributes;
 
 namespace Maynard.Minq.Models;
 
-public abstract class MinqDocument : Model
+public abstract class MinqDocument : FlexModel
 {
     public const string DB_KEY_CREATED_ON = "created";
     public const string FRIENDLY_KEY_CREATED_ON = "createdOn";

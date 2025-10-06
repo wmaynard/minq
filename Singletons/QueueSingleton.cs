@@ -19,7 +19,7 @@ public interface IConfiscatable
     void Confiscate();
 }
 
-public abstract class QueueSingleton<T> : MongoTimerSingleton<QueueSingleton<T>.TaskData>, IConfiscatable where T : Model
+public abstract class QueueSingleton<T> : MongoTimerSingleton<QueueSingleton<T>.TaskData>, IConfiscatable where T : FlexModel
 {
     private const int MAX_FAILURE_COUNT = 5;
     private const string COLLECTION_PREFIX = "queue_";

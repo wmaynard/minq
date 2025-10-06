@@ -8,7 +8,7 @@ using MongoDB.Driver;
 
 namespace Maynard.Minq.Queries;
 
-public class SortChain<T> where T : Model
+public class SortChain<T> where T : FlexModel
 {
     internal SortDefinitionBuilder<T> Builder { get; init; }
     private List<SortDefinition<T>> Definitions { get; init; }
