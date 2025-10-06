@@ -1,13 +1,10 @@
-using System.Text.Json.Serialization;
 using Maynard.Json;
 using Maynard.Json.Attributes;
 using Maynard.Json.Enums;
-using Maynard.Json.Serializers;
 using MongoDB.Bson;
-using MongoDB.Bson.Serialization;
 using MongoDB.Bson.Serialization.Attributes;
 
-namespace Rumble.Platform.Common.Utilities.JsonTools;
+namespace Maynard.Minq.Models;
 
 public abstract class MinqDocument : Model
 {

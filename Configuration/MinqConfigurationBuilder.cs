@@ -1,19 +1,14 @@
 using System.Text.RegularExpressions;
 using Maynard.Configuration;
 using Maynard.Logging;
-using Maynard.Singletons;
-using MongoDB.Driver;
-using Rumble.Platform.Common.MinqOld;
 
-namespace Maynard.Minq.Extensions;
+namespace Maynard.Minq.Configuration;
 
-public class MinqConfigurationBuilder : Builder
+public partial class MinqConfigurationBuilder : Builder
 {
     public MinqConfigurationBuilder Connect(string connectionString) => OnceOnly<MinqConfigurationBuilder>(() =>
     {
-        string pattern = @"^mongodb(\+srv)?://(?:([^:]+):([^@]+)@)?([^/,]+(?:,[^/,]+)*)/([^?]+)(?:\?(.*))?$";
-
-        Match match = Regex.Match(connectionString, pattern);
+        Match match = ConnectionStringRegex().Match(connectionString);
 
         if (!match.Success)
         {
@@ -21,18 +16,18 @@ public class MinqConfigurationBuilder : Builder
             return;
         }
         
-        string protocol = match.Groups[1].Value;
-        string username = match.Groups[2].Value;
-        string password = match.Groups[3].Value;
-        string[] hosts = match.Groups[4].Value.Split(',');
+        // string protocol = match.Groups[1].Value;
+        // string username = match.Groups[2].Value;
+        // string password = match.Groups[3].Value;
+        // string[] hosts = match.Groups[4].Value.Split(',');
         string database = match.Groups[5].Value;
-        string queryParams = match.Groups[6].Value;
+        // string queryParams = match.Groups[6].Value;
         
-        MinqConnection.Client = new MongoClient(connectionString);
+        MinqConnection.Client = new(connectionString);
         MinqConnection.Database = MinqConnection.Client.GetDatabase(database);
         Log.Good("Connected to MongoDB.");
-        
-        
-        
     });
+    
+    [GeneratedRegex(@"^mongodb(\+srv)?://(?:([^:]+):([^@]+)@)?([^/,]+(?:,[^/,]+)*)/([^?]+)(?:\?(.*))?$")]
+    private static partial Regex ConnectionStringRegex();
 }

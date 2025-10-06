@@ -2,10 +2,9 @@ using System;
 using System.Timers;
 using Maynard.Json;
 using Maynard.Logging;
-using Rumble.Platform.Common.Utilities;
-using Rumble.Platform.Common.Utilities.JsonTools;
+using Maynard.Minq.Models;
 
-namespace Rumble.Platform.Common.Services;
+namespace Maynard.Minq.Singletons;
 
 public abstract class MongoTimerSingleton<T> : MongoSingleton<T>, IDisposable where T : MinqDocument
 {
@@ -17,7 +16,7 @@ public abstract class MongoTimerSingleton<T> : MongoSingleton<T>, IDisposable wh
     protected MongoTimerSingleton(string collection, double intervalMs, bool startImmediately = true) : base(collection)
     {
         IntervalMs = intervalMs;
-        _timer = new Timer(IntervalMs);
+        _timer = new(IntervalMs);
         _timer.Elapsed += (_, _) =>
         {
             Pause();
@@ -44,8 +43,5 @@ public abstract class MongoTimerSingleton<T> : MongoSingleton<T>, IDisposable wh
         { Name, Status }
     };
 
-    public void Dispose()
-    {
-        _timer?.Dispose();
-    }
+    public void Dispose() => _timer?.Dispose();
 }

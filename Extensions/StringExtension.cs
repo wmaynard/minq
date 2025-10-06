@@ -1,16 +1,15 @@
 using System;
-using System.Linq;
 using MongoDB.Bson;
 
-namespace Maynard.Minq.Minq.Extensions;
+namespace Maynard.Minq.Extensions;
 
 public static class StringExtension
 {
-    public static bool CanBeMongoId(this string _string) => ObjectId.TryParse(_string, out ObjectId _);
+    public static bool CanBeMongoId(this string value) => ObjectId.TryParse(value, out ObjectId _);
 
-    public static void MustBeMongoId(this string _string)
+    public static void MustBeMongoId(this string value)
     {
-        if (!_string.CanBeMongoId())
-            throw new Exception(_string);
+        if (!value.CanBeMongoId())
+            throw new(value);
     }
 }

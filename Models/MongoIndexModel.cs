@@ -5,7 +5,7 @@ using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
 using MongoDB.Driver;
 
-namespace Rumble.Platform.Common.Models;
+namespace Maynard.Minq.Models;
 
 public class MongoIndexModel : Model
 {
@@ -41,7 +41,7 @@ public class MongoIndexModel : Model
         }
         catch
         {
-            return Array.Empty<MongoIndexModel>();
+            return [];
         }
     }
 }

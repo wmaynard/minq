@@ -6,14 +6,13 @@ using System.Reflection;
 using System.Threading.Tasks;
 using Maynard.Json;
 using Maynard.Logging;
+using Maynard.Minq.Indexing.Attributes;
+using Maynard.Minq.Models;
 using Maynard.Time;
 using MongoDB.Bson.Serialization.Attributes;
 using MongoDB.Driver;
-using Rumble.Platform.Common.Attributes;
-using Rumble.Platform.Common.Utilities;
-using Rumble.Platform.Common.Utilities.JsonTools;
 
-namespace Rumble.Platform.Common.Services;
+namespace Maynard.Minq.Singletons;
 
 public interface IConfiscatable
 {

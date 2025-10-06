@@ -2,9 +2,8 @@ using System;
 using Maynard.Json;
 using Maynard.Logging;
 using MongoDB.Bson;
-using Rumble.Platform.Common.Utilities;
 
-namespace Rumble.Platform.Common.Models;
+namespace Maynard.Minq.Models;
 
 /// <summary>
 /// An object containing information about keys/records scanned and whether or not the query was covered by indexes.

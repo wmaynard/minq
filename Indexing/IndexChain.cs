@@ -2,19 +2,16 @@ using System;
 using System.Collections.Generic;
 using System.Linq.Expressions;
 using Maynard.Logging;
-using Maynard.Minq.Minq.Queries;
-using Rumble.Platform.Common.MinqOld;
-using Rumble.Platform.Common.Utilities.JsonTools;
+using Maynard.Minq.Models;
+using Maynard.Minq.Queries;
 
-namespace Maynard.Minq.Minq.Indexes;
+namespace Maynard.Minq.Indexing;
 
 public class IndexChain<T> where T : MinqDocument
 {
-    private Dictionary<string, bool> Rendered { get; set; }
+    private Dictionary<string, bool> Rendered { get; set; } = new();
     private bool Unique { get; set; }
     private string Name { get; set; }
-
-    internal IndexChain() => Rendered = new Dictionary<string, bool>();
 
     /// <summary>
     /// Defines an index for MINQ to create.  Note that order is important when defining an index.

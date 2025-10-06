@@ -1,9 +1,9 @@
 using System.Linq;
 using Maynard.Json;
 using Maynard.Json.Attributes;
-using Rumble.Platform.Common.Utilities.JsonTools;
+using Maynard.Minq.Models;
 
-namespace Rumble.Platform.Common.Services;
+namespace Maynard.Minq.Singletons;
 
 /// <summary>
 /// Useful when a service needs to store configuration values specific to itself between runs.
@@ -31,7 +31,7 @@ public sealed class ConfigSingleton : MongoSingleton<ConfigSingleton.ServiceConf
     }
     public ServiceConfig Refresh() => _config = 
         Find(config => true).FirstOrDefault() 
-        ?? Create(new ServiceConfig());
+        ?? Create(new());
 
     public ConfigSingleton() : base("config")
     {

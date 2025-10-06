@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using MongoDB.Driver;
 
-namespace Rumble.Platform.Common.Attributes;
+namespace Maynard.Minq.Indexing.Attributes;
 
 [AttributeUsage(validOn: AttributeTargets.Property, AllowMultiple = true)]
 public sealed class CompoundIndex : PlatformMongoIndex

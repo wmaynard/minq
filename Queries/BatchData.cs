@@ -1,6 +1,6 @@
 using Maynard.Json;
 
-namespace Rumble.Platform.Common.MinqOld;
+namespace Maynard.Minq.Queries;
 
 public class BatchData<T> where T : Model
 {

@@ -5,13 +5,12 @@ using System.Reflection;
 using System.Text.Json.Serialization;
 using Maynard.Json;
 using Maynard.Logging;
+using Maynard.Minq.Indexing.Attributes;
+using Maynard.Minq.Models;
 using MongoDB.Bson.Serialization.Attributes;
 using MongoDB.Driver;
-using Rumble.Platform.Common.Attributes;
-using Rumble.Platform.Common.Utilities;
-using Rumble.Platform.Common.Utilities.JsonTools;
 
-namespace Rumble.Platform.Common.Extensions;
+namespace Maynard.Minq.Extensions;
 
 public static class MongoCollectionExtension
 {
@@ -41,13 +40,13 @@ public static class MongoCollectionExtension
     
     private static PlatformMongoIndex[] FromCandidates(IEnumerable<PropertyInfo> candidates)
     {
-        List<PlatformMongoIndex> output = new List<PlatformMongoIndex>();
-        List<PlatformMongoIndex> indexes = new List<PlatformMongoIndex>();
+        List<PlatformMongoIndex> output = new();
+        List<PlatformMongoIndex> indexes = new();
         
         foreach (PropertyInfo property in candidates)
             indexes.AddRange(ExtractIndexes(property));
         
-        // We can't add all of the indexes on their own.  Limitations:
+        // We can't add all the indexes on their own.  Limitations:
         //     A collection can only support one text index, so we have to combine them.
         //     Our compound indexes have not yet been combined into a comprehensive definition.
         TextIndex[] texts = indexes.OfType<TextIndex>().ToArray();

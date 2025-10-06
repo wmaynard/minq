@@ -3,11 +3,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Timers;
 using Maynard.Logging;
+using Maynard.Minq.Models;
 using Maynard.Time;
-using Rumble.Platform.Common.Utilities;
-using Rumble.Platform.Common.Utilities.JsonTools;
 
-namespace Rumble.Platform.Common.MinqOld;
+namespace Maynard.Minq;
 
 public abstract class MinqTimerService<T> : Minq<T> where T : MinqDocument, new()
 {

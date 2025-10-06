@@ -5,12 +5,10 @@ using System.Linq.Expressions;
 using System.Reflection;
 using Maynard.Extensions;
 using Maynard.Logging;
+using Maynard.Minq.Models;
 using MongoDB.Bson.Serialization.Attributes;
-using Rumble.Platform.Common.Extensions;
-using Rumble.Platform.Common.Utilities;
-using Rumble.Platform.Common.Utilities.JsonTools;
 
-namespace Rumble.Platform.Common.Interfaces;
+namespace Maynard.Minq.Interfaces;
 
 public interface ISearchable<T> where T : MinqDocument
 {
@@ -89,17 +87,14 @@ public interface ISearchable<T> where T : MinqDocument
             : Array.Empty<string>();
 
         if (!terms.Any())
-            throw new Exception("No valid search terms provided.");
+            throw new("No valid search terms provided.");
         
-        long total = 0;
-        foreach (ISearchable<T> result in results)
-            total += result.SearchWeight = CalculateSearchWeight(result, weights, terms);
+        long total = results.Sum(result => result.SearchWeight = CalculateSearchWeight(result, weights, terms));
         foreach (ISearchable<T> result in results)
             result.SearchConfidence = 100 * (result.SearchWeight / (double)total);
     }
 
-    internal static void SanitizeTerms(string[] terms, out string[] sanitized)
-    {
+    internal static void SanitizeTerms(string[] terms, out string[] sanitized) =>
         sanitized = terms.Length > 0
             ? terms
                 .Copy()
@@ -112,7 +107,6 @@ public interface ISearchable<T> where T : MinqDocument
                 .Select(term => term.ToLowerInvariant())
                 .Take(MAXIMUM_TERMS)
                 .ToArray()
-            : Array.Empty<string>();
-    }
+            : [];
     public Dictionary<Expression<Func<T, object>>, int> DefineSearchWeights();
 }

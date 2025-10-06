@@ -2,17 +2,12 @@ using System;
 using System.Linq;
 using System.Reflection;
 using Maynard.Configuration;
-using Maynard.Json;
 using Maynard.Json.Attributes;
 using Maynard.Json.Serializers;
 using Maynard.Logging;
-using Maynard.Singletons;
-using Microsoft.AspNetCore.Hosting;
-using MongoDB.Bson;
 using MongoDB.Bson.Serialization;
-using Rumble.Platform.Common.Services;
 
-namespace Maynard.Minq.Extensions;
+namespace Maynard.Minq.Configuration;
 
 public static class MaynardConfigurationBuilderExtension
 {
@@ -51,7 +46,6 @@ public static class MaynardConfigurationBuilderExtension
                 }, exception: e);
             }
         }
-        
 
         Log.Good("Mongo configured successfully!");
         return builder;

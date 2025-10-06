@@ -1,12 +1,11 @@
 using System.Linq;
 using Maynard.Logging;
+using Maynard.Minq.Extensions;
+using Maynard.Minq.Indexing.Attributes;
+using Maynard.Minq.Models;
 using MongoDB.Driver;
-using Rumble.Platform.Common.Attributes;
-using Rumble.Platform.Common.Extensions;
-using Rumble.Platform.Common.Models;
-using Rumble.Platform.Common.Utilities.JsonTools;
 
-namespace Rumble.Platform.Common.Utilities;
+namespace Maynard.Minq.Indexing;
 
 public static class MongoIndexAssistant
 {
@@ -37,7 +36,7 @@ public static class MongoIndexAssistant
                         index.Name = existingCompound.Name;
                     }
 
-                    model = new CreateIndexModel<T>(
+                    model = new(
                         keys: compound.BuildKeysDefinition<T>(),
                         options: new CreateIndexOptions<T>
                         {
@@ -58,7 +57,7 @@ public static class MongoIndexAssistant
                         index.Name = existingSimple?.Name;
                     }
 
-                    model = new CreateIndexModel<T>(
+                    model = new(
                         keys: simple.Ascending
                             ? Builders<T>.IndexKeys.Ascending(simple.DatabaseKey)
                             : Builders<T>.IndexKeys.Descending(simple.DatabaseKey),
@@ -71,9 +70,9 @@ public static class MongoIndexAssistant
                     );
                     break;
                 case TextIndex text:
-                    if (dbIndexes.Any(model => model.IsText))
+                    if (dbIndexes.Any(indexModel => indexModel.IsText))
                         continue;
-                    model = new CreateIndexModel<T>(
+                    model = new(
                         keys: Builders<T>.IndexKeys.Combine(
                             text.DatabaseKeys.Select(dbKey => Builders<T>.IndexKeys.Text(dbKey))
                         ),

@@ -1,6 +1,6 @@
 using System;
 
-namespace Rumble.Platform.Common.Attributes;
+namespace Maynard.Minq.Indexing.Attributes;
 
 [AttributeUsage(validOn: AttributeTargets.Property)]
 public abstract class PlatformMongoIndex : Attribute

@@ -4,7 +4,7 @@ using MongoDB.Bson;
 using MongoDB.Bson.IO;
 using MongoDB.Driver;
 
-namespace Rumble.Platform.Common.MinqOld;
+namespace Maynard.Minq.Exceptions;
 
 public class WriteConflictException : Exception
 {

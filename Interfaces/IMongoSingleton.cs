@@ -1,7 +1,6 @@
 using Maynard.Singletons;
-using Rumble.Platform.Common.MinqOld;
 
-namespace Rumble.Platform.Common.Interfaces;
+namespace Maynard.Minq.Interfaces;
 
 public interface IMongoSingleton : ISingleton, IGdprHandler
 {

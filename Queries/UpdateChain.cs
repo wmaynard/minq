@@ -3,26 +3,18 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq.Expressions;
 using Maynard.Json;
-using Maynard.Minq.Minq.Queries;
+using Maynard.Minq.Models;
 using Maynard.Time;
 using MongoDB.Driver;
-using Rumble.Platform.Common.Utilities;
-using Rumble.Platform.Common.Utilities.JsonTools;
 
-namespace Rumble.Platform.Common.MinqOld;
+namespace Maynard.Minq.Queries;
 
 public class UpdateChain<T> where T : MinqDocument
 {
     internal UpdateDefinition<T> Update => Builder.Combine(Updates);
-    private UpdateDefinitionBuilder<T> Builder { get; init; }
-    private List<UpdateDefinition<T>> Updates { get; init; }
+    private UpdateDefinitionBuilder<T> Builder { get; init; } = Builders<T>.Update;
+    private List<UpdateDefinition<T>> Updates { get; init; } = new();
 
-    public UpdateChain()
-    {
-        Builder = Builders<T>.Update;
-        Updates = new List<UpdateDefinition<T>>();
-    }
-    
     public UpdateChain<T> BitwiseAnd(Expression<Func<T, long>> field, long value)
     {
         Updates.Add(Builder.BitwiseAnd(field, value));
@@ -205,7 +197,7 @@ public class UpdateChain<T> where T : MinqDocument
     /// <returns>The UpdateChain for method chaining.</returns>
     public UpdateChain<T> RemoveWhere<U>(Expression<Func<T, IEnumerable<U>>> field, Action<FilterChain<U>> filter) where U : Model
     {
-        FilterChain<U> _filter = new FilterChain<U>();
+        FilterChain<U> _filter = new();
         filter.Invoke(_filter);
         Updates.Add(Builder.PullFilter(field, _filter.Filter));
         return this;

@@ -6,26 +6,22 @@ using System.Linq.Expressions;
 using Maynard.Extensions;
 using Maynard.Json;
 using Maynard.Logging;
-using Maynard.Minq.Minq.Extensions;
-using Maynard.Minq.Minq.Indexes;
-using Maynard.Minq.Minq.Queries;
+using Maynard.Minq.Exceptions;
+using Maynard.Minq.Extensions;
+using Maynard.Minq.Indexing;
+using Maynard.Minq.Interfaces;
+using Maynard.Minq.Models;
 using Maynard.Time;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization;
 using MongoDB.Driver;
-using Rumble.Platform.Common.Exceptions;
-using Rumble.Platform.Common.Extensions;
-using Rumble.Platform.Common.Interfaces;
-using Rumble.Platform.Common.Models;
-using Rumble.Platform.Common.Utilities;
-using Rumble.Platform.Common.Utilities.JsonTools;
 
-namespace Rumble.Platform.Common.MinqOld;
+namespace Maynard.Minq.Queries;
 
 public class RequestChain<T> where T : MinqDocument
 {
-    private readonly string EmptyRenderedFilter = MinqClient<T>.Render(Builders<T>.Filter.Empty);
-    internal bool FilterIsEmpty => MinqClient<T>.Render(_filter) == EmptyRenderedFilter;
+    private readonly string _emptyRenderedFilter = MinqClient<T>.Render(Builders<T>.Filter.Empty);
+    internal bool FilterIsEmpty => MinqClient<T>.Render(_filter) == _emptyRenderedFilter;
 
     internal string RenderedFilter => MinqClient<T>.Render(_filter);
     
@@ -68,7 +64,6 @@ public class RequestChain<T> where T : MinqDocument
     /// Attempts to complete the RequestChain, disallowing its use again.  Once consumed, the filter is evaluated,
     /// which can result in the automatic creation of indexes if the query isn't covered.
     /// </summary>
-    /// <exception cref="PlatformException">Thrown when the chain has already been consumed.</exception>
     private void Consume()
     {
         if (Consumed)
@@ -102,12 +97,12 @@ public class RequestChain<T> where T : MinqDocument
     /// <param name="affected">The number of records affected by a MINQ.</param>
     private void FireAffectedEvent(long affected)
     {
-        // This might look a little ugly, but it's technically more memory efficient since it only
+        // This might look a little ugly, but it's technically more memory-efficient since it only
         // allocates memory for the args if event handlers are defined.
         (affected == 0
                 ? _onNoneAffected
                 : _onRecordsAffected)
-            ?.Invoke(this, new RecordsAffectedArgs
+            ?.Invoke(this, new()
             {
                 Affected = affected,
                 Transaction = Transaction
@@ -124,11 +119,11 @@ public class RequestChain<T> where T : MinqDocument
     /// <param name="remaining">The number of remaining records from the query.  If you have 100 records, skipped 20,
     /// and are viewing 10, this will be 70.</param>
     /// <returns>An array of results.</returns>
-    /// <exception cref="PlatformException">Thrown when size is invalid.</exception>
+    /// <exception cref="Exception">Thrown when size is invalid.</exception>
     private T[] PageQuery(int size, int number, out long remaining)
     {
         if (size <= 0)
-            throw new Exception("Invalid size request.  Size must be greater than zero.");
+            throw new("Invalid size request.  Size must be greater than zero.");
 
         IFindFluent<T, T> finder = UsingTransaction
             ? _collection
@@ -187,23 +182,23 @@ public class RequestChain<T> where T : MinqDocument
     /// <param name="methodName">Typically, the calling method.  This is used</param>
     private void WarnOnUnusedEvents(string methodName)
     {
-        const string message = $"{{0}} will not have any effect on your provided method.  Remove the link in the method chain.";
+        const string MESSAGE = $"{{0}} will not have any effect on your provided method.  Remove the link in the method chain.";
         object data = new
         {
             Method = methodName
         };
         if (_onNoneAffected != null)
-            Log.Warn(string.Format(message, nameof(OnNoneAffected)), data);
+            Log.Warn(string.Format(MESSAGE, nameof(OnNoneAffected)), data);
         if (_onRecordsAffected != null)
-            Log.Warn(string.Format(message, nameof(OnRecordsAffected)), data);
+            Log.Warn(string.Format(MESSAGE, nameof(OnRecordsAffected)), data);
         if (_onTransactionAborted != null)
-            Log.Warn(string.Format(message, nameof(OnTransactionAborted)), data);
+            Log.Warn(string.Format(MESSAGE, nameof(OnTransactionAborted)), data);
     }
     
     #region Chainables
 
     /// <summary>
-    /// Used to combine method chains for a request.  Moderately discouraged to use this, as you can accomplish more
+    /// Used to combine method chains for a request.  Moderately discouraged using this, as you can achieve more
     /// readable queries by just using the initial FilterChain instead.
     /// </summary>
     /// <param name="builder">A filter method chain.</param>
@@ -241,7 +236,7 @@ public class RequestChain<T> where T : MinqDocument
     /// operations; if you use it in conjunction with writes, you will get a warning log from it.
     /// Cache entries are deleted after they've been expired for one day.
     /// </summary>
-    /// <param name="seconds">The duration the cache should be valid for.  Maximum value of 36_000 (ten hours)</param>
+    /// <param name="seconds">The length of time the cache should be valid for.  Maximum value of 36_000 (ten hours)</param>
     /// <returns>The RequestChain for method chaining.</returns>
     public RequestChain<T> Cache(long seconds)
     {
@@ -291,7 +286,7 @@ public class RequestChain<T> where T : MinqDocument
     public RequestChain<T> OnNoneAffected(Action<RecordsAffectedArgs> result)
     {
         if (result != null)
-            _onNoneAffected += (sender, args) =>
+            _onNoneAffected += (_, args) =>
             {
                 result.Invoke(args);
             };
@@ -309,7 +304,7 @@ public class RequestChain<T> where T : MinqDocument
     public RequestChain<T> OnRecordsAffected(Action<RecordsAffectedArgs> result)
     {
         if (result != null)
-            _onRecordsAffected += (sender, args) =>
+            _onRecordsAffected += (_, args) =>
             {
                 result.Invoke(args);
             };
@@ -349,7 +344,7 @@ public class RequestChain<T> where T : MinqDocument
     public RequestChain<T> OnTransactionAborted(Action action)
     {
         if (action != null)
-            _onTransactionAborted += (sender, args) => action.Invoke();
+            _onTransactionAborted += (_, _) => action.Invoke();
         return this;
     }
     
@@ -393,7 +388,7 @@ public class RequestChain<T> where T : MinqDocument
 
     private void WarnOnFilterOverwrite(string method)
     {
-        if (_filter != null && MinqClient<T>.Render(_filter) != EmptyRenderedFilter)
+        if (_filter != null && MinqClient<T>.Render(_filter) != _emptyRenderedFilter)
             Log.Warn($"Filter was not empty when {method}() was called.  {method}() overrides previous filters.  Is this intentional?");
     }
     
@@ -438,7 +433,6 @@ public class RequestChain<T> where T : MinqDocument
             suggested.Name = $"{MinqIndex.INDEX_PREFIX}{next}";
             CreateIndexModel<BsonDocument> model = suggested.GenerateIndexModel();
             Parent.GenericCollection.Indexes.CreateOne(model);
-
 
             MinqClient<T>.TryRender(_filter, out FlexJson filterJson, out string filterString);
             
@@ -506,7 +500,7 @@ public class RequestChain<T> where T : MinqDocument
     {
         if (filter == null)
             return;
-        _indexWeights ??= new Dictionary<string, int>();
+        _indexWeights ??= new();
         foreach (KeyValuePair<string, int> pair in filter.IndexWeights.Where(pair => !_indexWeights.TryAdd(pair.Key, pair.Value)))
             _indexWeights[pair.Key] += pair.Value;
     }
@@ -570,7 +564,7 @@ public class RequestChain<T> where T : MinqDocument
     /// </summary>
     /// <returns>The first model matching the specified query.</returns>
     /// <exception cref="IndexOutOfRangeException">Thrown when no records are found.</exception>
-    public T First() => FirstOrDefault() ?? throw new Exception("No models found.");
+    public T First() => FirstOrDefault() ?? throw new("No models found.");
 
     public T FirstOrDefault()
     {
@@ -654,10 +648,9 @@ public class RequestChain<T> where T : MinqDocument
         Consume();
         WarnOnUnusedEvents(nameof(Page));
 
-        if (size <= 0)
-            throw new Exception("Invalid size request.  Size must be greater than zero.");
-
-        return PageQuery(size, number, out remaining);
+        return size > 0 
+            ? PageQuery(size, number, out remaining) 
+            : throw new("Invalid size request.  Size must be greater than zero.");
     }
     
     /// <summary>
@@ -677,7 +670,7 @@ public class RequestChain<T> where T : MinqDocument
         WarnOnUnusedEvents(nameof(Page));
 
         if (size <= 0)
-            throw new Exception("Invalid size request.  Size must be greater than zero.");
+            throw new("Invalid size request.  Size must be greater than zero.");
 
         T[] output = PageQuery(size, number, out remaining);
 
@@ -710,7 +703,7 @@ public class RequestChain<T> where T : MinqDocument
             do
             {
                 T[] results = PageQuery(batchSize, page, out long remaining);
-                args = new BatchData<T>
+                args = new()
                 {
                     Results = results,
                     Remaining = remaining,
@@ -816,7 +809,7 @@ public class RequestChain<T> where T : MinqDocument
         catch
         {
             Transaction?.TryAbort();
-            return new List<T>();
+            return new();
         }
     }
     
@@ -1144,7 +1137,6 @@ public class RequestChain<T> where T : MinqDocument
         }
         catch (MongoBulkWriteException<T> e)
         {
-            
             Transaction?.TryAbort();
             if (e.WriteErrors.Any(error => error.Category == ServerErrorCategory.DuplicateKey))
                 throw new UniqueConstraintException<T>(null, e);
@@ -1169,7 +1161,7 @@ public class RequestChain<T> where T : MinqDocument
     /// Attempts to update a single record that matches your filter.  If no record was affected, one will be created, matching
     /// the specified update and filter.
     /// </summary>
-    /// <param name="query">A lambda expression for an update chain builder.</param>
+    /// <param name="update">A lambda expression for an update chain builder.</param>
     /// <returns>The model that was updated or inserted (post-update).</returns>
     /// <exception cref="PlatformException">Thrown when there's a write conflict from updating a field more than once.</exception>
     /// <exception cref="MongoWriteException">Thrown when there's an unknown problem with the update.</exception>
@@ -1186,7 +1178,6 @@ public class RequestChain<T> where T : MinqDocument
         updateChain.SetOnInsert(doc => doc.CreatedOn, Timestamp.Now);
         // updateChain.SetOnInsert(doc => doc.CreatedOn, Timestamp.UnixTime);
         _update = updateChain.Update;
-        
 
         FindOneAndUpdateOptions<T> options = new()
         {

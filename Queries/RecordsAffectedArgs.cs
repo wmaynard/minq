@@ -1,4 +1,4 @@
-namespace Rumble.Platform.Common.MinqOld;
+namespace Maynard.Minq.Queries;
 
 public struct RecordsAffectedArgs
 {

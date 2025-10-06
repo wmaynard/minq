@@ -4,17 +4,14 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using Maynard.Json;
 
-namespace Rumble.Platform.Common.Exceptions;
+namespace Maynard.Minq.Exceptions;
 
-public class MinqException : Exception // TODO: Should probably be an abstract class
+public class MinqException(string message, Exception inner = null) : Exception(message, inner) // TODO: Should probably be an abstract class
 {
     [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string Endpoint { get; private set; }
   
     public MinqException() : this("No message provided."){}
-    public MinqException(string message, Exception inner = null) : base(message, inner)
-    {
-    }
 
     public string Detail
     {

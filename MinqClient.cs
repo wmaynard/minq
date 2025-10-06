@@ -7,8 +7,11 @@ using Maynard.Extensions;
 using Maynard.Json;
 using Maynard.Json.Serializers;
 using Maynard.Logging;
-using Maynard.Minq.Minq.Indexes;
-using Maynard.Minq.Minq.Queries;
+using Maynard.Minq.Exceptions;
+using Maynard.Minq.Indexing;
+using Maynard.Minq.Models;
+using Maynard.Minq.Queries;
+using Maynard.Minq.Reflection;
 using Maynard.Singletons;
 using Maynard.Time;
 using MongoDB.Bson;
@@ -16,14 +19,8 @@ using MongoDB.Bson.Serialization;
 using MongoDB.Bson.Serialization.Attributes;
 using MongoDB.Bson.Serialization.Conventions;
 using MongoDB.Driver;
-using Rumble.Platform.Common.Exceptions;
-using Rumble.Platform.Common.Extensions;
-using Rumble.Platform.Common.Interfaces;
-using Rumble.Platform.Common.Services;
-using Rumble.Platform.Common.Utilities;
-using Rumble.Platform.Common.Utilities.JsonTools;
 
-namespace Rumble.Platform.Common.MinqOld;
+namespace Maynard.Minq;
 
 /* Welcome to MINQ - The Mongo Integrated Query!
                                 _,-/"---,
@@ -290,7 +287,7 @@ public class MinqClient<T> where T : MinqDocument
         // };
         transaction = null;
 
-        return new RequestChain<T>(this);
+        return new(this);
     }
     
     public RequestChain<T> OnTransactionAborted(Action action) => new RequestChain<T>(this).OnTransactionAborted(action);
@@ -327,7 +324,7 @@ public class MinqClient<T> where T : MinqDocument
         FilterChain<T> filter = new();
         query.Invoke(filter);
         
-        return new RequestChain<T>(this, filter);
+        return new(this, filter);
     }
 
     public RequestChain<T> Limit(int limit) => new RequestChain<T>(this).Limit(limit);
@@ -366,7 +363,7 @@ public class MinqClient<T> where T : MinqDocument
         {
             T[] toInsert = models.Where(model => model != null).ToArray();
             if (!toInsert.Any())
-                throw new Exception("You must provide at least one model to insert.  Null objects are ignored.");
+                throw new("You must provide at least one model to insert.  Null objects are ignored.");
 
             long timestamp = Timestamp.Now;
             foreach (T model in models)
@@ -400,7 +397,7 @@ public class MinqClient<T> where T : MinqDocument
     public static MinqClient<T> Connect(string collectionName)
     {
         if (string.IsNullOrWhiteSpace(collectionName))
-            throw new Exception("Collection name cannot be a null or empty string.");
+            throw new("Collection name cannot be a null or empty string.");
         // if (string.IsNullOrWhiteSpace(PlatformEnvironment.MongoConnectionString))
         //     throw new Exception("Mongo connection string cannot be a null or empty string.");
         // if (string.IsNullOrWhiteSpace(PlatformEnvironment.MongoDatabaseName))

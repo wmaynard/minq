@@ -1,11 +1,9 @@
 using Maynard.Logging;
+using Maynard.Minq.Models;
+using Maynard.Minq.Queries;
 using Maynard.Singletons;
-using Rumble.Platform.Common.Models;
-using Rumble.Platform.Common.Services;
-using Rumble.Platform.Common.Utilities;
-using Rumble.Platform.Common.Utilities.JsonTools;
 
-namespace Rumble.Platform.Common.MinqOld;
+namespace Maynard.Minq;
 
 public abstract class Minq<Model> : Singleton, IGdprHandler where Model : MinqDocument, new()
 {
@@ -28,7 +26,7 @@ public abstract class Minq<Model> : Singleton, IGdprHandler where Model : MinqDo
         if (output != null)
             return output;
         
-        output = new Model();
+        output = new();
         mongo.Insert(output);
 
         return output;

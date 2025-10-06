@@ -1,9 +1,8 @@
 using System;
 using Maynard.Logging;
 using MongoDB.Driver;
-using Rumble.Platform.Common.Utilities;
 
-namespace Rumble.Platform.Common.MinqOld;
+namespace Maynard.Minq.Queries;
 
 public class Transaction
 {

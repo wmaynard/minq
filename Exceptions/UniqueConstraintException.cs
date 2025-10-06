@@ -1,16 +1,12 @@
 using System;
 using System.Text.Json.Serialization;
-using Rumble.Platform.Common.Utilities.JsonTools;
+using Maynard.Minq.Models;
 
-namespace Rumble.Platform.Common.Exceptions;
+namespace Maynard.Minq.Exceptions;
 
-public class UniqueConstraintException<T> : MinqException where T : MinqDocument
+public class UniqueConstraintException<T>(T failure, Exception inner) : MinqException("Unique constraint violated; operation cannot proceed", inner: inner)
+    where T : MinqDocument
 {
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public T SuspectedFailure { get; set; }
-    
-    public UniqueConstraintException(T failure, Exception inner) : base("Unique constraint violated; operation cannot proceed", inner: inner)
-    {
-        SuspectedFailure = failure;
-    }
+    public T SuspectedFailure { get; set; } = failure;
 }

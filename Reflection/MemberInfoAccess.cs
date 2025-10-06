@@ -1,7 +1,7 @@
 using System.Linq.Expressions;
 using System.Reflection;
 
-namespace Rumble.Platform.Common.MinqOld;
+namespace Maynard.Minq.Reflection;
 
 public class MemberInfoAccess
 {

@@ -5,22 +5,19 @@ using System.Linq.Expressions;
 using System.Text.RegularExpressions;
 using Maynard.Json;
 using Maynard.Logging;
-using Maynard.Minq.Minq.Extensions;
+using Maynard.Minq.Models;
 using MongoDB.Bson;
 using MongoDB.Bson.IO;
 using MongoDB.Bson.Serialization;
 using MongoDB.Driver;
-using Rumble.Platform.Common.Extensions;
-using Rumble.Platform.Common.MinqOld;
-using Rumble.Platform.Common.Utilities.JsonTools;
 
-namespace Maynard.Minq.Minq.Queries;
+namespace Maynard.Minq.Queries;
 
 public class FilterChain<T>
 {
     private const int WEIGHT_EQUALITY = -1;
     private const int WEIGHT_RANGE = 5;
-    public Dictionary<string, int> IndexWeights = new Dictionary<string, int>();
+    public readonly Dictionary<string, int> IndexWeights = new();
     
     internal enum FilterType { And, Not, Or }
     internal FilterType Type { get; set; }
@@ -34,7 +31,7 @@ public class FilterChain<T>
             documentSerializer: BsonSerializer.SerializerRegistry.GetSerializer<T>(),
             serializerRegistry: BsonSerializer.SerializerRegistry
         ))
-        .ToJson(new JsonWriterSettings{ OutputMode = JsonOutputMode.CanonicalExtendedJson})
+        .ToJson(new() { OutputMode = JsonOutputMode.CanonicalExtendedJson})
         .GetHashCode();
 
     private List<FilterDefinition<T>> Filters { get; set; }
@@ -43,7 +40,7 @@ public class FilterChain<T>
     {
         Builder = Builders<T>.Filter;
         Type = type;
-        Filters = new List<FilterDefinition<T>>();
+        Filters = new();
     }
 
     private FilterChain<T> Track<U>(Expression<Func<T, U>> field, int weight)
@@ -55,19 +52,16 @@ public class FilterChain<T>
         return this;
     }
 
-    internal FilterDefinition<T> Build()
-    {
-        return Filters.Any()
-            ? Type switch
-            {
-                FilterType.And => Builder.And(Filters),
-                FilterType.Not when Filters.Count == 1 => Builder.Not(Filters.First()),
-                FilterType.Not => Builder.Not(Builder.And(Filters)),
-                FilterType.Or => Builder.Or(Filters),
-                _ => Builders<T>.Filter.Empty 
-            }
-            : Builders<T>.Filter.Empty;
-    }
+    internal FilterDefinition<T> Build() => Filters.Any()
+        ? Type switch
+        {
+            FilterType.And => Builder.And(Filters),
+            FilterType.Not when Filters.Count == 1 => Builder.Not(Filters.First()),
+            FilterType.Not => Builder.Not(Builder.And(Filters)),
+            FilterType.Or => Builder.Or(Filters),
+            _ => Builders<T>.Filter.Empty 
+        }
+        : Builders<T>.Filter.Empty;
 
     /// <summary>
     /// Looks up an exact match for a document.  This will throw an exception if the ID field is null or not a valid mongo ID.
@@ -75,13 +69,9 @@ public class FilterChain<T>
     /// <param name="model"></param>
     /// <typeparam name="U"></typeparam>
     /// <returns></returns>
-    /// <exception cref="PlatformException"></exception>
-    public FilterChain<T> Is<U>(U model) where U : MinqDocument
-    {
-        if (model.Id == default)
-            throw new Exception("Record does not exist, is not a CollectionDocument or the ID is invalid.");
-        return AddFilter($"{{_id:ObjectId('{model.Id}')}}");
-    }
+    public FilterChain<T> Is<U>(U model) where U : MinqDocument => model.Id != default
+        ? AddFilter($"{{_id:ObjectId('{model.Id}')}}")
+        : throw new("Record does not exist, is not a CollectionDocument or the ID is invalid.");
 
     public FilterChain<T> All() => AddFilter(Builder.Empty);
 
@@ -356,9 +346,4 @@ public class FilterChain<T>
             documentSerializer: BsonSerializer.SerializerRegistry.GetSerializer<T>(),
             serializerRegistry: BsonSerializer.SerializerRegistry
         )).FieldName;
-}
-
-public static class MinqExpressionExtension
-{
-    public static string GetFieldName<T>(this Expression<Func<T, object>> field) where T : MinqDocument => MinqClient<T>.Render(field);
 }

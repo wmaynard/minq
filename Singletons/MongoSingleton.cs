@@ -5,23 +5,20 @@ using System.Linq.Expressions;
 using System.Reflection;
 using System.Text.Json.Serialization;
 using Maynard.Json;
-using Maynard.Json.Serializers;
 using Maynard.Logging;
+using Maynard.Minq.Indexing;
+using Maynard.Minq.Indexing.Attributes;
+using Maynard.Minq.Interfaces;
+using Maynard.Minq.Models;
 using Maynard.Singletons;
 using Microsoft.AspNetCore.Http;
 using MongoDB.Bson;
-using MongoDB.Bson.Serialization;
 using MongoDB.Bson.Serialization.Attributes;
 using MongoDB.Bson.Serialization.Conventions;
 using MongoDB.Driver;
 using MongoDB.Driver.Core.Clusters;
-using Rumble.Platform.Common.Attributes;
-using Rumble.Platform.Common.Interfaces;
-using Rumble.Platform.Common.Models;
-using Rumble.Platform.Common.Utilities;
-using Rumble.Platform.Common.Utilities.JsonTools;
 
-namespace Rumble.Platform.Common.Services;
+namespace Maynard.Minq.Singletons;
 
 public abstract class MongoSingleton<Model> : Singleton, IMongoSingleton where Model : MinqDocument
 {

@@ -5,9 +5,8 @@ using System.Linq.Expressions;
 using Maynard.Json;
 using Maynard.Logging;
 using MongoDB.Driver;
-using Rumble.Platform.Common.Utilities;
 
-namespace Rumble.Platform.Common.MinqOld;
+namespace Maynard.Minq.Queries;
 
 public class SortChain<T> where T : Model
 {
@@ -19,7 +18,7 @@ public class SortChain<T> where T : Model
     internal SortChain()
     {
         Builder = Builders<T>.Sort;
-        Definitions = new List<SortDefinition<T>>();
+        Definitions = new();
     }
     public SortChain<T> OrderBy(Expression<Func<T, object>> field)
     {

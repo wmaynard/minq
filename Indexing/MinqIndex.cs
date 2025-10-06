@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using Maynard.Json;
@@ -6,7 +5,7 @@ using Maynard.Logging;
 using MongoDB.Bson;
 using MongoDB.Driver;
 
-namespace Maynard.Minq.Minq.Indexes;
+namespace Maynard.Minq.Indexing;
 
 internal class MinqIndex : Model
 {
@@ -18,24 +17,22 @@ internal class MinqIndex : Model
     
     internal CreateIndexModel<BsonDocument> IndexModel { get; private set; }
 
-    internal MinqIndex(){}
-
     internal MinqIndex(Dictionary<string, bool> manualDefinition, string name, bool unique)
     {
         if (manualDefinition == null)
-            throw new Exception("Manual index definitions must not be null");
-        Fields = new FlexJson();
+            throw new("Manual index definitions must not be null");
+        Fields = new();
 
         foreach (string key in manualDefinition.Keys)
             Fields[key] = 1;
         
-        IndexModel = new CreateIndexModel<BsonDocument>(
+        IndexModel = new(
             keys: Builders<BsonDocument>.IndexKeys.Combine(manualDefinition
                 .Select(pair => pair.Value
                     ? Builders<BsonDocument>.IndexKeys.Ascending(pair.Key)
                     : Builders<BsonDocument>.IndexKeys.Descending(pair.Key)
                 )),
-            options: new CreateIndexOptions
+            options: new()
             {
                 Background = true,
                 Name = name,
@@ -47,7 +44,7 @@ internal class MinqIndex : Model
 
     internal MinqIndex(Dictionary<string, int> weights)
     {
-        Fields = new FlexJson();
+        Fields = new();
         
         IOrderedEnumerable<KeyValuePair<string, int>> ordered = weights
             .OrderBy(pair => pair.Value)
@@ -75,11 +72,11 @@ internal class MinqIndex : Model
         Unique = unique?.AsBoolean ?? false;
     }
 
-    internal CreateIndexModel<BsonDocument> GenerateIndexModel() => IndexModel ??= new CreateIndexModel<BsonDocument>(
+    internal CreateIndexModel<BsonDocument> GenerateIndexModel() => IndexModel ??= new(
         keys: Builders<BsonDocument>.IndexKeys.Combine(
             Fields.Keys.Select(key => Builders<BsonDocument>.IndexKeys.Ascending(key))
         ),
-        new CreateIndexOptions
+        new()
         {
             Background = true,
             Name = Name
@@ -87,7 +84,7 @@ internal class MinqIndex : Model
     );
     
     /// <summary>
-    /// Indicates whether or not the provided indexes should cover the query in its current state.
+    /// Indicates whether the provided indexes should cover the query in its current state.
     /// </summary>
     /// <param name="indexes">The existing indexes on Mongo.</param>
     /// <returns>True if MINQ believes the query should be covered.</returns>
@@ -95,7 +92,7 @@ internal class MinqIndex : Model
 
     /// <summary>
     /// Checks to see there's a conflict with the unique constraint or the index name.  Names starting with minq_ are not checked,
-    /// as those are automatically-created indexes.
+    /// as those are automatically created indexes.
     /// </summary>
     /// <param name="indexes"></param>
     /// <param name="name"></param>
