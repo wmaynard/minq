@@ -430,6 +430,7 @@ public class MinqClient<T> where T : MinqDocument
         try
         {
             Type serializerType = typeof(FlexKeysBsonSerializer<>).MakeGenericType(cachedResultType);
+            // Type serializerType = null;
             IBsonSerializer serializer = (IBsonSerializer)Activator.CreateInstance(serializerType);
             BsonSerializer.RegisterSerializer(cachedResultType, serializer);
             

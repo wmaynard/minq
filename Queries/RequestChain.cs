@@ -74,7 +74,7 @@ public class RequestChain<T> where T : MinqDocument
         }
 
         Consumed = true;
-        EvaluateFilter();
+        EvaluateFilter(); // TODO: Fire this async, as it's expensive
     }
     
 

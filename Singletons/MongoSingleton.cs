@@ -51,7 +51,7 @@ public abstract class MongoSingleton<Model> : Singleton, IMongoSingleton where M
             new IgnoreExtraElementsConvention(true)
         }, filter: t => true);
 
-        return new MongoClient(settings);
+        return new(settings);
     }
     
     protected MongoSingleton(string collection = null)

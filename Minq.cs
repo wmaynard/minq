@@ -1,6 +1,7 @@
 using Maynard.Logging;
 using Maynard.Minq.Models;
 using Maynard.Minq.Queries;
+using Maynard.Minq.Singletons;
 using Maynard.Singletons;
 
 namespace Maynard.Minq;

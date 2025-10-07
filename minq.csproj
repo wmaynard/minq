@@ -4,11 +4,11 @@
 		<RootNamespace>Maynard.Minq</RootNamespace>
 		<RepositoryUrl>https://github.com/wmaynard/minq</RepositoryUrl>
 		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-		<PackageVersion>0.8.1</PackageVersion>
+		<PackageVersion>0.8.2</PackageVersion>
 		<Title>MINQ</Title>
 	  <UserSecretsId>40214af1-e433-47e0-81d5-98c27cc1b0ba</UserSecretsId>
 	  <LangVersion>13</LangVersion>
-	  <AssemblyVersion>0.8.1</AssemblyVersion>
+	  <AssemblyVersion>0.8.2</AssemblyVersion>
 	  <Company>Will Maynard</Company>
 	  <Configurations>Debug;Release;Local;UnitTest</Configurations>
 	  <Platforms>AnyCPU</Platforms>
@@ -38,17 +38,13 @@
 	</ItemGroup>
 	
 	<ItemGroup>
-	  <PackageReference Include="Maynard.Utilities" Version="0.8.2" />
+	  <PackageReference Include="Maynard.Utilities" Version="0.8.3" />
 	  <PackageReference Include="MongoDB.Bson" Version="3.5.0" />
 	  <PackageReference Include="MongoDB.Driver" Version="3.5.0" />
 	</ItemGroup>
 	
 	<ItemGroup>
 	  <Content Include=".github\workflows\dotnet-desktop.yml" />
-	</ItemGroup>
-	
-	<ItemGroup>
-	  <Folder Include="Attributes\" />
 	</ItemGroup>
 	
     
