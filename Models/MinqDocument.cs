@@ -13,7 +13,7 @@ public abstract class MinqDocument : FlexModel
     
     [BsonId, BsonRepresentation(BsonType.ObjectId)]
     [FlexIgnore(Ignore.Never)]
-    public string Id { get; protected set; }
+    public string Id { get; internal set; }
     
     [FlexKeys(json: "createdOn", bson: "created")]
     public long CreatedOn { get; set; }

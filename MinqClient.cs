@@ -449,13 +449,21 @@ public class MinqClient<T> where T : MinqDocument
         return req.Update(action);
     }
 
-    public bool Update(T document, bool insertIfNotFound = true) => Collection.ReplaceOne(
-        filter: $"{{_id:ObjectId('{document.Id}')}}", 
-        replacement: document, options: new ReplaceOptions
-        {
-            IsUpsert = insertIfNotFound
-        }
-    ).ModifiedCount > 0;
+    public bool Update(T document, bool insertIfNotFound = true)
+    {
+        // string id = string.IsNullOrWhiteSpace(document.Id)
+        //     ? ObjectId.GenerateNewId().ToString()
+        //     : document.Id;
+        document.Id ??= ObjectId.GenerateNewId().ToString();
+            
+        return Collection.ReplaceOne(
+            filter: $"{{_id:ObjectId('{document.Id}')}}", 
+            replacement: document, options: new ReplaceOptions
+            {
+                IsUpsert = insertIfNotFound
+            }
+        ).ModifiedCount > 0;
+    }
 
 
 
