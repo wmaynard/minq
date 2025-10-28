@@ -11,6 +11,7 @@ namespace Maynard.Minq.Queries;
 
 public class UpdateChain<T> where T : MinqDocument
 {
+    // TODO: block user-generated modifications to protected properties, e.g. CreatedOn / UpdatedOn.
     internal UpdateDefinition<T> Update => Builder.Combine(Updates);
     private UpdateDefinitionBuilder<T> Builder { get; init; } = Builders<T>.Update;
     private List<UpdateDefinition<T>> Updates { get; init; } = [];
