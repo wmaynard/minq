@@ -13,7 +13,9 @@ public class UpdateChain<T> where T : MinqDocument
 {
     internal UpdateDefinition<T> Update => Builder.Combine(Updates);
     private UpdateDefinitionBuilder<T> Builder { get; init; } = Builders<T>.Update;
-    private List<UpdateDefinition<T>> Updates { get; init; } = new();
+    private List<UpdateDefinition<T>> Updates { get; init; } = [];
+    
+    public UpdateChain() => Updates.Add(Builder.Set(doc => doc.UpdatedOn, Timestamp.Now));
 
     public UpdateChain<T> BitwiseAnd(Expression<Func<T, long>> field, long value)
     {

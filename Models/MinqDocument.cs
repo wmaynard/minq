@@ -17,6 +17,9 @@ public abstract class MinqDocument : FlexModel
     
     [FlexKeys(json: "createdOn", bson: "created")]
     public long CreatedOn { get; set; }
+    
+    [FlexKeys(json: "updatedOn", bson: "updated")]
+    public long UpdatedOn { get; set; }
 
     public void ChangeId() => Id = ObjectId.GenerateNewId().ToString();
     
