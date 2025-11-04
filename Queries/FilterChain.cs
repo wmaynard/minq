@@ -284,15 +284,15 @@ public class FilterChain<T>
         AddFilter($"{{ $expr: {{ lt: [ '${Render(field1)}', '${Render(field2)}' ] }} }}");
 
     // Unnecessary?
-    public void Not(Action<FilterChain<T>> not)
+    public FilterChain<T> Not(Action<FilterChain<T>> not)
     {
         FilterChain<T> filter = new();
         not.Invoke(filter);
 
-        AddFilter(Builder.Not(filter.Filter));
+        return AddFilter(Builder.Not(filter.Filter));
     }
 
-    public void And(Action<FilterChain<T>> and)
+    public FilterChain<T> And(Action<FilterChain<T>> and)
     {
         FilterChain<T> filter = new();
         and.Invoke(filter);
@@ -303,7 +303,7 @@ public class FilterChain<T>
                 Help = "And() creates a && operation between all filters inside its body.  Consequently its intended use must have more than one filter to be effective.  It will work as is, but should be refactored out."
             });
 
-        AddFilter(filter.Filter);
+        return AddFilter(filter.Filter);
     }
     
     /// <summary>
@@ -316,7 +316,7 @@ public class FilterChain<T>
     /// query.Or(or =&gt; or.GreaterThan(...).And(and =&gt; and.EqualTo(...).Exists(...))
     /// </summary>
     /// <param name="or"></param>
-    public void Or(Action<FilterChain<T>> or)
+    public FilterChain<T> Or(Action<FilterChain<T>> or)
     {
         FilterChain<T> filter = new();
         or.Invoke(filter);
@@ -327,7 +327,7 @@ public class FilterChain<T>
                 Help = "Or() creates a || operation between all filters inside its body.  Consequently its intended use must have more than one filter to be effective."
             });
 
-        AddFilter(Builder.Or(filter.Filters));
+        return AddFilter(Builder.Or(filter.Filters));
     }
 
     private FilterChain<T> AddFilter(FilterDefinition<T> filter)

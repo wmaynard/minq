@@ -89,6 +89,7 @@ internal static class MinqConnection
 {
     internal static MongoClient Client { get; set; }
     internal static IMongoDatabase Database { get; set; }
+    internal static bool TransactionsSupported { get; set; }
 }
 
 public class MinqClient<T> where T : MinqDocument
@@ -276,18 +277,14 @@ public class MinqClient<T> where T : MinqDocument
     /// <returns>A new RequestChain for method chaining.</returns>
     public RequestChain<T> WithTransaction(out Transaction transaction, bool abortOnFailure = true)
     {
-        // transaction = !PlatformEnvironment.MongoConnectionString.Contains("localhost")
-        //     ? new Transaction(Client.StartSession())
-        //     : null;
+        transaction = MinqConnection.TransactionsSupported
+            ? new Transaction(MinqConnection.Client.StartSession())
+            : null;
 
-        // return new RequestChain<T>(this)
-        // {
-        //     Transaction = transaction,
-        //     AbortTransactionOnFailure = abortOnFailure
-        // };
-        transaction = null;
-
-        return new(this);
+        return new(this)
+        {
+            AbortTransactionOnFailure = abortOnFailure
+        };
     }
     
     public RequestChain<T> OnTransactionAborted(Action action) => new RequestChain<T>(this).OnTransactionAborted(action);

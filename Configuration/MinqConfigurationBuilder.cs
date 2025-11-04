@@ -37,6 +37,11 @@ public partial class MinqConfigurationBuilder : Builder
 
         MinqConnection.Client = new(settings);
         MinqConnection.Database = MinqConnection.Client.GetDatabase(database);
+        MinqConnection.TransactionsSupported = MinqConnection.Client.Cluster.Description.Servers.Any(s => s.Type 
+            is MongoDB.Driver.Core.Servers.ServerType.ReplicaSetPrimary 
+            or MongoDB.Driver.Core.Servers.ServerType.ReplicaSetSecondary
+        );
+        
         Log.Good("Connected to MongoDB.");
     });
     
