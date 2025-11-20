@@ -3,6 +3,7 @@ using Maynard.Minq.Models;
 using Maynard.Minq.Queries;
 using Maynard.Minq.Singletons;
 using Maynard.Singletons;
+using Maynard.Time;
 
 namespace Maynard.Minq;
 
@@ -13,7 +14,12 @@ public abstract class Minq<Model> : Singleton, IGdprHandler where Model : MinqDo
     protected Minq(string collection) => mongo = MinqClient<Model>.Connect(collection);
 
     public virtual void Insert(params Model[] models) => mongo.Insert(models);
-    public void Update(Model model) => mongo.Update(model);
+
+    public void Update(Model model)
+    {
+        model.UpdatedOn = Timestamp.Now;
+        mongo.Update(model);
+    }
 
     public virtual Model FromId(string id) => mongo
         .Where(query => query.EqualTo(model => model.Id, id))
