@@ -74,10 +74,10 @@ public class UpdateChain<T> where T : MinqDocument
     {
         Type member = (field.Body as MemberExpression)?.Type;
 
-        Updates.Add(typeof(IEnumerable).IsAssignableFrom(member)
-            ? Builder.Set(field, Array.CreateInstance(member, 0))
-            : Builder.Unset(field)
-        );
+        if (member != typeof(string) && typeof(IEnumerable).IsAssignableFrom(member))
+            Updates.Add(Builder.Set(field, Array.CreateInstance(member, 0)));
+        else
+            Updates.Add(Builder.Unset(field));
         
         return this;
     }
