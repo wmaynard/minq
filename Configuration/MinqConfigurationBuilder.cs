@@ -37,10 +37,19 @@ public partial class MinqConfigurationBuilder : Builder
 
         MinqConnection.Client = new(settings);
         MinqConnection.Database = MinqConnection.Client.GetDatabase(database);
-        MinqConnection.TransactionsSupported = MinqConnection.Client.Cluster.Description.Servers.Any(s => s.Type 
-            is MongoDB.Driver.Core.Servers.ServerType.ReplicaSetPrimary 
-            or MongoDB.Driver.Core.Servers.ServerType.ReplicaSetSecondary
-        );
+
+        try
+        {
+            IClientSessionHandle t = MinqConnection.Client.StartSession();
+            t.StartTransaction();
+            t.AbortTransaction();
+            MinqConnection.TransactionsSupported = true;
+            Log.Good("Mongo transactions are supported.");
+        }
+        catch (Exception e)
+        {
+            Log.Warn("Mongo transactions are not supported.", e);
+        }
         
         Log.Good("Connected to MongoDB.");
     });

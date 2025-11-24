@@ -283,7 +283,8 @@ public class MinqClient<T> where T : MinqDocument
 
         return new(this)
         {
-            AbortTransactionOnFailure = abortOnFailure
+            AbortTransactionOnFailure = abortOnFailure,
+            Transaction = transaction
         };
     }
     
