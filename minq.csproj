@@ -4,24 +4,25 @@
 		<RootNamespace>Maynard.Minq</RootNamespace>
 		<RepositoryUrl>https://github.com/wmaynard/minq</RepositoryUrl>
 		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-		<PackageVersion>0.8.14</PackageVersion>
+		<PackageVersion>0.8.15</PackageVersion>
 		<Title>MINQ</Title>
-	  <UserSecretsId>40214af1-e433-47e0-81d5-98c27cc1b0ba</UserSecretsId>
-	  <LangVersion>13</LangVersion>
-	  <AssemblyVersion>0.8.14</AssemblyVersion>
-	  <Company>Will Maynard</Company>
-	  <Configurations>Debug;Release;Local;UnitTest</Configurations>
-	  <Platforms>AnyCPU</Platforms>
-	  <TargetFramework>net9.0</TargetFramework>
-	  <PackageId>Maynard.Minq</PackageId>
-	  <Authors>Will Maynard</Authors>
-	  <Description>A NuGet package for working easily with MongoDB</Description>
-	  <Copyright>Will Maynard</Copyright>
-	  <PackageProjectUrl>https://github.com/wmaynard/minq</PackageProjectUrl>
-	  <PackageLicenseUrl>https://github.com/wmaynard/minq/LICENSE</PackageLicenseUrl>
-	  <AssemblyName>minq</AssemblyName>
-	  <Product>Maynard.Minq</Product>
-	  <PackageIcon>icon.png</PackageIcon>
+		<UserSecretsId>40214af1-e433-47e0-81d5-98c27cc1b0ba</UserSecretsId>
+		<LangVersion>13</LangVersion>
+		<AssemblyVersion>0.8.15</AssemblyVersion>
+		<Company>Will Maynard</Company>
+		<Configurations>Debug;Release;Local;UnitTest</Configurations>
+		<Platforms>AnyCPU</Platforms>
+		<TargetFramework>net9.0</TargetFramework>
+		<PackageId>Maynard.Minq</PackageId>
+		<Authors>Will Maynard</Authors>
+		<Description>A NuGet package for working easily with MongoDB</Description>
+		<Copyright>Will Maynard</Copyright>
+		<PackageProjectUrl>https://github.com/wmaynard/minq</PackageProjectUrl>
+<!--		<PackageLicenseUrl>https://github.com/wmaynard/minq/LICENSE</PackageLicenseUrl>-->
+		<PackageLicenseExpression>MIT</PackageLicenseExpression>
+		<AssemblyName>minq</AssemblyName>
+		<Product>Maynard.Minq</Product>
+		<PackageIcon>icon.png</PackageIcon>
 	</PropertyGroup>
 
 	<PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
@@ -60,7 +61,9 @@
       <Folder Include=".github\" />
     </ItemGroup>
 
-    <Target Name="PushToNuGet" AfterTargets="Pack" Condition="'$(Configuration)' == 'Release'">
-        <Exec Command="dotnet nuget push $(PackageOutputPath)\*.nupkg --skip-duplicate --api-key $(NugetApiKey) --source https://api.nuget.org/v3/index.json" />
-    </Target>
+	<Target Name="PushToNuGet"
+			AfterTargets="Pack"
+			Condition="'$(Configuration)' == 'Release' AND '$(NugetApiKey)' != ''">
+		<Exec Command="dotnet nuget push $(PackageOutputPath)\*.nupkg --skip-duplicate --api-key $(NugetApiKey) --source https://api.nuget.org/v3/index.json" />
+	</Target>
 </Project>

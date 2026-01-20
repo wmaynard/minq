@@ -19,6 +19,8 @@ public interface IConfiscatable
     void Confiscate();
 }
 
+#pragma warning disable CS0649 // Field is never assigned to, and will always have its default value null
+
 public abstract class QueueSingleton<T> : MongoTimerSingleton<QueueSingleton<T>.TaskData>, IConfiscatable where T : FlexModel
 {
     private const int MAX_FAILURE_COUNT = 5;
@@ -29,7 +31,7 @@ public abstract class QueueSingleton<T> : MongoTimerSingleton<QueueSingleton<T>.
     private int PrimaryTaskCount { get; init; }
     private int SecondaryTaskCount { get; init; }
     private bool PreferOffCluster { get; init; }
-
+    
     private readonly IMongoCollection<QueueConfig> _config;
     private readonly IMongoCollection<QueuedTask> _work;
     private readonly bool _sendTaskResultsWhenTheyAreCompleted;
@@ -110,14 +112,14 @@ public abstract class QueueSingleton<T> : MongoTimerSingleton<QueueSingleton<T>.
             return;
         }
 
-        _config.UpdateMany(
-            filter: Builders<QueueConfig>.Filter.Empty,
-            update: Builders<QueueConfig>.Update
-                .Set(config => config.Settings, new FlexJson())
-                .Set(config => config.LastActive, 0)
-                .Set(config => config.PrimaryServiceId, null)
-        );
-        _work.DeleteMany(Builders<QueuedTask>.Filter.Eq(task => task.Type, TaskData.TaskType.Work));
+        // _config.UpdateMany(
+        //     filter: Builders<QueueConfig>.Filter.Empty,
+        //     update: Builders<QueueConfig>.Update
+        //         .Set(config => config.Settings, new FlexJson())
+        //         .Set(config => config.LastActive, 0)
+        //         .Set(config => config.PrimaryServiceId, null)
+        // );
+        // _work.DeleteMany(Builders<QueuedTask>.Filter.Eq(task => task.Type, TaskData.TaskType.Work));
     }
 
     protected void DeleteAcknowledgedTasks() => _work.DeleteMany(task => task.Status == QueuedTask.TaskStatus.Acknowledged);
