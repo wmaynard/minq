@@ -4,8 +4,8 @@
 @using Microsoft.AspNetCore.Components.Web
 @using Maynard.Json.Attributes
 @using Maynard.Json.Enums
-@using Maynard.Logging
 @using Maynard.Minq.Attributes
+@using Maynard.Logging
 @using Microsoft.Extensions.DependencyInjection
 @inject IServiceProvider ServiceProvider
 
@@ -224,6 +224,16 @@
                         </label>
                     </div>
                 </div>
+
+                <div class="minq-setting-group">
+                    <h4>Data Display</h4>
+                    <div class="minq-radio-group">
+                        <label class="minq-radio-label">
+                            <input type="checkbox" @bind="FlattenJsonProperties" @bind:after="OnFlattenChanged" />
+                            Flatten Nested Objects
+                        </label>
+                    </div>
+                </div>
             </div>
         }
 
@@ -268,12 +278,7 @@
 </div>
 
 @code {
-    public enum TimestampFormatOption
-    {
-        Local,
-        Utc,
-        Unix
-    }
+    public enum TimestampFormatOption { Local, Utc, Unix }
 
     [Parameter]
     public Type Contract { get; set; }
@@ -284,8 +289,8 @@
     public int[] PageSizeOptions { get; set; } = [10, 25, 50, 75, 100];
     public int PageSize { get; set; } = 25;
     
-    public int[] FontSizeOptions { get; set; } = [6, 7, 8, 9, 10, 11, 12];
-    public int TableFontSize { get; set; } = 10;
+    public int[] FontSizeOptions { get; set; } = [6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16];
+    public int TableFontSize { get; set; } = 14;
     
     public int PageNumber { get; set; } = 0;
     public long TotalRecords { get; set; } = 0;
@@ -296,6 +301,10 @@
 
     public bool IsSettingsOpen { get; set; } = false;
     public TimestampFormatOption TimestampFormat { get; set; } = TimestampFormatOption.Local;
+    public bool FlattenJsonProperties { get; set; } = false;
+
+    // Cache the raw array from the database so we can rebuild columns locally without re-querying
+    private Array LastRecords { get; set; } = Array.Empty<object>();
 
     public List<string> Columns { get; set; } = [];
     public List<Dictionary<string, string>> Rows { get; set; } = [];
@@ -307,14 +316,10 @@
         {
             Log.Warn("MinqViewer is executing in a server request context (Static SSR or Prerendering). If it remains unresponsive after loading, verify the parent page has an interactive render mode applied.");
         }
-
         LoadData();
     }
 
-    public void ToggleSettings()
-    {
-        IsSettingsOpen = !IsSettingsOpen;
-    }
+    public void ToggleSettings() => IsSettingsOpen = !IsSettingsOpen;
 
     public void OnPageSizeChanged()
     {
@@ -322,10 +327,16 @@
         LoadData();
     }
 
-    public void ChangeTimestampFormat(TimestampFormatOption format)
+    public void OnFlattenChanged()
     {
-        TimestampFormat = format;
+        if (LastRecords.Length > 0)
+        {
+            // Re-parse the cached records so the UI swaps modes instantly!
+            ParseData(LastRecords);
+        }
     }
+
+    public void ChangeTimestampFormat(TimestampFormatOption format) => TimestampFormat = format;
 
     public void PreviousPage()
     {
@@ -368,6 +379,7 @@
 
             if (result is Array records)
             {
+                LastRecords = records;
                 long remaining = (long)parameters[2];
                 TotalRecords = (PageNumber * PageSize) + records.Length + remaining;
                 TotalPages = TotalRecords == 0 ? 1 : (int)Math.Ceiling((double)TotalRecords / PageSize);
@@ -387,7 +399,17 @@
     public void LoadColumnDefinitions(Type modelType)
     {
         ColumnDefinitions.Clear();
-        PropertyInfo[] properties = modelType.GetProperties();
+        BuildColumnDefinitions(modelType, string.Empty, [], []);
+    }
+
+    // Recursive Definition Builder
+    private void BuildColumnDefinitions(Type type, string prefix, List<int> currentOrderPath, HashSet<Type> visitedTypes)
+    {
+        // Safety lock to prevent infinite loops if your models reference themselves
+        if (visitedTypes.Contains(type)) return;
+        visitedTypes.Add(type);
+
+        PropertyInfo[] properties = type.GetProperties();
 
         foreach (PropertyInfo prop in properties)
         {
@@ -403,26 +425,55 @@
             if (flexAttr != null && !string.IsNullOrWhiteSpace(flexAttr.Json))
                 jsonKey = flexAttr.Json;
 
+            string fullPath = string.IsNullOrEmpty(prefix) ? jsonKey : $"{prefix}.{jsonKey}";
+
             bool isIgnored = flexAttr != null && flexAttr.Ignore.HasFlag(Ignore.InBson);
             bool isSticky = viewAttr != null && viewAttr.Sticky;
             int order = viewAttr != null ? viewAttr.Order : int.MaxValue;
             bool isTimestamp = prop.PropertyType == typeof(long) || prop.PropertyType == typeof(long?);
 
-            MinqColumnDef def = new MinqColumnDef();
-            def.Name = jsonKey;
-            def.IsIgnored = isIgnored;
-            def.IsSticky = isSticky;
-            def.Order = order;
-            def.IsTimestamp = isTimestamp;
+            // Inherit the parent's order path and append this property's order
+            List<int> orderPath = [..currentOrderPath, order];
 
-            ColumnDefinitions[jsonKey] = def;
+            MinqColumnDef def = new MinqColumnDef
+            {
+                Name = fullPath,
+                IsIgnored = isIgnored,
+                IsSticky = isSticky,
+                OrderPath = orderPath,
+                IsTimestamp = isTimestamp
+            };
+
+            ColumnDefinitions[fullPath] = def;
 
             if (prop.Name == "Id" && (flexAttr == null || string.IsNullOrWhiteSpace(flexAttr.Json)))
             {
-                ColumnDefinitions["_id"] = def;
-                ColumnDefinitions["id"] = def;
+                string idPath1 = string.IsNullOrEmpty(prefix) ? "_id" : $"{prefix}._id";
+                string idPath2 = string.IsNullOrEmpty(prefix) ? "id" : $"{prefix}.id";
+                ColumnDefinitions[idPath1] = def;
+                ColumnDefinitions[idPath2] = def;
+            }
+
+            // If flattening is allowed, dive deeper into complex objects
+            if (IsComplexType(prop.PropertyType))
+            {
+                BuildColumnDefinitions(prop.PropertyType, fullPath, orderPath, new HashSet<Type>(visitedTypes));
             }
         }
+    }
+
+    private bool IsComplexType(Type type)
+    {
+        if (type == typeof(string) || type.IsPrimitive || type.IsEnum) return false;
+        if (type == typeof(DateTime) || type == typeof(DateTimeOffset) || type == typeof(decimal) || type == typeof(Guid)) return false;
+        
+        // Exclude arrays and lists. (Flattening `List[0].prop` gets extremely messy in generic data grids)
+        if (type.IsArray || typeof(System.Collections.IEnumerable).IsAssignableFrom(type)) return false;
+        
+        Type underlyingType = Nullable.GetUnderlyingType(type);
+        if (underlyingType != null) return IsComplexType(underlyingType);
+
+        return type.IsClass || type.IsValueType;
     }
 
     public void ParseData(Array records)
@@ -446,17 +497,23 @@
                 JsonDocument document = JsonDocument.Parse(json);
                 Dictionary<string, string> rowData = [];
 
-                foreach (JsonProperty property in document.RootElement.EnumerateObject())
+                if (FlattenJsonProperties)
                 {
-                    bool isIgnored = ColumnDefinitions.ContainsKey(property.Name) && ColumnDefinitions[property.Name].IsIgnored;
-                    
-                    if (isIgnored)
-                        continue;
+                    FlattenJsonElement(document.RootElement, string.Empty, rowData);
+                }
+                else
+                {
+                    foreach (JsonProperty property in document.RootElement.EnumerateObject())
+                    {
+                        bool isIgnored = ColumnDefinitions.ContainsKey(property.Name) && ColumnDefinitions[property.Name].IsIgnored;
+                        
+                        if (isIgnored) continue;
 
-                    if (!Columns.Contains(property.Name))
-                        Columns.Add(property.Name);
+                        if (!Columns.Contains(property.Name))
+                            Columns.Add(property.Name);
 
-                    rowData[property.Name] = property.Value.ToString();
+                        rowData[property.Name] = property.Value.ToString();
+                    }
                 }
 
                 Rows.Add(rowData);
@@ -466,18 +523,50 @@
         ReorderColumns();
     }
 
+    private void FlattenJsonElement(JsonElement element, string prefix, Dictionary<string, string> rowData)
+    {
+        foreach (JsonProperty property in element.EnumerateObject())
+        {
+            string propName = string.IsNullOrEmpty(prefix) ? property.Name : $"{prefix}.{property.Name}";
+
+            // If this parent tree was explicitly flagged Ignore.InBson, skip mapping its children!
+            if (ColumnDefinitions.ContainsKey(propName) && ColumnDefinitions[propName].IsIgnored)
+                continue;
+
+            if (property.Value.ValueKind == JsonValueKind.Object)
+            {
+                FlattenJsonElement(property.Value, propName, rowData);
+            }
+            else
+            {
+                if (!Columns.Contains(propName))
+                    Columns.Add(propName);
+
+                rowData[propName] = property.Value.ToString();
+            }
+        }
+    }
+
     public void ReorderColumns()
     {
         Columns.Sort((string a, string b) =>
         {
-            MinqColumnDef defA = ColumnDefinitions.ContainsKey(a) ? ColumnDefinitions[a] : new MinqColumnDef { Order = int.MaxValue, IsSticky = false };
-            MinqColumnDef defB = ColumnDefinitions.ContainsKey(b) ? ColumnDefinitions[b] : new MinqColumnDef { Order = int.MaxValue, IsSticky = false };
+            MinqColumnDef defA = ColumnDefinitions.ContainsKey(a) ? ColumnDefinitions[a] : new MinqColumnDef();
+            MinqColumnDef defB = ColumnDefinitions.ContainsKey(b) ? ColumnDefinitions[b] : new MinqColumnDef();
 
             if (defA.IsSticky != defB.IsSticky)
                 return defA.IsSticky ? -1 : 1;
 
-            if (defA.Order != defB.Order)
-                return defA.Order.CompareTo(defB.Order);
+            // Lexicographical Array Comparison for hierarchical Order rules!
+            int minLen = Math.Min(defA.OrderPath.Count, defB.OrderPath.Count);
+            for (int i = 0; i < minLen; i++)
+            {
+                if (defA.OrderPath[i] != defB.OrderPath[i])
+                    return defA.OrderPath[i].CompareTo(defB.OrderPath[i]);
+            }
+            
+            if (defA.OrderPath.Count != defB.OrderPath.Count)
+                return defA.OrderPath.Count.CompareTo(defB.OrderPath.Count);
 
             return string.Compare(a, b, StringComparison.OrdinalIgnoreCase);
         });
@@ -522,7 +611,7 @@
         public string Name { get; set; }
         public bool IsIgnored { get; set; }
         public bool IsSticky { get; set; }
-        public int Order { get; set; }
+        public List<int> OrderPath { get; set; } = [int.MaxValue];
         public bool IsTimestamp { get; set; }
     }
 }
