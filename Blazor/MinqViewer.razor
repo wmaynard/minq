@@ -171,6 +171,7 @@
     
     .minq-table tbody tr {
         background-color: #ffffff;
+        cursor: pointer; 
     }
 
     .minq-table tbody tr:nth-child(even) {
@@ -329,9 +330,11 @@
                     </tr>
                 </thead>
                 <tbody>
+                    @{ int rowIndex = 0; }
                     @foreach (Dictionary<string, string> row in Rows)
                     {
-                        <tr>
+                        int currentIndex = rowIndex;
+                        <tr @onclick="() => OpenEditor(currentIndex)">
                             @{ int cellOffset = 0; }
                             @foreach (string column in VisibleColumns)
                             {
@@ -345,6 +348,7 @@
                                 <td style="@stickyStyle" title="@cellValue">@cellValue</td>
                             }
                         </tr>
+                        rowIndex++;
                     }
                 </tbody>
             </table>
@@ -356,6 +360,14 @@
                           HiddenColumns="HiddenColumns" 
                           OnApply="ApplyColumns" 
                           OnCancel="CloseColumnPicker" />
+        }
+        
+        @if (IsEditorOpen && SelectedRecord != null)
+        {
+            <RecordEditor Model="SelectedRecord" 
+                          ColumnDefinitions="ColumnDefinitions.Values" 
+                          OnSave="SaveRecord" 
+                          OnCancel="CloseEditor" />
         }
     }
 </div>
@@ -398,6 +410,9 @@
 
     public bool IsSettingsOpen { get; set; } = false;
     public bool IsColumnPickerOpen { get; set; } = false;
+    
+    public bool IsEditorOpen { get; set; } = false;
+    public object SelectedRecord { get; set; } = null;
     
     public TimestampFormatOption TimestampFormat { get; set; } = TimestampFormatOption.Local;
     public bool FlattenJsonProperties { get; set; } = false;
@@ -445,6 +460,44 @@
     {
         HiddenColumns = newHiddenColumns;
         IsColumnPickerOpen = false;
+    }
+
+    public void OpenEditor(int rowIndex)
+    {
+        SelectedRecord = LastRecords.GetValue(rowIndex);
+        IsEditorOpen = true;
+    }
+
+    public void CloseEditor()
+    {
+        IsEditorOpen = false;
+        SelectedRecord = null;
+    }
+
+    public void SaveRecord(object updatedModel)
+    {
+        try
+        {
+            object service = ServiceProvider.GetRequiredService(Contract);
+            MethodInfo updateMethod = Contract.GetMethod("Update");
+            
+            if (updateMethod != null)
+            {
+                updateMethod.Invoke(service, new[] { updatedModel });
+                Log.Info($"Successfully updated record via {Contract.Name}.Update()");
+            }
+            else
+            {
+                Log.Error($"Update method not found on contract {Contract.Name}.");
+            }
+
+            CloseEditor();
+            LoadData(); 
+        }
+        catch (Exception ex)
+        {
+            Log.Error($"Failed to update record: {ex.Message}");
+        }
     }
 
     public void OnPageSizeChanged()
@@ -607,10 +660,10 @@
     public void LoadColumnDefinitions(Type modelType)
     {
         ColumnDefinitions.Clear();
-        BuildColumnDefinitions(modelType, string.Empty, [], []);
+        BuildColumnDefinitions(modelType, string.Empty, [], [], []);
     }
 
-    private void BuildColumnDefinitions(Type type, string prefix, List<int> currentOrderPath, HashSet<Type> visitedTypes)
+    private void BuildColumnDefinitions(Type type, string prefix, List<int> currentOrderPath, HashSet<Type> visitedTypes, PropertyInfo[] currentPropertyPath)
     {
         if (visitedTypes.Contains(type)) return;
         visitedTypes.Add(type);
@@ -643,16 +696,24 @@
             if (flexIgnoreAttr != null && flexIgnoreAttr.Ignore.HasFlag(Ignore.InBson)) isIgnored = true;
 
             bool isSticky = viewAttr != null && viewAttr.Sticky;
+            bool isReadOnly = viewAttr != null && viewAttr.ReadOnly;
             int order = viewAttr != null ? viewAttr.Order : int.MaxValue;
             bool isTimestamp = prop.PropertyType == typeof(long) || prop.PropertyType == typeof(long?);
 
             List<int> orderPath = [..currentOrderPath, order];
+            PropertyInfo[] newPath = [..currentPropertyPath, declaredProp];
 
             MinqColumnDef def = new MinqColumnDef
             {
                 Name = fullPath,
+                PropertyName = prop.Name,
+                BsonName = flexAttr?.Bson,
+                JsonName = flexAttr?.Json,
+                PropertyPath = newPath,
+                PropertyType = prop.PropertyType,
                 IsIgnored = isIgnored,
                 IsSticky = isSticky,
+                ReadOnly = isReadOnly,
                 OrderPath = orderPath,
                 IsTimestamp = isTimestamp,
                 IsNested = !string.IsNullOrEmpty(prefix),
@@ -672,7 +733,7 @@
             }
 
             if (def.IsComplex && !isIgnored)
-                BuildColumnDefinitions(prop.PropertyType, fullPath, orderPath, new HashSet<Type>(visitedTypes));
+                BuildColumnDefinitions(prop.PropertyType, fullPath, orderPath, new HashSet<Type>(visitedTypes), newPath);
         }
     }
 
@@ -872,8 +933,14 @@
     public class MinqColumnDef
     {
         public string Name { get; set; }
+        public string PropertyName { get; set; }
+        public string BsonName { get; set; }
+        public string JsonName { get; set; }
+        public PropertyInfo[] PropertyPath { get; set; } = [];
+        public Type PropertyType { get; set; }
         public bool IsIgnored { get; set; }
         public bool IsSticky { get; set; }
+        public bool ReadOnly { get; set; }
         public List<int> OrderPath { get; set; } = [int.MaxValue];
         public bool IsTimestamp { get; set; }
         public bool IsNested { get; set; }

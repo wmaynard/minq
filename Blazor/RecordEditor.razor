@@ -1,0 +1,149 @@
+@using System.Reflection
+@using Microsoft.AspNetCore.Components
+@using Microsoft.AspNetCore.Components.Web
+@using System.Linq
+
+<div class="minq-modal-backdrop" @onclick="Cancel">
+    <div class="minq-modal-surface" @onclick:stopPropagation="true">
+        
+        <div class="minq-modal-header">
+            <h3>Edit Record</h3>
+        </div>
+        
+        <div class="minq-modal-body">
+            @foreach(MinqViewer.MinqColumnDef def in EditableColumns)
+            {
+                <div class="minq-form-group">
+                    <label>@GetLabel(def)</label>
+                    <input class="minq-input" type="text" @bind="EditValues[def.Name]" disabled="@def.ReadOnly" />
+                </div>
+            }
+        </div>
+        
+        <div class="minq-modal-footer">
+            <button class="minq-button" @onclick="Cancel">Cancel</button>
+            <button class="minq-button minq-button-primary" @onclick="Apply">Update</button>
+        </div>
+        
+    </div>
+</div>
+
+@code {
+    [Parameter] 
+    public object Model { get; set; }
+    
+    [Parameter] 
+    public IEnumerable<MinqViewer.MinqColumnDef> ColumnDefinitions { get; set; } = new List<MinqViewer.MinqColumnDef>();
+    
+    [Parameter] 
+    public EventCallback<object> OnSave { get; set; }
+    
+    [Parameter] 
+    public EventCallback OnCancel { get; set; }
+
+    public Dictionary<string, string> EditValues { get; set; } = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+    public List<MinqViewer.MinqColumnDef> EditableColumns { get; set; } = new List<MinqViewer.MinqColumnDef>();
+
+    protected override void OnInitialized()
+    {
+        EditableColumns = ColumnDefinitions.Distinct().Where(d => !d.IsIgnored && !d.IsComplex).OrderBy(d => d.Name).ToList();
+
+        foreach (MinqViewer.MinqColumnDef def in EditableColumns)
+        {
+            EditValues[def.Name] = ReadValue(def);
+        }
+    }
+
+    private string GetLabel(MinqViewer.MinqColumnDef def)
+    {
+        string label = def.PropertyName;
+        List<string> keys = [];
+        
+        if (!string.IsNullOrWhiteSpace(def.BsonName)) 
+            keys.Add($"bson: {def.BsonName}");
+            
+        if (!string.IsNullOrWhiteSpace(def.JsonName)) 
+            keys.Add($"json: {def.JsonName}");
+            
+        if (keys.Any()) 
+            label += $" ({string.Join(", ", keys)})";
+            
+        return label;
+    }
+
+    private string ReadValue(MinqViewer.MinqColumnDef def)
+    {
+        object current = Model;
+        
+        foreach (PropertyInfo prop in def.PropertyPath)
+        {
+            if (current == null) return string.Empty;
+            current = prop.GetValue(current);
+        }
+        
+        return current?.ToString() ?? string.Empty;
+    }
+
+    public async Task Apply()
+    {
+        foreach (MinqViewer.MinqColumnDef def in EditableColumns)
+        {
+            if (def.ReadOnly) continue;
+
+            string strVal = EditValues[def.Name];
+            object current = Model;
+            
+            // Traverse down the reflection path to the immediate parent of our leaf property
+            for (int i = 0; i < def.PropertyPath.Length - 1; i++)
+            {
+                PropertyInfo prop = def.PropertyPath[i];
+                object next = prop.GetValue(current);
+                
+                // If a nested object is currently null in the database, instantiate it so we can set its child value!
+                if (next == null)
+                {
+                    next = Activator.CreateInstance(prop.PropertyType);
+                    prop.SetValue(current, next);
+                }
+                
+                current = next;
+            }
+
+            PropertyInfo leafProp = def.PropertyPath.Last();
+            Type targetType = Nullable.GetUnderlyingType(leafProp.PropertyType) ?? leafProp.PropertyType;
+            object parsedVal = null;
+            
+            if (!string.IsNullOrWhiteSpace(strVal))
+            {
+                try
+                {
+                    if (targetType == typeof(Guid)) 
+                        parsedVal = Guid.Parse(strVal);
+                    else if (targetType.IsEnum) 
+                        parsedVal = Enum.Parse(targetType, strVal);
+                    else if (targetType == typeof(DateTime) || targetType == typeof(DateTimeOffset)) 
+                        parsedVal = DateTime.Parse(strVal);
+                    else 
+                        parsedVal = Convert.ChangeType(strVal, targetType);
+                }
+                catch
+                {
+                    // If parsing fails (e.g. they typed "abc" into an int field), we gracefully skip updating it
+                    continue; 
+                }
+            }
+
+            // Protect against setting null on non-nullable struct value types
+            if (parsedVal == null && targetType.IsValueType && Nullable.GetUnderlyingType(leafProp.PropertyType) == null)
+            {
+                parsedVal = Activator.CreateInstance(targetType);
+            }
+
+            leafProp.SetValue(current, parsedVal);
+        }
+
+        await OnSave.InvokeAsync(Model);
+    }
+
+    public async Task Cancel() => await OnCancel.InvokeAsync();
+}
