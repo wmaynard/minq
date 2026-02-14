@@ -53,6 +53,21 @@
         border-color: #3f51b5;
         color: #3f51b5;
     }
+
+    .minq-button-danger {
+        background-color: #f44336;
+        color: white;
+        border-color: #f44336;
+    }
+    .minq-button-danger:hover:not(:disabled) { 
+        background-color: #d32f2f; 
+        border-color: #d32f2f;
+    }
+    .minq-button-danger:disabled {
+        background-color: #ffcdd2;
+        border-color: #ffcdd2;
+        color: #ffffff;
+    }
     
     .minq-pagination-text {
         font-weight: 500;
@@ -175,7 +190,6 @@
         background-color: #ffffff;
     }
     
-    /* Only apply pointer if a row action is explicitly selected */
     .minq-table tbody tr.minq-clickable-row {
         cursor: pointer;
     }
@@ -348,8 +362,8 @@
                                 <input type="radio" name="rowClickBehavior" value="EditRecord" checked="@(RowClickBehavior == RowClickBehaviorOption.EditRecord)" @onchange="@(() => RowClickBehavior = RowClickBehaviorOption.EditRecord)" />
                                 Edit Record
                             </label>
-                            <label class="minq-radio-label" style="@(!DeletionEnabled ? "opacity: 0.5;" : "")">
-                                <input type="radio" name="rowClickBehavior" value="DeleteRecord" disabled="@(!DeletionEnabled)" checked="@(RowClickBehavior == RowClickBehaviorOption.DeleteRecord)" @onchange="@(() => RowClickBehavior = RowClickBehaviorOption.DeleteRecord)" />
+                            <label class="minq-radio-label" style="@(!CanDeleteSingle ? "opacity: 0.5;" : "")">
+                                <input type="radio" name="rowClickBehavior" value="DeleteRecord" disabled="@(!CanDeleteSingle)" checked="@(RowClickBehavior == RowClickBehaviorOption.DeleteRecord)" @onchange="@(() => RowClickBehavior = RowClickBehaviorOption.DeleteRecord)" />
                                 Delete Record
                             </label>
                         </div>
@@ -372,6 +386,13 @@
                                 </div>
                                 Hide Default Values
                             </label>
+                        </div>
+                    </div>
+
+                    <div class="minq-setting-group">
+                        <h4>Danger Zone</h4>
+                        <div style="margin-top: 0.5rem;">
+                            <button class="minq-button minq-button-danger" disabled="@(!CanDeleteCollection)" @onclick="OpenDeleteAllModal">Delete All Records</button>
                         </div>
                     </div>
                 </div>
@@ -454,7 +475,15 @@
             @if (IsDeleteModalOpen && SelectedRecord != null)
             {
                 <DeleteRecord Model="SelectedRecord" 
+                              IsCollection="false"
                               OnDelete="DeleteRecord" 
+                              OnCancel="CloseModals" />
+            }
+
+            @if (IsDeleteAllModalOpen)
+            {
+                <DeleteRecord IsCollection="true"
+                              OnDeleteCollection="DeleteAllRecords" 
                               OnCancel="CloseModals" />
             }
         }
@@ -465,6 +494,17 @@
     public enum TimestampFormatOption { Local, Utc, Unix, Elapsed }
     public enum RowClickBehaviorOption { SelectText, EditRecord, DeleteRecord }
 
+    [Flags]
+    public enum MinqDeletion
+    {
+        None                    = 0b0000_0000,
+        SingleRecordAdminOnly   = 0b0000_0001,
+        CollectionAdminOnly     = 0b0000_0010,
+        SingleRecord            = 0b0000_0101,
+        Collection              = 0b0000_0110
+    }
+
+
     [Parameter]
     public Type Contract { get; set; }
 
@@ -472,7 +512,10 @@
     public string CustomQuery { get; set; }
 
     [Parameter]
-    public bool DeletionEnabled { get; set; } = false;
+    public MinqDeletion DeletionEnabled { get; set; } = MinqDeletion.None;
+
+    [Parameter]
+    public bool IsAdmin { get; set; } = false;
 
     [CascadingParameter]
     public Microsoft.AspNetCore.Http.HttpContext? HttpContext { get; set; }
@@ -512,11 +555,15 @@
     public RowClickBehaviorOption RowClickBehavior { get; set; } = RowClickBehaviorOption.SelectText;
     public bool IsEditorOpen { get; set; } = false;
     public bool IsDeleteModalOpen { get; set; } = false;
+    public bool IsDeleteAllModalOpen { get; set; } = false;
     public object SelectedRecord { get; set; } = null;
     
     public TimestampFormatOption TimestampFormat { get; set; } = TimestampFormatOption.Local;
     public bool FlattenJsonProperties { get; set; } = false;
     public bool HideDefaultValues { get; set; } = false;
+
+    public bool CanDeleteSingle => DeletionEnabled.HasFlag(MinqDeletion.SingleRecord) || (IsAdmin && DeletionEnabled.HasFlag(MinqDeletion.SingleRecordAdminOnly));
+    public bool CanDeleteCollection => DeletionEnabled.HasFlag(MinqDeletion.Collection) || (IsAdmin && DeletionEnabled.HasFlag(MinqDeletion.CollectionAdminOnly));
 
     private Array LastRecords { get; set; } = Array.Empty<object>();
 
@@ -596,14 +643,17 @@
         
         if (RowClickBehavior == RowClickBehaviorOption.EditRecord)
             IsEditorOpen = true;
-        else if (RowClickBehavior == RowClickBehaviorOption.DeleteRecord && DeletionEnabled)
+        else if (RowClickBehavior == RowClickBehaviorOption.DeleteRecord && CanDeleteSingle)
             IsDeleteModalOpen = true;
     }
+
+    public void OpenDeleteAllModal() => IsDeleteAllModalOpen = true;
 
     public void CloseModals()
     {
         IsEditorOpen = false;
         IsDeleteModalOpen = false;
+        IsDeleteAllModalOpen = false;
         SelectedRecord = null;
     }
 
@@ -656,6 +706,33 @@
         catch (Exception ex)
         {
             Log.Error($"Failed to delete record: {ex.Message}");
+        }
+    }
+
+    public void DeleteAllRecords()
+    {
+        try
+        {
+            object service = ServiceProvider.GetRequiredService(Contract);
+            MethodInfo deleteAllMethod = Contract.GetMethod("DeleteAll"); 
+            
+            if (deleteAllMethod != null)
+            {
+                deleteAllMethod.Invoke(service, null);
+                Log.Info($"Successfully deleted all records via {Contract.Name}.DeleteAll()");
+            }
+            else
+            {
+                Log.Error($"DeleteAll method not found on contract {Contract.Name}.");
+            }
+
+            CloseModals();
+            PageNumber = 0;
+            LoadData(); 
+        }
+        catch (Exception ex)
+        {
+            Log.Error($"Failed to delete all records: {ex.Message}");
         }
     }
 
@@ -1092,4 +1169,3 @@
         public bool IsComplex { get; set; }
     }
 }
-

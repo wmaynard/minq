@@ -36,6 +36,16 @@ public abstract class Minq<Model> : Singleton, IGdprHandler where Model : MinqDo
             .Delete();
     }
 
+    public long DeleteAll()
+    {
+        long output = mongo.All().Delete();
+        Log.Alert("All records in the collection.", new
+        {
+            Affected = output
+        });
+        return output;
+    }
+
     public void Update(Model model)
     {
         model.UpdatedOn = Timestamp.Now;

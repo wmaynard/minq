@@ -1,26 +1,37 @@
 @using System.Reflection
 @using Microsoft.AspNetCore.Components
 @using Microsoft.AspNetCore.Components.Web
+@using Maynard.Logging
 
 <div class="minq-modal-backdrop" tabindex="-1" @ref="ModalRef" @onkeydown="HandleKeyDown" @onclick="Cancel">
     <div class="minq-modal-surface" @onclick:stopPropagation="true">
         
         <div class="minq-modal-header">
-            <h3>Delete Record</h3>
+            <h3>@(IsCollection ? "Delete All Records" : "Delete Record")</h3>
         </div>
         
         <div class="minq-modal-body">
-            <p style="margin: 0; color: #d32f2f; font-weight: 600;">Warning: This action cannot be undone.  If any code or other data relies on this document, you may unintentionally cause major problems.</p>
-            <p style="margin: 0; font-size: 0.95rem;">Please type the record ID <strong>@RecordId</strong> below to confirm deletion.</p>
+            <p style="margin: 0; color: #d32f2f; font-weight: 600;">Warning: This action cannot be undone. If any code or other data relies on this @(IsCollection ? "collection" : "document"), you may unintentionally cause major problems.</p>
+            
+            @if (IsCollection)
+            {
+                <p style="margin: 0; font-size: 0.95rem;">You are about to delete <strong>ALL</strong> records in this collection. Please type exactly <strong>I know what I'm doing.</strong> below to confirm deletion.</p>
+            }
+            else
+            {
+                <p style="margin: 0; font-size: 0.95rem;">Please type the record ID <strong>@RecordId</strong> below to confirm deletion.</p>
+            }
             
             <div class="minq-form-group">
-                <input class="minq-input" type="text" @bind="ConfirmId" @bind:event="oninput" placeholder="@RecordId" />
+                <input class="minq-input" type="text" @bind="ConfirmText" @bind:event="oninput" placeholder="@(IsCollection ? "I know what I'm doing." : RecordId)" />
             </div>
         </div>
         
         <div class="minq-modal-footer">
             <button class="minq-button" @onclick="Cancel">Cancel</button>
-            <button class="minq-button minq-button-danger" disabled="@(!IsConfirmed)" @onclick="Confirm">Delete Record</button>
+            <button class="minq-button minq-button-danger" disabled="@(!IsConfirmed)" @onclick="Confirm">
+                @(IsCollection ? "Delete All Records" : "Delete Record")
+            </button>
         </div>
         
     </div>
@@ -30,23 +41,38 @@
     [Parameter] 
     public object Model { get; set; }
     
+    [Parameter]
+    public bool IsCollection { get; set; }
+    
     [Parameter] 
     public EventCallback<object> OnDelete { get; set; }
+
+    [Parameter] 
+    public EventCallback OnDeleteCollection { get; set; }
     
     [Parameter] 
     public EventCallback OnCancel { get; set; }
 
     public string RecordId { get; set; } = string.Empty;
-    public string ConfirmId { get; set; } = string.Empty;
+    public string ConfirmText { get; set; } = string.Empty;
     
-    public bool IsConfirmed => string.Equals(RecordId, ConfirmId, StringComparison.OrdinalIgnoreCase);
+    public bool IsConfirmed => IsCollection 
+        ? ConfirmText.Trim() == "I know what I'm doing."
+        : string.Equals(RecordId, ConfirmText.Trim(), StringComparison.OrdinalIgnoreCase);
 
     private ElementReference ModalRef;
 
     protected override void OnInitialized()
     {
-        PropertyInfo idProp = Model?.GetType().GetProperty("Id");
-        RecordId = idProp?.GetValue(Model)?.ToString() ?? "UNKNOWN";
+        if (IsCollection)
+        {
+            Log.Alert("User initiated Delete All Records modal.");
+        }
+        else
+        {
+            PropertyInfo idProp = Model?.GetType().GetProperty("Id");
+            RecordId = idProp?.GetValue(Model)?.ToString() ?? "UNKNOWN";
+        }
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -64,7 +90,12 @@
     public async Task Confirm()
     {
         if (IsConfirmed)
-            await OnDelete.InvokeAsync(Model);
+        {
+            if (IsCollection)
+                await OnDeleteCollection.InvokeAsync();
+            else
+                await OnDelete.InvokeAsync(Model);
+        }
     }
 
     public async Task Cancel() => await OnCancel.InvokeAsync();
