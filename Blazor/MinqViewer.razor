@@ -1,6 +1,8 @@
+@implements IDisposable
 @using System.Reflection
 @using System.Text.Json
 @using System.Linq
+@using System.Threading
 @using Microsoft.AspNetCore.Components
 @using Microsoft.AspNetCore.Components.Web
 @using Maynard.Json.Attributes
@@ -181,6 +183,30 @@
     .minq-table tbody tr:hover {
         background-color: #e3f2fd; 
     }
+
+    /* Boolean Badge Styles */
+    .minq-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-weight: 700;
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        line-height: 1;
+    }
+    .minq-badge-true {
+        background-color: #e8f5e9;
+        color: #2e7d32;
+        border: 1px solid #c8e6c9;
+    }
+    .minq-badge-false {
+        background-color: #ffebee;
+        color: #c62828;
+        border: 1px solid #ffcdd2;
+    }
     
     .empty-state {
         padding: 3rem;
@@ -287,6 +313,10 @@
                             <input type="radio" name="timestampFormat" value="Unix" checked="@(TimestampFormat == TimestampFormatOption.Unix)" @onchange="@(() => ChangeTimestampFormat(TimestampFormatOption.Unix))" />
                             Unix Timestamp (UTC)
                         </label>
+                        <label class="minq-radio-label">
+                            <input type="radio" name="timestampFormat" value="Elapsed" checked="@(TimestampFormat == TimestampFormatOption.Elapsed)" @onchange="@(() => ChangeTimestampFormat(TimestampFormatOption.Elapsed))" />
+                            Elapsed Time
+                        </label>
                     </div>
                 </div>
 
@@ -345,7 +375,19 @@
                                     cellOffset += PinnedColumnWidth;
 
                                 string cellValue = row.ContainsKey(column) ? FormatValue(column, row[column]) : string.Empty;
-                                <td style="@stickyStyle" title="@cellValue">@cellValue</td>
+                                ColumnDefinitions.TryGetValue(column, out MinqColumnDef cellDef);
+
+                                <td style="@stickyStyle" title="@cellValue">
+                                    @if (cellDef != null && cellDef.IsBool && !string.IsNullOrWhiteSpace(cellValue))
+                                    {
+                                        bool isTrue = cellValue.Equals("True", StringComparison.OrdinalIgnoreCase);
+                                        <span class="minq-badge @(isTrue ? "minq-badge-true" : "minq-badge-false")">@(isTrue ? "True" : "False")</span>
+                                    }
+                                    else
+                                    {
+                                        @cellValue
+                                    }
+                                </td>
                             }
                         </tr>
                         rowIndex++;
@@ -373,7 +415,7 @@
 </div>
 
 @code {
-    public enum TimestampFormatOption { Local, Utc, Unix }
+    public enum TimestampFormatOption { Local, Utc, Unix, Elapsed }
 
     [Parameter]
     public Type Contract { get; set; }
@@ -385,6 +427,9 @@
     public Microsoft.AspNetCore.Http.HttpContext? HttpContext { get; set; }
 
     public MinqTimer RefreshTimerComponent { get; set; }
+    
+    public PeriodicTimer ElapsedTimer { get; set; }
+    public CancellationTokenSource ElapsedCts { get; set; } = new CancellationTokenSource();
 
     public int[] PageSizeOptions { get; set; } = [10, 25, 50, 75, 100];
     public int PageSize { get; set; } = 25;
@@ -448,7 +493,32 @@
         if (HttpContext != null)
             Log.Warn("MinqViewer is executing in a server request context (Static SSR or Prerendering). If it remains unresponsive after loading, verify the parent page has an interactive render mode applied.");
             
+        ElapsedTimer = new PeriodicTimer(TimeSpan.FromSeconds(1));
+        _ = RunElapsedTimerAsync();
+            
         LoadData();
+    }
+
+    public async Task RunElapsedTimerAsync()
+    {
+        try
+        {
+            while (await ElapsedTimer.WaitForNextTickAsync(ElapsedCts.Token))
+            {
+                if (TimestampFormat == TimestampFormatOption.Elapsed)
+                {
+                    await InvokeAsync(StateHasChanged);
+                }
+            }
+        }
+        catch (OperationCanceledException) { }
+    }
+
+    public void Dispose()
+    {
+        ElapsedCts.Cancel();
+        ElapsedCts.Dispose();
+        ElapsedTimer?.Dispose();
     }
 
     public void ToggleSettings() => IsSettingsOpen = !IsSettingsOpen;
@@ -663,7 +733,7 @@
         BuildColumnDefinitions(modelType, string.Empty, [], [], []);
     }
 
-private void BuildColumnDefinitions(Type type, string prefix, List<int> currentOrderPath, HashSet<Type> visitedTypes, PropertyInfo[] currentPropertyPath)
+    private void BuildColumnDefinitions(Type type, string prefix, List<int> currentOrderPath, HashSet<Type> visitedTypes, PropertyInfo[] currentPropertyPath)
     {
         if (visitedTypes.Contains(type)) return;
         visitedTypes.Add(type);
@@ -680,22 +750,7 @@ private void BuildColumnDefinitions(Type type, string prefix, List<int> currentO
             FlexIgnore flexIgnoreAttr = declaredProp.GetCustomAttribute<FlexIgnore>();
             MinqViewAttribute viewAttr = declaredProp.GetCustomAttribute<MinqViewAttribute>();
             
-            bool isBsonIgnored = false;
-            bool isJsonIgnored = false;
-
-            if (flexAttr != null)
-            {
-                if (flexAttr.Ignore.HasFlag(Ignore.InBson) || flexAttr.Ignore == Ignore.Always) isBsonIgnored = true;
-                if (flexAttr.Ignore.HasFlag(Ignore.InJson) || flexAttr.Ignore == Ignore.Always) isJsonIgnored = true;
-            }
-            if (flexIgnoreAttr != null)
-            {
-                if (flexIgnoreAttr.Ignore.HasFlag(Ignore.InBson) || flexIgnoreAttr.Ignore == Ignore.Always) isBsonIgnored = true;
-                if (flexIgnoreAttr.Ignore.HasFlag(Ignore.InJson) || flexIgnoreAttr.Ignore == Ignore.Always) isJsonIgnored = true;
-            }
-
-            // Standard table exclusion defaults to BSON visibility
-            bool isIgnored = isBsonIgnored; 
+            bool hasFlexIgnore = declaredProp.CustomAttributes.Any(a => a.AttributeType.Name.Contains("FlexIgnore"));
 
             string jsonKey = prop.Name;
             
@@ -706,10 +761,15 @@ private void BuildColumnDefinitions(Type type, string prefix, List<int> currentO
 
             string fullPath = string.IsNullOrEmpty(prefix) ? jsonKey : $"{prefix}.{jsonKey}";
 
+            bool isIgnored = false;
+            if (flexAttr != null && flexAttr.Ignore.HasFlag(Ignore.InBson)) isIgnored = true;
+            if (flexIgnoreAttr != null && flexIgnoreAttr.Ignore.HasFlag(Ignore.InBson)) isIgnored = true;
+
             bool isSticky = viewAttr != null && viewAttr.Sticky;
             bool isReadOnly = viewAttr != null && viewAttr.ReadOnly;
             int order = viewAttr != null ? viewAttr.Order : int.MaxValue;
             bool isTimestamp = prop.PropertyType == typeof(long) || prop.PropertyType == typeof(long?);
+            bool isBool = prop.PropertyType == typeof(bool) || prop.PropertyType == typeof(bool?);
 
             List<int> orderPath = [..currentOrderPath, order];
             PropertyInfo[] newPath = [..currentPropertyPath, declaredProp];
@@ -723,12 +783,11 @@ private void BuildColumnDefinitions(Type type, string prefix, List<int> currentO
                 PropertyPath = newPath,
                 PropertyType = prop.PropertyType,
                 IsIgnored = isIgnored,
-                IsJsonIgnored = isJsonIgnored,
-                IsBsonIgnored = isBsonIgnored,
                 IsSticky = isSticky,
                 ReadOnly = isReadOnly,
                 OrderPath = orderPath,
                 IsTimestamp = isTimestamp,
+                IsBool = isBool,
                 IsNested = !string.IsNullOrEmpty(prefix),
                 IsComplex = IsComplexType(prop.PropertyType)
             };
@@ -749,7 +808,7 @@ private void BuildColumnDefinitions(Type type, string prefix, List<int> currentO
                 BuildColumnDefinitions(prop.PropertyType, fullPath, orderPath, new HashSet<Type>(visitedTypes), newPath);
         }
     }
-    
+
     private bool IsComplexType(Type type)
     {
         if (type == typeof(string) || type.IsPrimitive || type.IsEnum) return false;
@@ -875,7 +934,7 @@ private void BuildColumnDefinitions(Type type, string prefix, List<int> currentO
                 if (element.TryGetDouble(out double num) && num == 0) return true;
                 return false;
             case JsonValueKind.False:
-                return true;
+                return false; // Booleans are strictly excepted from being hidden!
             case JsonValueKind.Array:
                 return element.GetArrayLength() == 0;
             case JsonValueKind.Object:
@@ -914,7 +973,7 @@ private void BuildColumnDefinitions(Type type, string prefix, List<int> currentO
         if (string.IsNullOrWhiteSpace(rawValue))
             return string.Empty;
 
-        if (ColumnDefinitions.ContainsKey(column) && ColumnDefinitions[column].IsTimestamp)
+        if (ColumnDefinitions.TryGetValue(column, out MinqColumnDef def) && def.IsTimestamp)
         {
             if (TimestampFormat == TimestampFormatOption.Unix)
                 return rawValue;
@@ -932,6 +991,21 @@ private void BuildColumnDefinitions(Type type, string prefix, List<int> currentO
                     
                     if (TimestampFormat == TimestampFormatOption.Utc)
                         return dto.ToUniversalTime().ToString("yyyy-MM-dd HH:mm:ss UTC");
+                        
+                    if (TimestampFormat == TimestampFormatOption.Elapsed)
+                    {
+                        TimeSpan elapsed = DateTimeOffset.UtcNow - dto;
+                        if (elapsed.TotalSeconds < 0) return "0s";
+                        
+                        if (elapsed.TotalDays >= 1)
+                            return $"{(int)elapsed.TotalDays}d{elapsed.Hours:D2}h{elapsed.Minutes:D2}m{elapsed.Seconds:D2}s";
+                        if (elapsed.TotalHours >= 1)
+                            return $"{elapsed.Hours}h{elapsed.Minutes:D2}m{elapsed.Seconds:D2}s";
+                        if (elapsed.TotalMinutes >= 1)
+                            return $"{elapsed.Minutes}m{elapsed.Seconds:D2}s";
+                            
+                        return $"{elapsed.Seconds}s";
+                    }
                 }
                 catch
                 {
@@ -958,6 +1032,7 @@ private void BuildColumnDefinitions(Type type, string prefix, List<int> currentO
         public bool ReadOnly { get; set; }
         public List<int> OrderPath { get; set; } = [int.MaxValue];
         public bool IsTimestamp { get; set; }
+        public bool IsBool { get; set; }
         public bool IsNested { get; set; }
         public bool IsComplex { get; set; }
     }
