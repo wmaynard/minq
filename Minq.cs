@@ -15,6 +15,7 @@ public abstract class Minq<Model> : Singleton, IGdprHandler where Model : MinqDo
 
     public virtual Model[] PageAllRecords(int pageSize, int pageNumber, out long remaining) => mongo
         .All()
+        .Sort(sort => sort.OrderByDescending(model => model.CreatedOn))
         .Page(size: pageSize, number: pageNumber, out remaining);
 
     public virtual void Insert(params Model[] models) => mongo.Insert(models);
