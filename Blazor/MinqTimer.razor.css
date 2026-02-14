@@ -1,0 +1,32 @@
+.minq-refresh-container {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 600;
+    color: #78909c;
+    font-size: 0.95rem;
+    margin-right: 1.5rem;
+}
+.minq-refresh-ring {
+    position: relative;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+.minq-refresh-ring svg {
+    position: absolute;
+    top: 0; 
+    left: 0;
+    transform: rotate(-90deg);
+}
+.minq-refresh-ring circle:nth-child(2) {
+    transition: stroke-dashoffset 1s linear; 
+}
+.minq-refresh-value {
+    font-weight: 700;
+    color: #37474f;
+    font-size: 0.85rem;
+    position: relative; /* Naturally elevates the text above the absolute SVG without using z-index */
+}

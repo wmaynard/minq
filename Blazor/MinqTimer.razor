@@ -1,0 +1,86 @@
+@implements IDisposable
+@using System.Threading
+@using Microsoft.AspNetCore.Components
+
+<div class="minq-refresh-container">
+    Auto-refresh
+    <div class="minq-refresh-ring">
+        <svg width="36" height="36">
+            <circle cx="18" cy="18" r="14" fill="none" stroke="#e0e0e0" stroke-width="4" />
+            <circle cx="18" cy="18" r="14" fill="none" stroke="#3f51b5" stroke-width="4" 
+                    stroke-dasharray="87.96" 
+                    stroke-dashoffset="@RefreshDashOffset.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture)" 
+                    stroke-linecap="round" />
+        </svg>
+        <div class="minq-refresh-value">@SecondsRemaining</div>
+    </div>
+</div>
+
+@code {
+    [Parameter] 
+    public int Interval { get; set; }
+    
+    [Parameter] 
+    public EventCallback OnRefreshTriggered { get; set; }
+
+    public int SecondsRemaining { get; set; }
+    public int LastInterval { get; set; }
+    
+    public double RefreshDashOffset => Interval > 0 ? (1.0 - ((double)SecondsRemaining / Interval)) * 87.964 : 0;
+
+    public PeriodicTimer Timer { get; set; }
+    public CancellationTokenSource Cts { get; set; } = new CancellationTokenSource();
+
+    protected override void OnInitialized()
+    {
+        LastInterval = Interval;
+        SecondsRemaining = Interval;
+        Timer = new PeriodicTimer(TimeSpan.FromSeconds(1));
+        _ = RunTimerAsync();
+    }
+
+    protected override void OnParametersSet()
+    {
+        if (Interval != LastInterval)
+        {
+            LastInterval = Interval;
+            SecondsRemaining = Interval;
+        }
+    }
+
+    public void ResetTimer()
+    {
+        SecondsRemaining = Interval;
+        InvokeAsync(StateHasChanged);
+    }
+
+    public async Task RunTimerAsync()
+    {
+        try
+        {
+            while (await Timer.WaitForNextTickAsync(Cts.Token))
+            {
+                if (Interval > 0)
+                {
+                    SecondsRemaining--;
+                    
+                    if (SecondsRemaining <= 0)
+                    {
+                        SecondsRemaining = Interval;
+                        await OnRefreshTriggered.InvokeAsync();
+                    }
+                    else
+                        await InvokeAsync(StateHasChanged);
+                }
+            }
+        }
+        catch (OperationCanceledException) { }
+    }
+
+    public void Dispose()
+    {
+        Cts.Cancel();
+        Cts.Dispose();
+        Timer?.Dispose();
+    }
+}
