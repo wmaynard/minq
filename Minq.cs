@@ -13,7 +13,14 @@ public abstract class Minq<Model> : Singleton, IGdprHandler where Model : MinqDo
     
     protected Minq(string collection) => mongo = MinqClient<Model>.Connect(collection);
 
-    public virtual Model[] PageAllRecords(int pageSize, int pageNumber, out long remaining) => mongo
+    /// <summary>
+    /// Pages through all records in the collection, sorted by creation date ascending.
+    /// </summary>
+    /// <param name="pageSize">The number of records to return with each page.</param>
+    /// <param name="pageNumber">The page number to query.  Important: this is zero-indexed!</param>
+    /// <param name="remaining">The number of records remaining in the collection.</param>
+    /// <returns>An array of models.</returns>
+    public Model[] PageAllRecords(int pageSize, int pageNumber, out long remaining) => mongo
         .All()
         .Sort(sort => sort.OrderByDescending(model => model.CreatedOn))
         .Page(size: pageSize, number: pageNumber, out remaining);

@@ -7,6 +7,7 @@
 @using Maynard.Json.Enums
 @using Maynard.Minq.Attributes
 @using Maynard.Logging
+@using Maynard.Minq.Models
 @using Microsoft.Extensions.DependencyInjection
 @inject IServiceProvider ServiceProvider
 
@@ -16,7 +17,7 @@
         min-width: 0; 
         display: grid; 
         font-family: inherit;
-        isolation: isolate; /* Traps all z-indices so they can't bleed over the parent app's layout! */
+        isolation: isolate; 
     }
     
     .minq-controls {
@@ -249,7 +250,7 @@
                 
                 <div class="minq-setting-group">
                     <h4>Data Refresh</h4>
-                    <MinqSlider Options="RefreshOptions" @bind-Value="RefreshInterval" Unit="s" />
+                    <MinqSlider Options="RefreshOptions" @bind-Value="RefreshInterval" OnChange="OnRefreshIntervalChanged" Unit="s" />
                 </div>
 
                 <div class="minq-setting-group">
@@ -365,6 +366,9 @@
     [Parameter]
     public Type Contract { get; set; }
 
+    [Parameter]
+    public string CustomQuery { get; set; }
+
     [CascadingParameter]
     public Microsoft.AspNetCore.Http.HttpContext? HttpContext { get; set; }
 
@@ -448,6 +452,12 @@
         PageNumber = 0;
         LoadData();
     }
+    
+    public void OnRefreshIntervalChanged()
+    {
+        if (RefreshTimerComponent != null)
+            RefreshTimerComponent.Interval = RefreshInterval;
+    }
 
     public void OnViewDataChanged()
     {
@@ -475,6 +485,56 @@
         }
     }
 
+    public bool SignaturesMatch(MethodInfo expected, MethodInfo actual)
+    {
+        if (expected.ReturnType != actual.ReturnType) return false;
+
+        ParameterInfo[] expectedParams = expected.GetParameters();
+        ParameterInfo[] actualParams = actual.GetParameters();
+
+        if (expectedParams.Length != actualParams.Length) return false;
+
+        for (int i = 0; i < expectedParams.Length; i++)
+        {
+            if (expectedParams[i].ParameterType != actualParams[i].ParameterType) return false;
+            if (expectedParams[i].IsOut != actualParams[i].IsOut) return false;
+        }
+
+        return true;
+    }
+
+    public string GenerateSignatureString(MethodInfo method)
+    {
+        string returnType = GetFriendlyTypeName(method.ReturnType);
+        ParameterInfo[] parameters = method.GetParameters();
+        List<string> paramStrings = [];
+
+        foreach (ParameterInfo p in parameters)
+        {
+            string modifier = p.IsOut ? "out " : (p.ParameterType.IsByRef ? "ref " : "");
+            string typeName = GetFriendlyTypeName(p.ParameterType);
+            paramStrings.Add($"{modifier}{typeName} {p.Name}");
+        }
+
+        return $"{returnType} {method.Name}({string.Join(", ", paramStrings)})";
+    }
+
+    public string GetFriendlyTypeName(Type type)
+    {
+        if (type.IsByRef)
+            type = type.GetElementType() ?? type;
+
+        if (type.IsArray)
+            return $"{type.GetElementType()?.Name}[]";
+
+        if (type == typeof(int)) return "int";
+        if (type == typeof(long)) return "long";
+        if (type == typeof(string)) return "string";
+        if (type == typeof(bool)) return "bool";
+        
+        return type.Name;
+    }
+
     public void LoadData()
     {
         IsLoading = true;
@@ -485,9 +545,9 @@
         try
         {
             object service = ServiceProvider.GetRequiredService(Contract);
-            MethodInfo method = Contract.GetMethod("PageAllRecords");
+            MethodInfo defaultMethod = Contract.GetMethod("PageAllRecords");
 
-            if (method == null)
+            if (defaultMethod == null)
             {
                 HasError = true;
                 ErrorMessage = "Method PageAllRecords not found on the provided contract.";
@@ -495,8 +555,35 @@
                 return;
             }
 
+            MethodInfo targetMethod = defaultMethod;
+
+            if (!string.IsNullOrWhiteSpace(CustomQuery))
+            {
+                MethodInfo customMethod = Contract.GetMethod(CustomQuery);
+                
+                if (customMethod == null)
+                {
+                    Log.Error($"Custom query '{CustomQuery}' not found on contract '{Contract.Name}'. Falling back to PageAllRecords.");
+                }
+                else if (!SignaturesMatch(defaultMethod, customMethod))
+                {
+                    string expectedSignature = GenerateSignatureString(defaultMethod);
+                    string actualSignature = GenerateSignatureString(customMethod);
+                    Log.Error($"Custom Query does not match the required parameter signature.  Falling back to {Contract.Name}.{defaultMethod.Name}().", data: new
+                    {
+                        ExpectedSignature = expectedSignature,
+                        ActualSignature = actualSignature,
+                        Help = "The method chosen must support paging.  If you do not want paging, simply use Limit() and Sort() to tailor your data, but the method parameter signature must match."
+                    });
+                }
+                else
+                {
+                    targetMethod = customMethod;
+                }
+            }
+
             object[] parameters = [PageSize, PageNumber, 0L];
-            object result = method.Invoke(service, parameters);
+            object result = targetMethod.Invoke(service, parameters);
 
             if (result is Array records)
             {
