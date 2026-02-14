@@ -8,14 +8,76 @@
         
         <div class="minq-modal-header">
             <h3>Edit Record</h3>
+            <span class="minq-keys-legend">(json / bson)</span>
         </div>
         
         <div class="minq-modal-body">
-            @foreach(MinqViewer.MinqColumnDef def in EditableColumns)
+            @foreach(FieldState field in FieldStates)
             {
                 <div class="minq-form-group">
-                    <label>@GetLabel(def)</label>
-                    <input class="minq-input" type="text" @bind="EditValues[def.Name]" disabled="@def.ReadOnly" />
+                    <div class="minq-field-header">
+                        <label>@field.Def.Name</label>
+                        <span class="minq-field-keys">
+                            (<span class="@(field.Def.IsJsonIgnored ? "minq-text-danger" : "")">@(field.Def.IsJsonIgnored ? "ignored" : (field.Def.JsonName ?? field.Def.PropertyName))</span> / 
+                             <span class="@(field.Def.IsBsonIgnored ? "minq-text-danger" : "")">@(field.Def.IsBsonIgnored ? "ignored" : (field.Def.BsonName ?? field.Def.PropertyName))</span>)
+                        </span>
+                    </div>
+
+                    @if (field.IsCollection)
+                    {
+                        @for (int i = 0; i < field.CollectionValues.Count; i++)
+                        {
+                            int idx = i;
+                            <div class="minq-collection-row">
+                                <input class="minq-input" type="text" @bind="field.CollectionValues[idx]" disabled="@field.Def.ReadOnly" />
+                                @if (!field.Def.ReadOnly)
+                                {
+                                    <button class="minq-button minq-button-danger" @onclick="() => field.CollectionValues.RemoveAt(idx)">X</button>
+                                }
+                            </div>
+                        }
+                        @if (!field.Def.ReadOnly)
+                        {
+                            <button class="minq-button" style="align-self: flex-start;" @onclick="() => field.CollectionValues.Add(string.Empty)">+ Add Entry</button>
+                        }
+                    }
+                    else if (field.IsBool)
+                    {
+                        <div style="padding: 4px 0;">
+                            @if (field.Def.ReadOnly)
+                            {
+                                <input type="checkbox" checked="@field.BoolValue" disabled />
+                            }
+                            else
+                            {
+                                <label class="minq-switch">
+                                    <input type="checkbox" @bind="field.BoolValue" />
+                                    <span class="minq-slider-round"></span>
+                                </label>
+                            }
+                        </div>
+                    }
+                    else if (field.IsEnum)
+                    {
+                        <select class="minq-input" @bind="field.SingleValue" disabled="@field.Def.ReadOnly">
+                            @foreach (string val in Enum.GetNames(field.TargetType))
+                            {
+                                <option value="@val">@val</option>
+                            }
+                        </select>
+                    }
+                    else if (field.IsChar)
+                    {
+                        <input class="minq-input" type="text" value="@field.SingleValue" @oninput="(e) => UpdateChar(field, e)" disabled="@field.Def.ReadOnly" />
+                    }
+                    else if (field.IsNumeric)
+                    {
+                        <input class="minq-input" type="number" step="any" @bind="field.SingleValue" disabled="@field.Def.ReadOnly" />
+                    }
+                    else
+                    {
+                        <input class="minq-input" type="text" @bind="field.SingleValue" disabled="@field.Def.ReadOnly" />
+                    }
                 </div>
             }
         </div>
@@ -41,65 +103,99 @@
     [Parameter] 
     public EventCallback OnCancel { get; set; }
 
-    public Dictionary<string, string> EditValues { get; set; } = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-    public List<MinqViewer.MinqColumnDef> EditableColumns { get; set; } = new List<MinqViewer.MinqColumnDef>();
+    public List<FieldState> FieldStates { get; set; } = new List<FieldState>();
 
     protected override void OnInitialized()
     {
-        EditableColumns = ColumnDefinitions.Distinct().Where(d => !d.IsIgnored && !d.IsComplex).OrderBy(d => d.Name).ToList();
+        List<MinqViewer.MinqColumnDef> editableDefs = ColumnDefinitions.Distinct()
+            .Where(d => !d.IsIgnored && !d.IsComplex)
+            .ToList();
 
-        foreach (MinqViewer.MinqColumnDef def in EditableColumns)
+        // Sort using the exact same hierarchical OrderPath logic as the Viewer grid
+        editableDefs.Sort((a, b) =>
         {
-            EditValues[def.Name] = ReadValue(def);
+            int minLen = Math.Min(a.OrderPath.Count, b.OrderPath.Count);
+            for (int i = 0; i < minLen; i++)
+            {
+                if (a.OrderPath[i] != b.OrderPath[i])
+                    return a.OrderPath[i].CompareTo(b.OrderPath[i]);
+            }
+            if (a.OrderPath.Count != b.OrderPath.Count)
+                return a.OrderPath.Count.CompareTo(b.OrderPath.Count);
+            return string.Compare(a.Name, b.Name, StringComparison.OrdinalIgnoreCase);
+        });
+
+        foreach (MinqViewer.MinqColumnDef def in editableDefs)
+        {
+            Type targetType = Nullable.GetUnderlyingType(def.PropertyType) ?? def.PropertyType;
+            FieldState state = new FieldState { Def = def, TargetType = targetType };
+
+            if (targetType == typeof(bool)) 
+                state.IsBool = true;
+            else if (targetType.IsEnum) 
+                state.IsEnum = true;
+            else if (targetType == typeof(char)) 
+                state.IsChar = true;
+            else if (IsNumericType(targetType)) 
+                state.IsNumeric = true;
+            else if (targetType != typeof(string) && typeof(System.Collections.IEnumerable).IsAssignableFrom(targetType))
+            {
+                state.IsCollection = true;
+                state.ElementType = GetElementType(targetType);
+            }
+
+            object rawValue = ReadValue(def);
+
+            if (state.IsCollection && rawValue is System.Collections.IEnumerable enumerable)
+            {
+                foreach (object item in enumerable)
+                {
+                    state.CollectionValues.Add(item?.ToString() ?? string.Empty);
+                }
+            }
+            else if (state.IsBool)
+            {
+                state.BoolValue = rawValue is bool b && b;
+            }
+            else
+            {
+                state.SingleValue = rawValue?.ToString() ?? string.Empty;
+            }
+
+            FieldStates.Add(state);
         }
     }
 
-    private string GetLabel(MinqViewer.MinqColumnDef def)
+    private void UpdateChar(FieldState field, ChangeEventArgs e)
     {
-        string label = def.PropertyName;
-        List<string> keys = [];
-        
-        if (!string.IsNullOrWhiteSpace(def.BsonName)) 
-            keys.Add($"bson: {def.BsonName}");
-            
-        if (!string.IsNullOrWhiteSpace(def.JsonName)) 
-            keys.Add($"json: {def.JsonName}");
-            
-        if (keys.Any()) 
-            label += $" ({string.Join(", ", keys)})";
-            
-        return label;
+        string val = e.Value?.ToString() ?? string.Empty;
+        field.SingleValue = val.Length > 0 ? val.Substring(val.Length - 1) : string.Empty;
     }
 
-    private string ReadValue(MinqViewer.MinqColumnDef def)
+    private object ReadValue(MinqViewer.MinqColumnDef def)
     {
         object current = Model;
-        
         foreach (PropertyInfo prop in def.PropertyPath)
         {
-            if (current == null) return string.Empty;
+            if (current == null) return null;
             current = prop.GetValue(current);
         }
-        
-        return current?.ToString() ?? string.Empty;
+        return current;
     }
 
     public async Task Apply()
     {
-        foreach (MinqViewer.MinqColumnDef def in EditableColumns)
+        foreach (FieldState state in FieldStates)
         {
-            if (def.ReadOnly) continue;
+            if (state.Def.ReadOnly) continue;
 
-            string strVal = EditValues[def.Name];
             object current = Model;
             
-            // Traverse down the reflection path to the immediate parent of our leaf property
-            for (int i = 0; i < def.PropertyPath.Length - 1; i++)
+            for (int i = 0; i < state.Def.PropertyPath.Length - 1; i++)
             {
-                PropertyInfo prop = def.PropertyPath[i];
+                PropertyInfo prop = state.Def.PropertyPath[i];
                 object next = prop.GetValue(current);
                 
-                // If a nested object is currently null in the database, instantiate it so we can set its child value!
                 if (next == null)
                 {
                     next = Activator.CreateInstance(prop.PropertyType);
@@ -109,34 +205,50 @@
                 current = next;
             }
 
-            PropertyInfo leafProp = def.PropertyPath.Last();
-            Type targetType = Nullable.GetUnderlyingType(leafProp.PropertyType) ?? leafProp.PropertyType;
+            PropertyInfo leafProp = state.Def.PropertyPath.Last();
             object parsedVal = null;
             
-            if (!string.IsNullOrWhiteSpace(strVal))
+            try
             {
-                try
+                if (state.IsCollection)
                 {
-                    if (targetType == typeof(Guid)) 
-                        parsedVal = Guid.Parse(strVal);
-                    else if (targetType.IsEnum) 
-                        parsedVal = Enum.Parse(targetType, strVal);
-                    else if (targetType == typeof(DateTime) || targetType == typeof(DateTimeOffset)) 
-                        parsedVal = DateTime.Parse(strVal);
-                    else 
-                        parsedVal = Convert.ChangeType(strVal, targetType);
+                    if (state.TargetType.IsArray)
+                    {
+                        Array arr = Array.CreateInstance(state.ElementType, state.CollectionValues.Count);
+                        for (int i = 0; i < state.CollectionValues.Count; i++)
+                        {
+                            arr.SetValue(ParseValue(state.CollectionValues[i], state.ElementType), i);
+                        }
+                        parsedVal = arr;
+                    }
+                    else
+                    {
+                        Type listType = typeof(List<>).MakeGenericType(state.ElementType);
+                        System.Collections.IList list = (System.Collections.IList)Activator.CreateInstance(listType);
+                        foreach (string val in state.CollectionValues)
+                        {
+                            list.Add(ParseValue(val, state.ElementType));
+                        }
+                        parsedVal = list;
+                    }
                 }
-                catch
+                else if (state.IsBool)
                 {
-                    // If parsing fails (e.g. they typed "abc" into an int field), we gracefully skip updating it
-                    continue; 
+                    parsedVal = state.BoolValue;
+                }
+                else
+                {
+                    parsedVal = ParseValue(state.SingleValue, state.TargetType);
                 }
             }
-
-            // Protect against setting null on non-nullable struct value types
-            if (parsedVal == null && targetType.IsValueType && Nullable.GetUnderlyingType(leafProp.PropertyType) == null)
+            catch
             {
-                parsedVal = Activator.CreateInstance(targetType);
+                continue; 
+            }
+
+            if (parsedVal == null && state.TargetType.IsValueType && Nullable.GetUnderlyingType(leafProp.PropertyType) == null)
+            {
+                parsedVal = Activator.CreateInstance(state.TargetType);
             }
 
             leafProp.SetValue(current, parsedVal);
@@ -145,5 +257,50 @@
         await OnSave.InvokeAsync(Model);
     }
 
+    private object ParseValue(string strVal, Type targetType)
+    {
+        if (string.IsNullOrWhiteSpace(strVal)) return null;
+        
+        if (targetType == typeof(Guid)) return Guid.Parse(strVal);
+        if (targetType.IsEnum) return Enum.Parse(targetType, strVal);
+        if (targetType == typeof(DateTime) || targetType == typeof(DateTimeOffset)) return DateTime.Parse(strVal);
+        if (targetType == typeof(char)) return strVal.Length > 0 ? strVal[0] : default(char);
+        
+        return Convert.ChangeType(strVal, targetType);
+    }
+
+    private bool IsNumericType(Type type)
+    {
+        return type == typeof(byte) || type == typeof(sbyte) ||
+               type == typeof(short) || type == typeof(ushort) ||
+               type == typeof(int) || type == typeof(uint) ||
+               type == typeof(long) || type == typeof(ulong) ||
+               type == typeof(float) || type == typeof(double) ||
+               type == typeof(decimal);
+    }
+
+    private Type GetElementType(Type collectionType)
+    {
+        if (collectionType.IsArray) return collectionType.GetElementType();
+        if (collectionType.IsGenericType) return collectionType.GetGenericArguments()[0];
+        return typeof(object); 
+    }
+
     public async Task Cancel() => await OnCancel.InvokeAsync();
+
+    public class FieldState
+    {
+        public MinqViewer.MinqColumnDef Def { get; set; }
+        public Type TargetType { get; set; }
+        public bool IsCollection { get; set; }
+        public Type ElementType { get; set; }
+        public bool IsBool { get; set; }
+        public bool IsEnum { get; set; }
+        public bool IsChar { get; set; }
+        public bool IsNumeric { get; set; }
+        
+        public string SingleValue { get; set; }
+        public bool BoolValue { get; set; }
+        public List<string> CollectionValues { get; set; } = new List<string>();
+    }
 }

@@ -17,7 +17,7 @@
     border-radius: 8px;
     box-shadow: 0 10px 25px rgba(0,0,0,0.2);
     width: 90%;
-    max-width: 500px;
+    max-width: 800px; /* Widened to support long nested names and keys */
     max-height: 85vh;
     display: flex;
     flex-direction: column;
@@ -26,6 +26,9 @@
 .minq-modal-header {
     padding: 1rem 1.5rem;
     border-bottom: 1px solid #eee;
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
 }
 
 .minq-modal-header h3 { 
@@ -34,25 +37,50 @@
     color: #333; 
 }
 
+.minq-keys-legend {
+    font-size: 0.85rem;
+    color: #888;
+    font-weight: 500;
+}
+
 .minq-modal-body {
     padding: 1rem 1.5rem;
     overflow-y: auto;
     flex: 1;
     display: flex;
     flex-direction: column;
-    gap: 1rem;
+    gap: 1.25rem;
 }
 
 .minq-form-group {
     display: flex;
     flex-direction: column;
-    gap: 0.25rem;
 }
 
-.minq-form-group label {
+.minq-field-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-bottom: 0.35rem;
+}
+
+.minq-field-header label {
     font-size: 0.85rem;
     font-weight: 600;
     color: #555;
+    margin: 0;
+}
+
+.minq-field-keys {
+    font-size: 0.8rem;
+    color: #666;
+    font-family: monospace;
+}
+
+.minq-text-danger {
+    color: #f44336;
+    font-style: italic;
+    font-weight: 600;
 }
 
 .minq-input {
@@ -65,6 +93,16 @@
     box-sizing: border-box;
 }
 
+/* Hide arrows on numeric inputs for a cleaner UI */
+.minq-input[type="number"]::-webkit-inner-spin-button, 
+.minq-input[type="number"]::-webkit-outer-spin-button { 
+    -webkit-appearance: none; 
+    margin: 0; 
+}
+.minq-input[type="number"] {
+    -moz-appearance: textfield;
+}
+
 .minq-input:focus {
     border-color: #3f51b5;
     outline: none;
@@ -75,6 +113,50 @@
     color: #888;
     cursor: not-allowed;
 }
+
+.minq-collection-row {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.minq-switch {
+    position: relative;
+    display: inline-block;
+    width: 36px;
+    height: 20px;
+    flex-shrink: 0;
+}
+
+.minq-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.minq-slider-round {
+    position: absolute;
+    cursor: pointer;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background-color: #ccc;
+    transition: .3s;
+    border-radius: 20px;
+}
+
+.minq-slider-round:before {
+    position: absolute;
+    content: "";
+    height: 14px;
+    width: 14px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    transition: .3s;
+    border-radius: 50%;
+}
+
+.minq-switch input:checked + .minq-slider-round { background-color: #3f51b5; }
+.minq-switch input:checked + .minq-slider-round:before { transform: translateX(16px); }
 
 .minq-modal-footer {
     padding: 1rem 1.5rem;
@@ -94,8 +176,15 @@
     transition: background-color 0.2s, color 0.2s;
 }
 
-.minq-button:hover {
-    background-color: #f0f0f0;
+.minq-button:hover { background-color: #f0f0f0; }
+
+.minq-button-danger {
+    color: #f44336;
+    border-color: #f44336;
+    padding: 8px 12px;
+}
+.minq-button-danger:hover {
+    background-color: #ffebee;
 }
 
 .minq-button-primary {
@@ -104,6 +193,4 @@
     border: 1px solid #3f51b5;
 }
 
-.minq-button-primary:hover {
-    background-color: #303f9f;
-}
+.minq-button-primary:hover { background-color: #303f9f; }

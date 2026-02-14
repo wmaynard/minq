@@ -663,7 +663,7 @@
         BuildColumnDefinitions(modelType, string.Empty, [], [], []);
     }
 
-    private void BuildColumnDefinitions(Type type, string prefix, List<int> currentOrderPath, HashSet<Type> visitedTypes, PropertyInfo[] currentPropertyPath)
+private void BuildColumnDefinitions(Type type, string prefix, List<int> currentOrderPath, HashSet<Type> visitedTypes, PropertyInfo[] currentPropertyPath)
     {
         if (visitedTypes.Contains(type)) return;
         visitedTypes.Add(type);
@@ -680,7 +680,22 @@
             FlexIgnore flexIgnoreAttr = declaredProp.GetCustomAttribute<FlexIgnore>();
             MinqViewAttribute viewAttr = declaredProp.GetCustomAttribute<MinqViewAttribute>();
             
-            bool hasFlexIgnore = declaredProp.CustomAttributes.Any(a => a.AttributeType.Name.Contains("FlexIgnore"));
+            bool isBsonIgnored = false;
+            bool isJsonIgnored = false;
+
+            if (flexAttr != null)
+            {
+                if (flexAttr.Ignore.HasFlag(Ignore.InBson) || flexAttr.Ignore == Ignore.Always) isBsonIgnored = true;
+                if (flexAttr.Ignore.HasFlag(Ignore.InJson) || flexAttr.Ignore == Ignore.Always) isJsonIgnored = true;
+            }
+            if (flexIgnoreAttr != null)
+            {
+                if (flexIgnoreAttr.Ignore.HasFlag(Ignore.InBson) || flexIgnoreAttr.Ignore == Ignore.Always) isBsonIgnored = true;
+                if (flexIgnoreAttr.Ignore.HasFlag(Ignore.InJson) || flexIgnoreAttr.Ignore == Ignore.Always) isJsonIgnored = true;
+            }
+
+            // Standard table exclusion defaults to BSON visibility
+            bool isIgnored = isBsonIgnored; 
 
             string jsonKey = prop.Name;
             
@@ -690,10 +705,6 @@
                 jsonKey = "_id"; 
 
             string fullPath = string.IsNullOrEmpty(prefix) ? jsonKey : $"{prefix}.{jsonKey}";
-
-            bool isIgnored = false;
-            if (flexAttr != null && flexAttr.Ignore.HasFlag(Ignore.InBson)) isIgnored = true;
-            if (flexIgnoreAttr != null && flexIgnoreAttr.Ignore.HasFlag(Ignore.InBson)) isIgnored = true;
 
             bool isSticky = viewAttr != null && viewAttr.Sticky;
             bool isReadOnly = viewAttr != null && viewAttr.ReadOnly;
@@ -712,6 +723,8 @@
                 PropertyPath = newPath,
                 PropertyType = prop.PropertyType,
                 IsIgnored = isIgnored,
+                IsJsonIgnored = isJsonIgnored,
+                IsBsonIgnored = isBsonIgnored,
                 IsSticky = isSticky,
                 ReadOnly = isReadOnly,
                 OrderPath = orderPath,
@@ -736,7 +749,7 @@
                 BuildColumnDefinitions(prop.PropertyType, fullPath, orderPath, new HashSet<Type>(visitedTypes), newPath);
         }
     }
-
+    
     private bool IsComplexType(Type type)
     {
         if (type == typeof(string) || type.IsPrimitive || type.IsEnum) return false;
@@ -939,6 +952,8 @@
         public PropertyInfo[] PropertyPath { get; set; } = [];
         public Type PropertyType { get; set; }
         public bool IsIgnored { get; set; }
+        public bool IsJsonIgnored { get; set; }
+        public bool IsBsonIgnored { get; set; }
         public bool IsSticky { get; set; }
         public bool ReadOnly { get; set; }
         public List<int> OrderPath { get; set; } = [int.MaxValue];
