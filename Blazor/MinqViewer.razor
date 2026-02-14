@@ -295,7 +295,7 @@
 
         @if (IsColumnPickerOpen)
         {
-            <ColumnPicker AvailableColumns="Columns" 
+            <ColumnPicker AvailableColumns="PickerColumns" 
                           HiddenColumns="HiddenColumns" 
                           OnApply="ApplyColumns" 
                           OnCancel="CloseColumnPicker" />
@@ -343,6 +343,23 @@
     public List<string> Columns { get; set; } = [];
     public HashSet<string> HiddenColumns { get; set; } = [];
     public List<string> VisibleColumns => Columns.Where(c => !HiddenColumns.Contains(c)).ToList();
+    
+    // Aggregates all known property paths from the C# definitions, plus any dynamic ones discovered in the JSON
+    public List<string> PickerColumns
+    {
+        get
+        {
+            HashSet<string> allCols = ColumnDefinitions.Values
+                .Where(def => !def.IsIgnored)
+                .Select(def => def.Name)
+                .ToHashSet();
+            
+            foreach (string col in Columns)
+                allCols.Add(col);
+
+            return allCols.OrderBy(c => c).ToList();
+        }
+    }
     
     public List<Dictionary<string, string>> Rows { get; set; } = [];
     public Dictionary<string, MinqColumnDef> ColumnDefinitions { get; set; } = new Dictionary<string, MinqColumnDef>(StringComparer.OrdinalIgnoreCase);
@@ -542,10 +559,13 @@
                         bool isIgnored = ColumnDefinitions.ContainsKey(property.Name) && ColumnDefinitions[property.Name].IsIgnored;
                         
                         if (isIgnored) continue;
-                        if (HideDefaultValues && IsDefaultValue(property.Value)) continue;
 
+                        // Adding the column to the global list *before* hiding default values guarantees the 
+                        // column header remains visible, even if every cell beneath it evaluates as empty.
                         if (!Columns.Contains(property.Name))
                             Columns.Add(property.Name);
+
+                        if (HideDefaultValues && IsDefaultValue(property.Value)) continue;
 
                         rowData[property.Name] = property.Value.ToString();
                     }
@@ -567,9 +587,6 @@
             if (ColumnDefinitions.ContainsKey(propName) && ColumnDefinitions[propName].IsIgnored)
                 continue;
 
-            if (HideDefaultValues && IsDefaultValue(property.Value))
-                continue;
-
             if (property.Value.ValueKind == JsonValueKind.Object)
             {
                 FlattenJsonElement(property.Value, propName, rowData);
@@ -578,6 +595,9 @@
             {
                 if (!Columns.Contains(propName))
                     Columns.Add(propName);
+
+                if (HideDefaultValues && IsDefaultValue(property.Value))
+                    continue;
 
                 rowData[propName] = property.Value.ToString();
             }

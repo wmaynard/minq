@@ -13,7 +13,10 @@
             {
                 bool isHidden = LocalHiddenColumns.Contains(col);
                 <label class="minq-column-option @(isHidden ? "dimmed" : "")">
-                    <input type="checkbox" checked="@(!isHidden)" @onchange="@((ChangeEventArgs e) => ToggleColumn(col, e))" />
+                    <div class="minq-switch">
+                        <input type="checkbox" checked="@(!isHidden)" @onchange="@((ChangeEventArgs e) => ToggleColumn(col, e))" />
+                        <span class="minq-slider-round"></span>
+                    </div>
                     @col
                 </label>
             }
