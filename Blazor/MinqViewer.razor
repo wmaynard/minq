@@ -70,7 +70,8 @@
     
     .minq-table {
         width: 100%;
-        border-collapse: collapse;
+        border-collapse: separate; /* Fixes sticky rendering bugs */
+        border-spacing: 0;         /* Recreates the seamless border look */
         font-family: monospace;
         white-space: nowrap; 
     }
@@ -87,6 +88,7 @@
         padding: 12px 16px;
         border-bottom: 1px solid #e0e0e0;
         text-align: left;
+        box-sizing: border-box; /* Forces padding to be included in our 200px width */
     }
     
     .minq-table tbody tr {
@@ -283,8 +285,6 @@
 
         foreach (PropertyInfo prop in properties)
         {
-            // By requesting the PropertyInfo from the DeclaringType, we bypass the C# Reflection limitation
-            // that ignores attributes on inherited properties.
             PropertyInfo declaredProp = prop;
             if (prop.DeclaringType != null)
                 declaredProp = prop.DeclaringType.GetProperty(prop.Name) ?? prop;
@@ -309,7 +309,6 @@
 
             ColumnDefinitions[jsonKey] = def;
 
-            // Safety Net: Map common JSON permutations of "Id" if a specific FlexKeys override isn't present
             if (prop.Name == "Id" && (flexAttr == null || string.IsNullOrWhiteSpace(flexAttr.Json)))
             {
                 ColumnDefinitions["_id"] = def;
