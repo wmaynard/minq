@@ -206,7 +206,7 @@
 
     public List<string> Columns { get; set; } = [];
     public List<Dictionary<string, string>> Rows { get; set; } = [];
-    public Dictionary<string, MinqColumnDef> ColumnDefinitions { get; set; } = [];
+    public Dictionary<string, MinqColumnDef> ColumnDefinitions { get; set; } = new Dictionary<string, MinqColumnDef>(StringComparer.OrdinalIgnoreCase);
 
     protected override void OnInitialized()
     {
@@ -283,8 +283,14 @@
 
         foreach (PropertyInfo prop in properties)
         {
-            FlexKeys flexAttr = prop.GetCustomAttribute<FlexKeys>();
-            MinqViewAttribute viewAttr = prop.GetCustomAttribute<MinqViewAttribute>();
+            // By requesting the PropertyInfo from the DeclaringType, we bypass the C# Reflection limitation
+            // that ignores attributes on inherited properties.
+            PropertyInfo declaredProp = prop;
+            if (prop.DeclaringType != null)
+                declaredProp = prop.DeclaringType.GetProperty(prop.Name) ?? prop;
+
+            FlexKeys flexAttr = declaredProp.GetCustomAttribute<FlexKeys>();
+            MinqViewAttribute viewAttr = declaredProp.GetCustomAttribute<MinqViewAttribute>();
             
             string jsonKey = prop.Name;
             
@@ -302,6 +308,13 @@
             def.Order = order;
 
             ColumnDefinitions[jsonKey] = def;
+
+            // Safety Net: Map common JSON permutations of "Id" if a specific FlexKeys override isn't present
+            if (prop.Name == "Id" && (flexAttr == null || string.IsNullOrWhiteSpace(flexAttr.Json)))
+            {
+                ColumnDefinitions["_id"] = def;
+                ColumnDefinitions["id"] = def;
+            }
         }
     }
 
@@ -353,15 +366,12 @@
             MinqColumnDef defA = ColumnDefinitions.ContainsKey(a) ? ColumnDefinitions[a] : new MinqColumnDef { Order = int.MaxValue, IsSticky = false };
             MinqColumnDef defB = ColumnDefinitions.ContainsKey(b) ? ColumnDefinitions[b] : new MinqColumnDef { Order = int.MaxValue, IsSticky = false };
 
-            // 1. Sticky columns always pull to the front to prevent CSS overlapping issues
             if (defA.IsSticky != defB.IsSticky)
                 return defA.IsSticky ? -1 : 1;
 
-            // 2. Sort by explicitly defined Order property
             if (defA.Order != defB.Order)
                 return defA.Order.CompareTo(defB.Order);
 
-            // 3. Alphabetical fallback
             return string.Compare(a, b, StringComparison.OrdinalIgnoreCase);
         });
     }
