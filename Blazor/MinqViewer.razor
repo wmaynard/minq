@@ -210,11 +210,13 @@
                 <div class="minq-setting-group">
                     <h4>Columns</h4>
                     <div style="display: flex; flex-direction: column; gap: 0.25rem; margin-top: 0.5rem;">
-                        <span style="font-size: 0.85rem; color: #555; font-weight: 500;">Pinned Column Size</span>
+                        <span style="font-size: 0.85rem; color: #555; font-weight: 500;">Pinned Column Width</span>
                         <MinqSlider Options="PinnedWidthOptions" @bind-Value="PinnedColumnWidth" Unit="px" />
                         
-                        <span style="font-size: 0.85rem; color: #555; font-weight: 500; margin-top: 0.5rem;">Max Column Width</span>
+                        <span style="font-size: 0.85rem; color: #555; font-weight: 500; margin-top: 0.5rem;">Unpinned Column Width</span>
                         <MinqSlider Options="MaxWidthOptions" @bind-Value="MaxColumnWidth" Unit="px" />
+                        
+                        <button class="minq-button" style="margin-top: 1rem;" @onclick="OpenColumnPicker">Choose Columns</button>
                     </div>
                 </div>
 
@@ -257,7 +259,7 @@
                 <thead>
                     <tr>
                         @{ int headerOffset = 0; }
-                        @foreach (string column in Columns)
+                        @foreach (string column in VisibleColumns)
                         {
                             bool isSticky = ColumnDefinitions.ContainsKey(column) && ColumnDefinitions[column].IsSticky;
                             string stickyStyle = isSticky ? $"position: sticky; left: {headerOffset}px; z-index: 2; width: {PinnedColumnWidth}px; min-width: {PinnedColumnWidth}px; max-width: {PinnedColumnWidth}px; overflow: hidden; text-overflow: ellipsis; border-right: 2px solid #263238;" : $"max-width: {MaxColumnWidth}px; overflow: hidden; text-overflow: ellipsis;";
@@ -274,7 +276,7 @@
                     {
                         <tr>
                             @{ int cellOffset = 0; }
-                            @foreach (string column in Columns)
+                            @foreach (string column in VisibleColumns)
                             {
                                 bool isSticky = ColumnDefinitions.ContainsKey(column) && ColumnDefinitions[column].IsSticky;
                                 string stickyStyle = isSticky ? $"position: sticky; left: {cellOffset}px; z-index: 1; width: {PinnedColumnWidth}px; min-width: {PinnedColumnWidth}px; max-width: {PinnedColumnWidth}px; overflow: hidden; text-overflow: ellipsis; background-color: inherit; border-right: 2px solid #e0e0e0;" : $"max-width: {MaxColumnWidth}px; overflow: hidden; text-overflow: ellipsis;";
@@ -290,6 +292,14 @@
                 </tbody>
             </table>
         </div>
+
+        @if (IsColumnPickerOpen)
+        {
+            <ColumnPicker AvailableColumns="Columns" 
+                          HiddenColumns="HiddenColumns" 
+                          OnApply="ApplyColumns" 
+                          OnCancel="CloseColumnPicker" />
+        }
     }
 </div>
 
@@ -322,6 +332,8 @@
     public string ErrorMessage { get; set; } = string.Empty;
 
     public bool IsSettingsOpen { get; set; } = false;
+    public bool IsColumnPickerOpen { get; set; } = false;
+    
     public TimestampFormatOption TimestampFormat { get; set; } = TimestampFormatOption.Local;
     public bool FlattenJsonProperties { get; set; } = false;
     public bool HideDefaultValues { get; set; } = false;
@@ -329,6 +341,9 @@
     private Array LastRecords { get; set; } = Array.Empty<object>();
 
     public List<string> Columns { get; set; } = [];
+    public HashSet<string> HiddenColumns { get; set; } = [];
+    public List<string> VisibleColumns => Columns.Where(c => !HiddenColumns.Contains(c)).ToList();
+    
     public List<Dictionary<string, string>> Rows { get; set; } = [];
     public Dictionary<string, MinqColumnDef> ColumnDefinitions { get; set; } = new Dictionary<string, MinqColumnDef>(StringComparer.OrdinalIgnoreCase);
 
@@ -341,6 +356,15 @@
     }
 
     public void ToggleSettings() => IsSettingsOpen = !IsSettingsOpen;
+    
+    public void OpenColumnPicker() => IsColumnPickerOpen = true;
+    public void CloseColumnPicker() => IsColumnPickerOpen = false;
+
+    public void ApplyColumns(HashSet<string> newHiddenColumns)
+    {
+        HiddenColumns = newHiddenColumns;
+        IsColumnPickerOpen = false;
+    }
 
     public void OnPageSizeChanged()
     {
