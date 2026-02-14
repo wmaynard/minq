@@ -3,7 +3,6 @@
 @using Maynard.Json.Attributes
 @using Maynard.Json.Enums
 @using Maynard.Minq.Attributes
-@using Microsoft.AspNetCore.Components.Web
 @using Microsoft.Extensions.DependencyInjection
 @inject IServiceProvider ServiceProvider
 
@@ -52,10 +51,10 @@
         margin: 0 8px;
     }
 
-    /* Settings Panel Styles */
     .minq-settings-panel {
         display: flex;
-        gap: 2.5rem;
+        flex-wrap: wrap; /* Allows groups to stack gracefully if the screen gets tight */
+        gap: 3rem;
         padding: 1.25rem 1.5rem;
         background-color: #fafafa;
         border: 1px solid #e0e0e0;
@@ -66,6 +65,9 @@
     .minq-setting-group {
         display: flex;
         flex-direction: column;
+        flex: 1;
+        min-width: 200px; /* Prevents slider squishing */
+        max-width: 300px;
         gap: 0.75rem;
     }
     .minq-setting-group h4 {
@@ -77,17 +79,12 @@
         border-bottom: 1px solid #ccc;
         padding-bottom: 4px;
     }
-    .minq-slider-container {
-        display: flex;
-        align-items: center;
-        gap: 1rem;
-        margin-top: 0.5rem;
-    }
+    
     .minq-radio-group {
         display: flex;
         flex-direction: column;
-        gap: 0.5rem;
-        margin-top: 0.25rem;
+        gap: 0.6rem;
+        margin-top: 0.5rem;
     }
     .minq-radio-label {
         cursor: pointer;
@@ -117,8 +114,8 @@
         background-color: #37474f; 
         color: #ffffff; 
         font-weight: bold;
-        font-size: 1rem;
         border-bottom: 2px solid #263238;
+        font-size: inherit; /* Allows headers to scale with our font slider */
     }
     
     .minq-table th, .minq-table td {
@@ -158,7 +155,10 @@
         }
         .minq-settings-panel {
             flex-direction: column;
-            gap: 1.5rem;
+            gap: 2rem;
+        }
+        .minq-setting-group {
+            max-width: 100%;
         }
     }
 </style>
@@ -196,10 +196,12 @@
             <div class="minq-settings-panel">
                 <div class="minq-setting-group">
                     <h4>Paging</h4>
-                    <div class="minq-slider-container">
-                        <input type="range" min="0" max="3" step="1" @bind="PageSizeSliderIndex" @bind:after="OnPageSizeSliderChanged" />
-                        <span style="font-weight: 500; min-width: 80px;">@PageSizeOptions[PageSizeSliderIndex] records</span>
-                    </div>
+                    <MinqSlider Options="PageSizeOptions" @bind-Value="PageSize" OnChange="OnPageSizeChanged" Unit="records" />
+                </div>
+                
+                <div class="minq-setting-group">
+                    <h4>Font Size</h4>
+                    <MinqSlider Options="FontSizeOptions" @bind-Value="TableFontSize" Unit="px" />
                 </div>
 
                 <div class="minq-setting-group">
@@ -223,7 +225,7 @@
         }
 
         <div class="minq-table-wrapper">
-            <table class="minq-table">
+            <table class="minq-table" style="font-size: @(TableFontSize)px;">
                 <thead>
                     <tr>
                         @{ int headerOffset = 0; }
@@ -273,9 +275,12 @@
     [Parameter]
     public Type Contract { get; set; }
 
-    public int[] PageSizeOptions { get; set; } = [10, 25, 50, 100];
-    public int PageSizeSliderIndex { get; set; } = 1; // Defaults to index 1 (25 records)
+    public int[] PageSizeOptions { get; set; } = [10, 25, 50, 75, 100];
     public int PageSize { get; set; } = 25;
+    
+    public int[] FontSizeOptions { get; set; } = [6, 7, 8, 9, 10, 11, 12];
+    public int TableFontSize { get; set; } = 10;
+    
     public int PageNumber { get; set; } = 0;
     public long TotalRecords { get; set; } = 0;
     public int TotalPages { get; set; } = 0;
@@ -300,9 +305,8 @@
         IsSettingsOpen = !IsSettingsOpen;
     }
 
-    public void OnPageSizeSliderChanged()
+    public void OnPageSizeChanged()
     {
-        PageSize = PageSizeOptions[PageSizeSliderIndex];
         PageNumber = 0;
         LoadData();
     }
@@ -482,7 +486,6 @@
             {
                 try
                 {
-                    // Heuristic: If the timestamp is greater than year 9999 in seconds, treat it as milliseconds
                     DateTimeOffset dto = unixTime > 253402300799 
                         ? DateTimeOffset.FromUnixTimeMilliseconds(unixTime) 
                         : DateTimeOffset.FromUnixTimeSeconds(unixTime);
@@ -495,7 +498,6 @@
                 }
                 catch
                 {
-                    // If out of bounds or unparseable, safely fall back to the raw string
                     return rawValue;
                 }
             }

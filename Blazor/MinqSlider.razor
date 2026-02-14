@@ -1,0 +1,127 @@
+@using Maynard.Logging
+<style>
+    .minq-slider-wrapper {
+        position: relative;
+        width: 100%;
+        padding-top: 2rem; 
+        padding-bottom: 1.5rem; 
+        font-family: inherit;
+    }
+    
+    .minq-slider-input {
+        width: 100%;
+        cursor: pointer;
+        margin: 0;
+        /* Standard height for better mobile tap targets */
+        height: 24px; 
+    }
+    
+    .minq-slider-bubble {
+        position: absolute;
+        top: 0;
+        background-color: #37474f;
+        color: white;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 0.85rem;
+        font-weight: 500;
+        white-space: nowrap;
+        /* This calc perfectly centers the bubble over a standard 16px range thumb at any percentage */
+        left: calc(@(Percentage)% + @(8 - (Percentage * 0.16))px);
+        transform: translateX(-50%);
+        z-index: 10;
+        transition: left 0.1s ease-out; /* Smooths out rapid mouse movements */
+    }
+    
+    .minq-slider-bubble::after {
+        content: '';
+        position: absolute;
+        bottom: -4px;
+        left: 50%;
+        transform: translateX(-50%);
+        border-width: 4px 4px 0;
+        border-style: solid;
+        border-color: #37474f transparent transparent transparent;
+    }
+    
+    .minq-slider-labels {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.8rem;
+        color: #666;
+        padding: 0 4px; /* Align text visual center with thumb edges */
+    }
+</style>
+
+<div class="minq-slider-wrapper">
+    <div class="minq-slider-bubble">
+        @CurrentDisplayValue @Unit
+    </div>
+    
+    <input type="range" class="minq-slider-input" 
+           min="0" max="@(Options.Length - 1)" step="1" 
+           value="@CurrentIndex" 
+           @oninput="OnInput"
+           @onchange="OnCommit" />
+    
+    <div class="minq-slider-labels">
+        <span>@Options.First()</span>
+        <span>@Options[Options.Length / 2]</span>
+        <span>@Options.Last()</span>
+    </div>
+</div>
+
+@code {
+    [Parameter] 
+    public int[] Options { get; set; } = [];
+    
+    [Parameter] 
+    public int Value { get; set; }
+    
+    [Parameter] 
+    public EventCallback<int> ValueChanged { get; set; }
+    
+    [Parameter] 
+    public EventCallback OnChange { get; set; }
+    
+    [Parameter] 
+    public string Unit { get; set; } = string.Empty;
+
+    public int CurrentIndex { get; set; }
+
+    public double Percentage => Options.Length > 1 ? ((double)CurrentIndex / (Options.Length - 1)) * 100 : 0;
+    public string CurrentDisplayValue => Options.Length > 0 ? Options[CurrentIndex].ToString() : string.Empty;
+
+    protected override void OnParametersSet()
+    {
+        CurrentIndex = Math.Max(0, Array.IndexOf(Options, Value));
+    }
+
+    public void OnInput(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out int index))
+            CurrentIndex = index;
+    }
+
+    public async Task OnCommit(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out int index))
+        {
+            CurrentIndex = index;
+            int newValue = Options[index];
+            
+            if (newValue != Value)
+            {
+                Value = newValue;
+                await ValueChanged.InvokeAsync(Value);
+                
+                if (OnChange.HasDelegate)
+                    await OnChange.InvokeAsync();
+            }
+        }
+    }
+}
