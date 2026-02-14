@@ -12,14 +12,16 @@ public abstract class MinqDocument : FlexModel
     public const string DB_KEY_CREATED_ON = "created";
     public const string FRIENDLY_KEY_CREATED_ON = "createdOn";
     
-    [MinqView(Sticky = true, Order = int.MinValue)]
+    [MinqView(Sticky = true, Order = int.MinValue, ReadOnly = true)]
     [BsonId, BsonRepresentation(BsonType.ObjectId)]
     [FlexIgnore(Ignore.Never)]
     public string Id { get; internal set; }
     
+    [MinqView(Order = int.MaxValue, ReadOnly = true)]
     [FlexKeys(json: "createdOn", bson: "created")]
     public long CreatedOn { get; set; }
     
+    [MinqView(Order = int.MaxValue, ReadOnly = true)]
     [FlexKeys(json: "updatedOn", bson: "updated")]
     public long UpdatedOn { get; set; }
 
