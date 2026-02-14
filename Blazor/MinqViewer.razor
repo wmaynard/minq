@@ -3,6 +3,7 @@
 @using Maynard.Json.Attributes
 @using Maynard.Json.Enums
 @using Maynard.Minq.Attributes
+@using Microsoft.AspNetCore.Components.Web
 @using Microsoft.Extensions.DependencyInjection
 @inject IServiceProvider ServiceProvider
 
@@ -19,20 +20,6 @@
         justify-content: space-between;
         align-items: center;
         margin-bottom: 1rem;
-    }
-
-    .minq-select {
-        padding: 8px 12px;
-        border: 1px solid #ccc;
-        border-radius: 4px;
-        font-size: 1rem;
-        background-color: white;
-        outline: none;
-        transition: border-color 0.2s ease-in-out;
-        cursor: pointer;
-    }
-    .minq-select:focus {
-        border-color: #3f51b5; 
     }
 
     .minq-button {
@@ -54,10 +41,60 @@
         opacity: 0.4;
         cursor: not-allowed;
     }
+    .minq-button.active {
+        background-color: #e8eaf6;
+        border-color: #3f51b5;
+        color: #3f51b5;
+    }
     
     .minq-pagination-text {
         font-weight: 500;
         margin: 0 8px;
+    }
+
+    /* Settings Panel Styles */
+    .minq-settings-panel {
+        display: flex;
+        gap: 2.5rem;
+        padding: 1.25rem 1.5rem;
+        background-color: #fafafa;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        margin-bottom: 1.5rem;
+        box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);
+    }
+    .minq-setting-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+    .minq-setting-group h4 {
+        margin: 0;
+        font-size: 0.85rem;
+        color: #666;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        border-bottom: 1px solid #ccc;
+        padding-bottom: 4px;
+    }
+    .minq-slider-container {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        margin-top: 0.5rem;
+    }
+    .minq-radio-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        margin-top: 0.25rem;
+    }
+    .minq-radio-label {
+        cursor: pointer;
+        font-size: 0.95rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
     }
 
     .minq-table-wrapper {
@@ -70,8 +107,8 @@
     
     .minq-table {
         width: 100%;
-        border-collapse: separate; /* Fixes sticky rendering bugs */
-        border-spacing: 0;         /* Recreates the seamless border look */
+        border-collapse: separate; 
+        border-spacing: 0;         
         font-family: monospace;
         white-space: nowrap; 
     }
@@ -88,7 +125,7 @@
         padding: 12px 16px;
         border-bottom: 1px solid #e0e0e0;
         text-align: left;
-        box-sizing: border-box; /* Forces padding to be included in our 200px width */
+        box-sizing: border-box; 
     }
     
     .minq-table tbody tr {
@@ -119,6 +156,10 @@
             align-items: flex-start;
             gap: 1rem;
         }
+        .minq-settings-panel {
+            flex-direction: column;
+            gap: 1.5rem;
+        }
     }
 </style>
 
@@ -139,13 +180,9 @@
     {
         <div class="minq-controls">
             <div>
-                <label style="font-weight: 500; margin-right: 8px;">Page Size:</label>
-                <select class="minq-select" @bind="PageSize" @bind:after="OnPageSizeChanged">
-                    <option value="10">10</option>
-                    <option value="25">25</option>
-                    <option value="50">50</option>
-                    <option value="100">100</option>
-                </select>
+                <button class="minq-button @(IsSettingsOpen ? "active" : "")" @onclick="ToggleSettings">
+                    ⚙ Settings
+                </button>
             </div>
             <div>
                 <button class="minq-button" @onclick="PreviousPage" disabled="@(PageNumber == 0)">&lt;</button>
@@ -153,6 +190,37 @@
                 <button class="minq-button" @onclick="NextPage" disabled="@(PageNumber + 1 >= TotalPages)">&gt;</button>
             </div>
         </div>
+
+        @if (IsSettingsOpen)
+        {
+            <div class="minq-settings-panel">
+                <div class="minq-setting-group">
+                    <h4>Paging</h4>
+                    <div class="minq-slider-container">
+                        <input type="range" min="0" max="3" step="1" @bind="PageSizeSliderIndex" @bind:after="OnPageSizeSliderChanged" />
+                        <span style="font-weight: 500; min-width: 80px;">@PageSizeOptions[PageSizeSliderIndex] records</span>
+                    </div>
+                </div>
+
+                <div class="minq-setting-group">
+                    <h4>Timestamp Format</h4>
+                    <div class="minq-radio-group">
+                        <label class="minq-radio-label">
+                            <input type="radio" name="timestampFormat" value="Local" checked="@(TimestampFormat == TimestampFormatOption.Local)" @onchange="@(() => ChangeTimestampFormat(TimestampFormatOption.Local))" />
+                            DateTime (Local)
+                        </label>
+                        <label class="minq-radio-label">
+                            <input type="radio" name="timestampFormat" value="Utc" checked="@(TimestampFormat == TimestampFormatOption.Utc)" @onchange="@(() => ChangeTimestampFormat(TimestampFormatOption.Utc))" />
+                            DateTime (UTC)
+                        </label>
+                        <label class="minq-radio-label">
+                            <input type="radio" name="timestampFormat" value="Unix" checked="@(TimestampFormat == TimestampFormatOption.Unix)" @onchange="@(() => ChangeTimestampFormat(TimestampFormatOption.Unix))" />
+                            Unix Timestamp (UTC)
+                        </label>
+                    </div>
+                </div>
+            </div>
+        }
 
         <div class="minq-table-wrapper">
             <table class="minq-table">
@@ -184,7 +252,7 @@
                                 if (isSticky) 
                                     cellOffset += 200;
 
-                                <td style="@stickyStyle">@(row.ContainsKey(column) ? row[column] : string.Empty)</td>
+                                <td style="@stickyStyle">@(row.ContainsKey(column) ? FormatValue(column, row[column]) : string.Empty)</td>
                             }
                         </tr>
                     }
@@ -195,9 +263,18 @@
 </div>
 
 @code {
+    public enum TimestampFormatOption
+    {
+        Local,
+        Utc,
+        Unix
+    }
+
     [Parameter]
     public Type Contract { get; set; }
 
+    public int[] PageSizeOptions { get; set; } = [10, 25, 50, 100];
+    public int PageSizeSliderIndex { get; set; } = 1; // Defaults to index 1 (25 records)
     public int PageSize { get; set; } = 25;
     public int PageNumber { get; set; } = 0;
     public long TotalRecords { get; set; } = 0;
@@ -205,6 +282,9 @@
     public bool IsLoading { get; set; } = true;
     public bool HasError { get; set; } = false;
     public string ErrorMessage { get; set; } = string.Empty;
+
+    public bool IsSettingsOpen { get; set; } = false;
+    public TimestampFormatOption TimestampFormat { get; set; } = TimestampFormatOption.Local;
 
     public List<string> Columns { get; set; } = [];
     public List<Dictionary<string, string>> Rows { get; set; } = [];
@@ -215,10 +295,21 @@
         LoadData();
     }
 
-    public void OnPageSizeChanged()
+    public void ToggleSettings()
     {
+        IsSettingsOpen = !IsSettingsOpen;
+    }
+
+    public void OnPageSizeSliderChanged()
+    {
+        PageSize = PageSizeOptions[PageSizeSliderIndex];
         PageNumber = 0;
         LoadData();
+    }
+
+    public void ChangeTimestampFormat(TimestampFormatOption format)
+    {
+        TimestampFormat = format;
     }
 
     public void PreviousPage()
@@ -300,12 +391,14 @@
             bool isIgnored = flexAttr != null && flexAttr.Ignore.HasFlag(Ignore.InBson);
             bool isSticky = viewAttr != null && viewAttr.Sticky;
             int order = viewAttr != null ? viewAttr.Order : int.MaxValue;
+            bool isTimestamp = prop.PropertyType == typeof(long) || prop.PropertyType == typeof(long?);
 
             MinqColumnDef def = new MinqColumnDef();
             def.Name = jsonKey;
             def.IsIgnored = isIgnored;
             def.IsSticky = isSticky;
             def.Order = order;
+            def.IsTimestamp = isTimestamp;
 
             ColumnDefinitions[jsonKey] = def;
 
@@ -375,11 +468,48 @@
         });
     }
 
+    public string FormatValue(string column, string rawValue)
+    {
+        if (string.IsNullOrWhiteSpace(rawValue))
+            return string.Empty;
+
+        if (ColumnDefinitions.ContainsKey(column) && ColumnDefinitions[column].IsTimestamp)
+        {
+            if (TimestampFormat == TimestampFormatOption.Unix)
+                return rawValue;
+
+            if (long.TryParse(rawValue, out long unixTime))
+            {
+                try
+                {
+                    // Heuristic: If the timestamp is greater than year 9999 in seconds, treat it as milliseconds
+                    DateTimeOffset dto = unixTime > 253402300799 
+                        ? DateTimeOffset.FromUnixTimeMilliseconds(unixTime) 
+                        : DateTimeOffset.FromUnixTimeSeconds(unixTime);
+
+                    if (TimestampFormat == TimestampFormatOption.Local)
+                        return dto.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss");
+                    
+                    if (TimestampFormat == TimestampFormatOption.Utc)
+                        return dto.ToUniversalTime().ToString("yyyy-MM-dd HH:mm:ss UTC");
+                }
+                catch
+                {
+                    // If out of bounds or unparseable, safely fall back to the raw string
+                    return rawValue;
+                }
+            }
+        }
+
+        return rawValue;
+    }
+
     public class MinqColumnDef
     {
         public string Name { get; set; }
         public bool IsIgnored { get; set; }
         public bool IsSticky { get; set; }
         public int Order { get; set; }
+        public bool IsTimestamp { get; set; }
     }
 }
