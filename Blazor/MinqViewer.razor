@@ -90,7 +90,7 @@
     }
     
     .minq-table tbody tr {
-        background-color: #ffffff; /* Explicit base color for inheritance */
+        background-color: #ffffff;
     }
 
     .minq-table tbody tr:nth-child(even) {
@@ -286,20 +286,20 @@
             FlexKeys flexAttr = prop.GetCustomAttribute<FlexKeys>();
             MinqViewAttribute viewAttr = prop.GetCustomAttribute<MinqViewAttribute>();
             
-            string jsonKey = flexAttr != null && !string.IsNullOrWhiteSpace(flexAttr.Json) ? prop.Name : (flexAttr?.Json ?? prop.Name);
-
+            string jsonKey = prop.Name;
+            
             if (flexAttr != null && !string.IsNullOrWhiteSpace(flexAttr.Json))
                 jsonKey = flexAttr.Json;
-            else
-                jsonKey = prop.Name;
 
             bool isIgnored = flexAttr != null && flexAttr.Ignore.HasFlag(Ignore.InBson);
             bool isSticky = viewAttr != null && viewAttr.Sticky;
+            int order = viewAttr != null ? viewAttr.Order : int.MaxValue;
 
             MinqColumnDef def = new MinqColumnDef();
             def.Name = jsonKey;
             def.IsIgnored = isIgnored;
             def.IsSticky = isSticky;
+            def.Order = order;
 
             ColumnDefinitions[jsonKey] = def;
         }
@@ -343,25 +343,27 @@
             }
         }
 
-        ReorderStickyColumns();
+        ReorderColumns();
     }
 
-    public void ReorderStickyColumns()
+    public void ReorderColumns()
     {
-        List<string> stickyCols = [];
-        List<string> normalCols = [];
-
-        foreach (string col in Columns)
+        Columns.Sort((string a, string b) =>
         {
-            if (ColumnDefinitions.ContainsKey(col) && ColumnDefinitions[col].IsSticky)
-                stickyCols.Add(col);
-            else
-                normalCols.Add(col);
-        }
+            MinqColumnDef defA = ColumnDefinitions.ContainsKey(a) ? ColumnDefinitions[a] : new MinqColumnDef { Order = int.MaxValue, IsSticky = false };
+            MinqColumnDef defB = ColumnDefinitions.ContainsKey(b) ? ColumnDefinitions[b] : new MinqColumnDef { Order = int.MaxValue, IsSticky = false };
 
-        Columns.Clear();
-        Columns.AddRange(stickyCols);
-        Columns.AddRange(normalCols);
+            // 1. Sticky columns always pull to the front to prevent CSS overlapping issues
+            if (defA.IsSticky != defB.IsSticky)
+                return defA.IsSticky ? -1 : 1;
+
+            // 2. Sort by explicitly defined Order property
+            if (defA.Order != defB.Order)
+                return defA.Order.CompareTo(defB.Order);
+
+            // 3. Alphabetical fallback
+            return string.Compare(a, b, StringComparison.OrdinalIgnoreCase);
+        });
     }
 
     public class MinqColumnDef
@@ -369,5 +371,6 @@
         public string Name { get; set; }
         public bool IsIgnored { get; set; }
         public bool IsSticky { get; set; }
+        public int Order { get; set; }
     }
 }

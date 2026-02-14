@@ -1,6 +1,7 @@
 using Maynard.Json;
 using Maynard.Json.Attributes;
 using Maynard.Json.Enums;
+using Maynard.Minq.Attributes;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
 
@@ -11,6 +12,7 @@ public abstract class MinqDocument : FlexModel
     public const string DB_KEY_CREATED_ON = "created";
     public const string FRIENDLY_KEY_CREATED_ON = "createdOn";
     
+    [MinqView(Order = int.MinValue)]
     [BsonId, BsonRepresentation(BsonType.ObjectId)]
     [FlexIgnore(Ignore.Never)]
     public string Id { get; internal set; }
