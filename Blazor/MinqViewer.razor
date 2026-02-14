@@ -189,23 +189,57 @@
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        padding: 4px 8px;
-        border-radius: 4px;
+        padding: 4px 10px;
+        border-radius: 6px;
         font-weight: 700;
         font-size: 0.75rem;
         text-transform: uppercase;
         letter-spacing: 0.5px;
         line-height: 1;
+        color: #ffffff;
     }
     .minq-badge-true {
-        background-color: #e8f5e9;
-        color: #2e7d32;
-        border: 1px solid #c8e6c9;
+        background-color: #388e3c;
     }
     .minq-badge-false {
-        background-color: #ffebee;
-        color: #c62828;
-        border: 1px solid #ffcdd2;
+        background-color: #d32f2f;
+    }
+    /* Boolean Badge Styles */
+    .minq-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 4px 10px;
+        border-radius: 6px;
+        font-weight: 700;
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        line-height: 1;
+        color: #ffffff;
+    }
+    .minq-badge-true {
+        background-color: #388e3c;
+    }
+    .minq-badge-false {
+        background-color: #d32f2f;
+    }
+
+    /* Timestamp Badge Styles */
+    .minq-badge-future {
+        background-color: #1976d2; 
+        text-transform: none; 
+        font-family: monospace; 
+        font-size: 0.85rem;
+        white-space: nowrap; /* Ensures long Local/UTC timestamps don't wrap */
+    }
+    .minq-badge-past {
+        background-color: #fbc02d; 
+        color: #212121; 
+        text-transform: none;
+        font-family: monospace;
+        font-size: 0.85rem;
+        white-space: nowrap; /* Ensures long Local/UTC timestamps don't wrap */
     }
     
     .empty-state {
@@ -234,185 +268,191 @@
     }
 </style>
 
-<div class="minq-container">
-    @if (HasError)
-    {
-        <div class="empty-state">Error: @ErrorMessage</div>
-    }
-    else if (IsLoading)
-    {
-        <div class="empty-state">Loading data...</div>
-    }
-    else if (TotalRecords == 0)
-    {
-        <div class="empty-state">No data exists yet.</div>
-    }
-    else
-    {
-        <div class="minq-controls">
-            <div>
-                <button class="minq-button @(IsSettingsOpen ? "active" : "")" @onclick="ToggleSettings">
-                    ⚙ Settings
-                </button>
-            </div>
-            <div style="display: flex; align-items: center;">
-                @if (RefreshInterval > 0)
-                {
-                    <MinqTimer @ref="RefreshTimerComponent" Interval="RefreshInterval" OnRefreshTriggered="LoadData" />
-                }
-                
-                <button class="minq-button" @onclick="PreviousPage" disabled="@(PageNumber == 0)">&lt;</button>
-                <span class="minq-pagination-text"> @(PageNumber + 1) of @TotalPages </span>
-                <button class="minq-button" @onclick="NextPage" disabled="@(PageNumber + 1 >= TotalPages)">&gt;</button>
-            </div>
-        </div>
-
-        @if (IsSettingsOpen)
+<CascadingValue Value="this" IsFixed="true">
+    <div class="minq-container">
+        @if (HasError)
         {
-            <div class="minq-settings-panel">
-                <div class="minq-setting-group">
-                    <h4>Paging</h4>
-                    <MinqSlider Options="PageSizeOptions" @bind-Value="PageSize" OnChange="OnPageSizeChanged" Unit="records" />
+            <div class="empty-state">Error: @ErrorMessage</div>
+        }
+        else if (IsLoading)
+        {
+            <div class="empty-state">Loading data...</div>
+        }
+        else if (TotalRecords == 0)
+        {
+            <div class="empty-state">No data exists yet.</div>
+        }
+        else
+        {
+            <div class="minq-controls">
+                <div>
+                    <button class="minq-button @(IsSettingsOpen ? "active" : "")" @onclick="ToggleSettings">
+                        ⚙ Settings
+                    </button>
                 </div>
-                
-                <div class="minq-setting-group">
-                    <h4>Data Refresh</h4>
-                    <MinqSlider Options="RefreshOptions" @bind-Value="RefreshInterval" OnChange="OnRefreshIntervalChanged" Unit="s" />
-                </div>
-
-                <div class="minq-setting-group">
-                    <h4>Font Size</h4>
-                    <MinqSlider Options="FontSizeOptions" @bind-Value="TableFontSize" Unit="px" />
-                </div>
-
-                <div class="minq-setting-group">
-                    <h4>Columns</h4>
-                    <div style="display: flex; flex-direction: column; gap: 0.25rem; margin-top: 0.5rem;">
-                        <span style="font-size: 0.85rem; color: #555; font-weight: 500;">Pinned Column Width</span>
-                        <MinqSlider Options="PinnedWidthOptions" @bind-Value="PinnedColumnWidth" Unit="px" />
-                        
-                        <span style="font-size: 0.85rem; color: #555; font-weight: 500; margin-top: 0.5rem;">Unpinned Column Width</span>
-                        <MinqSlider Options="MaxWidthOptions" @bind-Value="MaxColumnWidth" Unit="px" />
-                        
-                        <button class="minq-button" style="margin-top: 1rem;" @onclick="OpenColumnPicker">Choose Columns</button>
-                    </div>
-                </div>
-
-                <div class="minq-setting-group">
-                    <h4>Timestamp Format</h4>
-                    <div class="minq-radio-group">
-                        <label class="minq-radio-label">
-                            <input type="radio" name="timestampFormat" value="Local" checked="@(TimestampFormat == TimestampFormatOption.Local)" @onchange="@(() => ChangeTimestampFormat(TimestampFormatOption.Local))" />
-                            DateTime (Local)
-                        </label>
-                        <label class="minq-radio-label">
-                            <input type="radio" name="timestampFormat" value="Utc" checked="@(TimestampFormat == TimestampFormatOption.Utc)" @onchange="@(() => ChangeTimestampFormat(TimestampFormatOption.Utc))" />
-                            DateTime (UTC)
-                        </label>
-                        <label class="minq-radio-label">
-                            <input type="radio" name="timestampFormat" value="Unix" checked="@(TimestampFormat == TimestampFormatOption.Unix)" @onchange="@(() => ChangeTimestampFormat(TimestampFormatOption.Unix))" />
-                            Unix Timestamp (UTC)
-                        </label>
-                        <label class="minq-radio-label">
-                            <input type="radio" name="timestampFormat" value="Elapsed" checked="@(TimestampFormat == TimestampFormatOption.Elapsed)" @onchange="@(() => ChangeTimestampFormat(TimestampFormatOption.Elapsed))" />
-                            Elapsed Time
-                        </label>
-                    </div>
-                </div>
-
-                <div class="minq-setting-group">
-                    <h4>Data Display</h4>
-                    <div class="minq-radio-group">
-                        <label class="minq-radio-label">
-                            <div class="minq-switch">
-                                <input type="checkbox" @bind="FlattenJsonProperties" @bind:after="OnViewDataChanged" />
-                                <span class="minq-slider-round"></span>
-                            </div>
-                            Flatten Nested Objects
-                        </label>
-                        <label class="minq-radio-label">
-                            <div class="minq-switch">
-                                <input type="checkbox" @bind="HideDefaultValues" @bind:after="OnViewDataChanged" />
-                                <span class="minq-slider-round"></span>
-                            </div>
-                            Hide Default Values
-                        </label>
-                    </div>
+                <div style="display: flex; align-items: center;">
+                    @if (RefreshInterval > 0)
+                    {
+                        <MinqTimer @ref="RefreshTimerComponent" Interval="RefreshInterval" OnRefreshTriggered="LoadData" />
+                    }
+                    
+                    <button class="minq-button" @onclick="PreviousPage" disabled="@(PageNumber == 0)">&lt;</button>
+                    <span class="minq-pagination-text"> @(PageNumber + 1) of @TotalPages </span>
+                    <button class="minq-button" @onclick="NextPage" disabled="@(PageNumber + 1 >= TotalPages)">&gt;</button>
                 </div>
             </div>
-        }
 
-        <div class="minq-table-wrapper">
-            <table class="minq-table" style="font-size: @(TableFontSize)px;">
-                <thead>
-                    <tr>
-                        @{ int headerOffset = 0; }
-                        @foreach (string column in VisibleColumns)
-                        {
-                            bool isSticky = ColumnDefinitions.ContainsKey(column) && ColumnDefinitions[column].IsSticky;
-                            string stickyStyle = isSticky ? $"position: sticky; left: {headerOffset}px; z-index: 2; width: {PinnedColumnWidth}px; min-width: {PinnedColumnWidth}px; max-width: {PinnedColumnWidth}px; overflow: hidden; text-overflow: ellipsis; border-right: 2px solid #263238;" : $"max-width: {MaxColumnWidth}px; overflow: hidden; text-overflow: ellipsis;";
+            @if (IsSettingsOpen)
+            {
+                <div class="minq-settings-panel">
+                    <div class="minq-setting-group">
+                        <h4>Paging</h4>
+                        <MinqSlider Options="PageSizeOptions" @bind-Value="PageSize" OnChange="OnPageSizeChanged" Unit="records" />
+                    </div>
+                    
+                    <div class="minq-setting-group">
+                        <h4>Data Refresh</h4>
+                        <MinqSlider Options="RefreshOptions" @bind-Value="RefreshInterval" OnChange="OnRefreshIntervalChanged" Unit="s" />
+                    </div>
+
+                    <div class="minq-setting-group">
+                        <h4>Font Size</h4>
+                        <MinqSlider Options="FontSizeOptions" @bind-Value="TableFontSize" Unit="px" />
+                    </div>
+
+                    <div class="minq-setting-group">
+                        <h4>Columns</h4>
+                        <div style="display: flex; flex-direction: column; gap: 0.25rem; margin-top: 0.5rem;">
+                            <span style="font-size: 0.85rem; color: #555; font-weight: 500;">Pinned Column Width</span>
+                            <MinqSlider Options="PinnedWidthOptions" @bind-Value="PinnedColumnWidth" Unit="px" />
                             
-                            if (isSticky) 
-                                headerOffset += PinnedColumnWidth;
+                            <span style="font-size: 0.85rem; color: #555; font-weight: 500; margin-top: 0.5rem;">Unpinned Column Width</span>
+                            <MinqSlider Options="MaxWidthOptions" @bind-Value="MaxColumnWidth" Unit="px" />
+                            
+                            <button class="minq-button" style="margin-top: 1rem;" @onclick="OpenColumnPicker">Choose Columns</button>
+                        </div>
+                    </div>
 
-                            <th style="@stickyStyle" title="@column">@column</th>
-                        }
-                    </tr>
-                </thead>
-                <tbody>
-                    @{ int rowIndex = 0; }
-                    @foreach (Dictionary<string, string> row in Rows)
-                    {
-                        int currentIndex = rowIndex;
-                        <tr @onclick="() => OpenEditor(currentIndex)">
-                            @{ int cellOffset = 0; }
+                    <div class="minq-setting-group">
+                        <h4>Timestamp Format</h4>
+                        <div class="minq-radio-group">
+                            <label class="minq-radio-label">
+                                <input type="radio" name="timestampFormat" value="Local" checked="@(TimestampFormat == TimestampFormatOption.Local)" @onchange="@(() => ChangeTimestampFormat(TimestampFormatOption.Local))" />
+                                DateTime (Local)
+                            </label>
+                            <label class="minq-radio-label">
+                                <input type="radio" name="timestampFormat" value="Utc" checked="@(TimestampFormat == TimestampFormatOption.Utc)" @onchange="@(() => ChangeTimestampFormat(TimestampFormatOption.Utc))" />
+                                DateTime (UTC)
+                            </label>
+                            <label class="minq-radio-label">
+                                <input type="radio" name="timestampFormat" value="Unix" checked="@(TimestampFormat == TimestampFormatOption.Unix)" @onchange="@(() => ChangeTimestampFormat(TimestampFormatOption.Unix))" />
+                                Unix Timestamp (UTC)
+                            </label>
+                            <label class="minq-radio-label">
+                                <input type="radio" name="timestampFormat" value="Elapsed" checked="@(TimestampFormat == TimestampFormatOption.Elapsed)" @onchange="@(() => ChangeTimestampFormat(TimestampFormatOption.Elapsed))" />
+                                Elapsed Time
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="minq-setting-group">
+                        <h4>Data Display</h4>
+                        <div class="minq-radio-group">
+                            <label class="minq-radio-label">
+                                <div class="minq-switch">
+                                    <input type="checkbox" @bind="FlattenJsonProperties" @bind:after="OnViewDataChanged" />
+                                    <span class="minq-slider-round"></span>
+                                </div>
+                                Flatten Nested Objects
+                            </label>
+                            <label class="minq-radio-label">
+                                <div class="minq-switch">
+                                    <input type="checkbox" @bind="HideDefaultValues" @bind:after="OnViewDataChanged" />
+                                    <span class="minq-slider-round"></span>
+                                </div>
+                                Hide Default Values
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            }
+
+            <div class="minq-table-wrapper">
+                <table class="minq-table" style="font-size: @(TableFontSize)px;">
+                    <thead>
+                        <tr>
+                            @{ int headerOffset = 0; }
                             @foreach (string column in VisibleColumns)
                             {
                                 bool isSticky = ColumnDefinitions.ContainsKey(column) && ColumnDefinitions[column].IsSticky;
-                                string stickyStyle = isSticky ? $"position: sticky; left: {cellOffset}px; z-index: 1; width: {PinnedColumnWidth}px; min-width: {PinnedColumnWidth}px; max-width: {PinnedColumnWidth}px; overflow: hidden; text-overflow: ellipsis; background-color: inherit; border-right: 2px solid #e0e0e0;" : $"max-width: {MaxColumnWidth}px; overflow: hidden; text-overflow: ellipsis;";
+                                string stickyStyle = isSticky ? $"position: sticky; left: {headerOffset}px; z-index: 2; width: {PinnedColumnWidth}px; min-width: {PinnedColumnWidth}px; max-width: {PinnedColumnWidth}px; overflow: hidden; text-overflow: ellipsis; border-right: 2px solid #263238;" : $"max-width: {MaxColumnWidth}px; overflow: hidden; text-overflow: ellipsis;";
                                 
                                 if (isSticky) 
-                                    cellOffset += PinnedColumnWidth;
+                                    headerOffset += PinnedColumnWidth;
 
-                                string cellValue = row.ContainsKey(column) ? FormatValue(column, row[column]) : string.Empty;
-                                ColumnDefinitions.TryGetValue(column, out MinqColumnDef cellDef);
-
-                                <td style="@stickyStyle" title="@cellValue">
-                                    @if (cellDef != null && cellDef.IsBool && !string.IsNullOrWhiteSpace(cellValue))
-                                    {
-                                        bool isTrue = cellValue.Equals("True", StringComparison.OrdinalIgnoreCase);
-                                        <span class="minq-badge @(isTrue ? "minq-badge-true" : "minq-badge-false")">@(isTrue ? "True" : "False")</span>
-                                    }
-                                    else
-                                    {
-                                        @cellValue
-                                    }
-                                </td>
+                                <th style="@stickyStyle" title="@column">@column</th>
                             }
                         </tr>
-                        rowIndex++;
-                    }
-                </tbody>
-            </table>
-        </div>
+                    </thead>
+                    <tbody>
+                        @{ int rowIndex = 0; }
+                        @foreach (Dictionary<string, string> row in Rows)
+                        {
+                            int currentIndex = rowIndex;
+                            <tr @onclick="() => OpenEditor(currentIndex)">
+                                @{ int cellOffset = 0; }
+                                @foreach (string column in VisibleColumns)
+                                {
+                                    bool isSticky = ColumnDefinitions.ContainsKey(column) && ColumnDefinitions[column].IsSticky;
+                                    string stickyStyle = isSticky ? $"position: sticky; left: {cellOffset}px; z-index: 1; width: {PinnedColumnWidth}px; min-width: {PinnedColumnWidth}px; max-width: {PinnedColumnWidth}px; overflow: hidden; text-overflow: ellipsis; background-color: inherit; border-right: 2px solid #e0e0e0;" : $"max-width: {MaxColumnWidth}px; overflow: hidden; text-overflow: ellipsis;";
+                                    
+                                    if (isSticky) 
+                                        cellOffset += PinnedColumnWidth;
 
-        @if (IsColumnPickerOpen)
-        {
-            <ColumnPicker AvailableColumns="PickerColumns" 
-                          HiddenColumns="HiddenColumns" 
-                          OnApply="ApplyColumns" 
-                          OnCancel="CloseColumnPicker" />
+                                    string cellValue = row.ContainsKey(column) ? row[column] : string.Empty;
+                                    ColumnDefinitions.TryGetValue(column, out MinqColumnDef cellDef);
+
+                                    <td style="@stickyStyle" title="@cellValue">
+                                        @if (cellDef != null && cellDef.IsTimestamp)
+                                        {
+                                            <MinqTimestampValue RawValue="@cellValue" Format="TimestampFormat" />
+                                        }
+                                        else if (cellDef != null && cellDef.IsBool && !string.IsNullOrWhiteSpace(cellValue))
+                                        {
+                                            bool isTrue = cellValue.Equals("True", StringComparison.OrdinalIgnoreCase);
+                                            <span class="minq-badge @(isTrue ? "minq-badge-true" : "minq-badge-false")">@(isTrue ? "True" : "False")</span>
+                                        }
+                                        else
+                                        {
+                                            @cellValue
+                                        }
+                                    </td>
+                                }
+                            </tr>
+                            rowIndex++;
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            @if (IsColumnPickerOpen)
+            {
+                <ColumnPicker AvailableColumns="PickerColumns" 
+                              HiddenColumns="HiddenColumns" 
+                              OnApply="ApplyColumns" 
+                              OnCancel="CloseColumnPicker" />
+            }
+            
+            @if (IsEditorOpen && SelectedRecord != null)
+            {
+                <RecordEditor Model="SelectedRecord" 
+                              ColumnDefinitions="ColumnDefinitions.Values" 
+                              OnSave="SaveRecord" 
+                              OnCancel="CloseEditor" />
+            }
         }
-        
-        @if (IsEditorOpen && SelectedRecord != null)
-        {
-            <RecordEditor Model="SelectedRecord" 
-                          ColumnDefinitions="ColumnDefinitions.Values" 
-                          OnSave="SaveRecord" 
-                          OnCancel="CloseEditor" />
-        }
-    }
-</div>
+    </div>
+</CascadingValue>
 
 @code {
     public enum TimestampFormatOption { Local, Utc, Unix, Elapsed }
@@ -425,6 +465,8 @@
 
     [CascadingParameter]
     public Microsoft.AspNetCore.Http.HttpContext? HttpContext { get; set; }
+
+    public event Action OnSecondTicked;
 
     public MinqTimer RefreshTimerComponent { get; set; }
     
@@ -507,7 +549,7 @@
             {
                 if (TimestampFormat == TimestampFormatOption.Elapsed)
                 {
-                    await InvokeAsync(StateHasChanged);
+                    OnSecondTicked?.Invoke();
                 }
             }
         }
@@ -750,7 +792,21 @@
             FlexIgnore flexIgnoreAttr = declaredProp.GetCustomAttribute<FlexIgnore>();
             MinqViewAttribute viewAttr = declaredProp.GetCustomAttribute<MinqViewAttribute>();
             
-            bool hasFlexIgnore = declaredProp.CustomAttributes.Any(a => a.AttributeType.Name.Contains("FlexIgnore"));
+            bool isBsonIgnored = false;
+            bool isJsonIgnored = false;
+
+            if (flexAttr != null)
+            {
+                if (flexAttr.Ignore.HasFlag(Ignore.InBson) || flexAttr.Ignore == Ignore.Always) isBsonIgnored = true;
+                if (flexAttr.Ignore.HasFlag(Ignore.InJson) || flexAttr.Ignore == Ignore.Always) isJsonIgnored = true;
+            }
+            if (flexIgnoreAttr != null)
+            {
+                if (flexIgnoreAttr.Ignore.HasFlag(Ignore.InBson) || flexIgnoreAttr.Ignore == Ignore.Always) isBsonIgnored = true;
+                if (flexIgnoreAttr.Ignore.HasFlag(Ignore.InJson) || flexIgnoreAttr.Ignore == Ignore.Always) isJsonIgnored = true;
+            }
+
+            bool isIgnored = isBsonIgnored; 
 
             string jsonKey = prop.Name;
             
@@ -760,10 +816,6 @@
                 jsonKey = "_id"; 
 
             string fullPath = string.IsNullOrEmpty(prefix) ? jsonKey : $"{prefix}.{jsonKey}";
-
-            bool isIgnored = false;
-            if (flexAttr != null && flexAttr.Ignore.HasFlag(Ignore.InBson)) isIgnored = true;
-            if (flexIgnoreAttr != null && flexIgnoreAttr.Ignore.HasFlag(Ignore.InBson)) isIgnored = true;
 
             bool isSticky = viewAttr != null && viewAttr.Sticky;
             bool isReadOnly = viewAttr != null && viewAttr.ReadOnly;
@@ -783,6 +835,8 @@
                 PropertyPath = newPath,
                 PropertyType = prop.PropertyType,
                 IsIgnored = isIgnored,
+                IsJsonIgnored = isJsonIgnored,
+                IsBsonIgnored = isBsonIgnored,
                 IsSticky = isSticky,
                 ReadOnly = isReadOnly,
                 OrderPath = orderPath,
@@ -934,7 +988,7 @@
                 if (element.TryGetDouble(out double num) && num == 0) return true;
                 return false;
             case JsonValueKind.False:
-                return false; // Booleans are strictly excepted from being hidden!
+                return false;
             case JsonValueKind.Array:
                 return element.GetArrayLength() == 0;
             case JsonValueKind.Object:
@@ -966,55 +1020,6 @@
 
             return string.Compare(a, b, StringComparison.OrdinalIgnoreCase);
         });
-    }
-
-    public string FormatValue(string column, string rawValue)
-    {
-        if (string.IsNullOrWhiteSpace(rawValue))
-            return string.Empty;
-
-        if (ColumnDefinitions.TryGetValue(column, out MinqColumnDef def) && def.IsTimestamp)
-        {
-            if (TimestampFormat == TimestampFormatOption.Unix)
-                return rawValue;
-
-            if (long.TryParse(rawValue, out long unixTime))
-            {
-                try
-                {
-                    DateTimeOffset dto = unixTime > 253402300799 
-                        ? DateTimeOffset.FromUnixTimeMilliseconds(unixTime) 
-                        : DateTimeOffset.FromUnixTimeSeconds(unixTime);
-
-                    if (TimestampFormat == TimestampFormatOption.Local)
-                        return dto.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss");
-                    
-                    if (TimestampFormat == TimestampFormatOption.Utc)
-                        return dto.ToUniversalTime().ToString("yyyy-MM-dd HH:mm:ss UTC");
-                        
-                    if (TimestampFormat == TimestampFormatOption.Elapsed)
-                    {
-                        TimeSpan elapsed = DateTimeOffset.UtcNow - dto;
-                        if (elapsed.TotalSeconds < 0) return "0s";
-                        
-                        if (elapsed.TotalDays >= 1)
-                            return $"{(int)elapsed.TotalDays}d{elapsed.Hours:D2}h{elapsed.Minutes:D2}m{elapsed.Seconds:D2}s";
-                        if (elapsed.TotalHours >= 1)
-                            return $"{elapsed.Hours}h{elapsed.Minutes:D2}m{elapsed.Seconds:D2}s";
-                        if (elapsed.TotalMinutes >= 1)
-                            return $"{elapsed.Minutes}m{elapsed.Seconds:D2}s";
-                            
-                        return $"{elapsed.Seconds}s";
-                    }
-                }
-                catch
-                {
-                    return rawValue;
-                }
-            }
-        }
-
-        return rawValue;
     }
 
     public class MinqColumnDef

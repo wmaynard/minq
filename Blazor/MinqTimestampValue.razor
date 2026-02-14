@@ -1,0 +1,118 @@
+@implements IDisposable
+@using Microsoft.AspNetCore.Components
+
+@if (Format != MinqViewer.TimestampFormatOption.Unix && !string.IsNullOrWhiteSpace(FormattedText))
+{
+    <span class="minq-badge @(IsFuture ? "minq-badge-future" : "minq-badge-past")">@FormattedText</span>
+}
+else
+{
+    @FormattedText
+}
+
+@code {
+    [Parameter] 
+    public string RawValue { get; set; }
+    
+    [Parameter] 
+    public MinqViewer.TimestampFormatOption Format { get; set; }
+    
+    [CascadingParameter] 
+    public MinqViewer Parent { get; set; }
+
+    public bool IsFuture { get; private set; }
+    public string FormattedText { get; private set; }
+
+    protected override void OnInitialized()
+    {
+        if (Parent != null)
+            Parent.OnSecondTicked += HandleTick;
+    }
+
+    protected override void OnParametersSet()
+    {
+        CalculateValue();
+    }
+
+    public void Dispose()
+    {
+        if (Parent != null)
+            Parent.OnSecondTicked -= HandleTick;
+    }
+
+    private void HandleTick()
+    {
+        if (Format == MinqViewer.TimestampFormatOption.Elapsed)
+        {
+            CalculateValue();
+            InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private void CalculateValue()
+    {
+        if (string.IsNullOrWhiteSpace(RawValue))
+        {
+            FormattedText = string.Empty;
+            return;
+        }
+        
+        if (Format == MinqViewer.TimestampFormatOption.Unix)
+        {
+            FormattedText = RawValue;
+            return;
+        }
+
+        if (long.TryParse(RawValue, out long unixTime))
+        {
+            if (unixTime <= 0) 
+            {
+                FormattedText = string.Empty;
+                return;
+            }
+
+            try
+            {
+                DateTimeOffset dto = unixTime > 253402300799 
+                    ? DateTimeOffset.FromUnixTimeMilliseconds(unixTime) 
+                    : DateTimeOffset.FromUnixTimeSeconds(unixTime);
+
+                // Calculate IsFuture globally for all readable formats!
+                TimeSpan elapsed = DateTimeOffset.UtcNow - dto;
+                IsFuture = elapsed.TotalSeconds < 0;
+
+                if (Format == MinqViewer.TimestampFormatOption.Local)
+                    FormattedText = dto.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss");
+                else if (Format == MinqViewer.TimestampFormatOption.Utc)
+                    FormattedText = dto.ToUniversalTime().ToString("yyyy-MM-dd HH:mm:ss UTC");
+                else if (Format == MinqViewer.TimestampFormatOption.Elapsed)
+                {
+                    string prefix = IsFuture ? "in " : "";
+                    elapsed = elapsed.Duration(); 
+                    
+                    int years = (int)(elapsed.TotalDays / 365.25);
+                    int days = (int)(elapsed.TotalDays % 365.25);
+                    
+                    if (years >= 1)
+                        FormattedText = $"{prefix}{years}y{days:D2}d{elapsed.Hours:D2}h{elapsed.Minutes:D2}m{elapsed.Seconds:D2}s";
+                    else if (elapsed.TotalDays >= 1)
+                        FormattedText = $"{prefix}{days}d{elapsed.Hours:D2}h{elapsed.Minutes:D2}m{elapsed.Seconds:D2}s";
+                    else if (elapsed.TotalHours >= 1)
+                        FormattedText = $"{prefix}{elapsed.Hours}h{elapsed.Minutes:D2}m{elapsed.Seconds:D2}s";
+                    else if (elapsed.TotalMinutes >= 1)
+                        FormattedText = $"{prefix}{elapsed.Minutes}m{elapsed.Seconds:D2}s";
+                    else
+                        FormattedText = $"{prefix}{elapsed.Seconds}s";
+                }
+            }
+            catch
+            {
+                FormattedText = RawValue;
+            }
+        }
+        else
+        {
+            FormattedText = RawValue;
+        }
+    }
+}
