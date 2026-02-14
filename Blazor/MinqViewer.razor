@@ -3,6 +3,7 @@
 @using System.Text.Json
 @using System.Linq
 @using System.Threading
+@using System.Text
 @using Microsoft.AspNetCore.Components
 @using Microsoft.AspNetCore.Components.Web
 @using Maynard.Json.Attributes
@@ -11,7 +12,10 @@
 @using Maynard.Logging
 @using Maynard.Minq.Models
 @using Microsoft.Extensions.DependencyInjection
+@using Microsoft.JSInterop
 @inject IServiceProvider ServiceProvider
+@inject NavigationManager NavManager
+@inject IJSRuntime JSRuntime
 
 <style>
     .minq-container {
@@ -215,12 +219,8 @@
         line-height: 1;
         color: #ffffff;
     }
-    .minq-badge-true {
-        background-color: #388e3c;
-    }
-    .minq-badge-false {
-        background-color: #d32f2f;
-    }
+    .minq-badge-true { background-color: #388e3c; }
+    .minq-badge-false { background-color: #d32f2f; }
 
     .minq-badge-future {
         background-color: #1976d2; 
@@ -281,9 +281,12 @@
         else
         {
             <div class="minq-controls">
-                <div>
+                <div style="display: flex; gap: 0.5rem;">
                     <button class="minq-button @(IsSettingsOpen ? "active" : "")" @onclick="ToggleSettings">
                         ⚙ Settings
+                    </button>
+                    <button class="minq-button" @onclick="CopyShareLink">
+                        🔗 Copy Share Link
                     </button>
                 </div>
                 <div style="display: flex; align-items: center;">
@@ -301,6 +304,14 @@
             @if (IsSettingsOpen)
             {
                 <div class="minq-settings-panel">
+                    @if (IsViewingSharedState)
+                    {
+                        <div style="width: 100%; background-color: #e3f2fd; color: #1565c0; padding: 12px 16px; border-radius: 6px; margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center; border: 1px solid #bbdefb; font-size: 0.95rem;">
+                            <span><strong>Shared View Active:</strong> Your local preferences are currently paused to display this URL.</span>
+                            <button class="minq-button minq-button-primary" style="margin: 0;" @onclick="SaveSharedAsDefault">Save as My Default</button>
+                        </div>
+                    }
+
                     <div class="minq-setting-group">
                         <h4>Paging</h4>
                         <MinqSlider Options="PageSizeOptions" @bind-Value="PageSize" OnChange="OnPageSizeChanged" Unit="records" />
@@ -313,17 +324,17 @@
 
                     <div class="minq-setting-group">
                         <h4>Font Size</h4>
-                        <MinqSlider Options="FontSizeOptions" @bind-Value="TableFontSize" Unit="px" />
+                        <MinqSlider Options="FontSizeOptions" @bind-Value="TableFontSize" OnChange="SavePreferencesAsync" Unit="px" />
                     </div>
 
                     <div class="minq-setting-group">
                         <h4>Columns</h4>
                         <div style="display: flex; flex-direction: column; gap: 0.25rem; margin-top: 0.5rem;">
                             <span style="font-size: 0.85rem; color: #555; font-weight: 500;">Pinned Column Width</span>
-                            <MinqSlider Options="PinnedWidthOptions" @bind-Value="PinnedColumnWidth" Unit="px" />
+                            <MinqSlider Options="PinnedWidthOptions" @bind-Value="PinnedColumnWidth" OnChange="SavePreferencesAsync" Unit="px" />
                             
                             <span style="font-size: 0.85rem; color: #555; font-weight: 500; margin-top: 0.5rem;">Unpinned Column Width</span>
-                            <MinqSlider Options="MaxWidthOptions" @bind-Value="MaxColumnWidth" Unit="px" />
+                            <MinqSlider Options="MaxWidthOptions" @bind-Value="MaxColumnWidth" OnChange="SavePreferencesAsync" Unit="px" />
                             
                             <button class="minq-button" style="margin-top: 1rem;" @onclick="OpenColumnPicker">Choose Columns</button>
                         </div>
@@ -355,15 +366,15 @@
                         <h4>On Click</h4>
                         <div class="minq-radio-group">
                             <label class="minq-radio-label">
-                                <input type="radio" name="rowClickBehavior" value="SelectText" checked="@(RowClickBehavior == RowClickBehaviorOption.SelectText)" @onchange="@(() => RowClickBehavior = RowClickBehaviorOption.SelectText)" />
+                                <input type="radio" name="rowClickBehavior" value="SelectText" checked="@(RowClickBehavior == RowClickBehaviorOption.SelectText)" @onchange="@(() => ChangeRowClickBehavior(RowClickBehaviorOption.SelectText))" />
                                 Select Text
                             </label>
                             <label class="minq-radio-label">
-                                <input type="radio" name="rowClickBehavior" value="EditRecord" checked="@(RowClickBehavior == RowClickBehaviorOption.EditRecord)" @onchange="@(() => RowClickBehavior = RowClickBehaviorOption.EditRecord)" />
+                                <input type="radio" name="rowClickBehavior" value="EditRecord" checked="@(RowClickBehavior == RowClickBehaviorOption.EditRecord)" @onchange="@(() => ChangeRowClickBehavior(RowClickBehaviorOption.EditRecord))" />
                                 Edit Record
                             </label>
                             <label class="minq-radio-label" style="@(!CanDeleteSingle ? "opacity: 0.5;" : "")">
-                                <input type="radio" name="rowClickBehavior" value="DeleteRecord" disabled="@(!CanDeleteSingle)" checked="@(RowClickBehavior == RowClickBehaviorOption.DeleteRecord)" @onchange="@(() => RowClickBehavior = RowClickBehaviorOption.DeleteRecord)" />
+                                <input type="radio" name="rowClickBehavior" value="DeleteRecord" disabled="@(!CanDeleteSingle)" checked="@(RowClickBehavior == RowClickBehaviorOption.DeleteRecord)" @onchange="@(() => ChangeRowClickBehavior(RowClickBehaviorOption.DeleteRecord))" />
                                 Delete Record
                             </label>
                         </div>
@@ -504,7 +515,6 @@
         Collection              = 0b0000_0110
     }
 
-
     [Parameter]
     public Type Contract { get; set; }
 
@@ -527,6 +537,9 @@
     public PeriodicTimer ElapsedTimer { get; set; }
     public CancellationTokenSource ElapsedCts { get; set; } = new CancellationTokenSource();
 
+    public bool IsViewingSharedState { get; set; } = false;
+
+    // Default Settings
     public int[] PageSizeOptions { get; set; } = [10, 25, 50, 75, 100];
     public int PageSize { get; set; } = 25;
     
@@ -542,6 +555,11 @@
     public int[] MaxWidthOptions { get; set; } = [150, 200, 300, 400, 500, 600, 800, 1000];
     public int MaxColumnWidth { get; set; } = 400;
     
+    public TimestampFormatOption TimestampFormat { get; set; } = TimestampFormatOption.Local;
+    public bool FlattenJsonProperties { get; set; } = false;
+    public bool HideDefaultValues { get; set; } = false;
+    public RowClickBehaviorOption RowClickBehavior { get; set; } = RowClickBehaviorOption.SelectText;
+    
     public int PageNumber { get; set; } = 0;
     public long TotalRecords { get; set; } = 0;
     public int TotalPages { get; set; } = 0;
@@ -551,16 +569,10 @@
 
     public bool IsSettingsOpen { get; set; } = false;
     public bool IsColumnPickerOpen { get; set; } = false;
-    
-    public RowClickBehaviorOption RowClickBehavior { get; set; } = RowClickBehaviorOption.SelectText;
     public bool IsEditorOpen { get; set; } = false;
     public bool IsDeleteModalOpen { get; set; } = false;
     public bool IsDeleteAllModalOpen { get; set; } = false;
     public object SelectedRecord { get; set; } = null;
-    
-    public TimestampFormatOption TimestampFormat { get; set; } = TimestampFormatOption.Local;
-    public bool FlattenJsonProperties { get; set; } = false;
-    public bool HideDefaultValues { get; set; } = false;
 
     public bool CanDeleteSingle => DeletionEnabled.HasFlag(MinqDeletion.SingleRecord) || (IsAdmin && DeletionEnabled.HasFlag(MinqDeletion.SingleRecordAdminOnly));
     public bool CanDeleteCollection => DeletionEnabled.HasFlag(MinqDeletion.Collection) || (IsAdmin && DeletionEnabled.HasFlag(MinqDeletion.CollectionAdminOnly));
@@ -590,6 +602,31 @@
     public List<Dictionary<string, string>> Rows { get; set; } = [];
     public Dictionary<string, MinqColumnDef> ColumnDefinitions { get; set; } = new Dictionary<string, MinqColumnDef>(StringComparer.OrdinalIgnoreCase);
 
+    // Serialization DTOs
+    public class GlobalSettingsPayload
+    {
+        public int PageSize { get; set; }
+        public int RefreshInterval { get; set; }
+        public int TableFontSize { get; set; }
+        public TimestampFormatOption TimestampFormat { get; set; }
+        public bool FlattenJsonProperties { get; set; }
+        public bool HideDefaultValues { get; set; }
+    }
+
+    public class LocalSettingsPayload
+    {
+        public int PinnedColumnWidth { get; set; }
+        public int MaxColumnWidth { get; set; }
+        public RowClickBehaviorOption RowClickBehavior { get; set; }
+        public List<string> HiddenColumns { get; set; }
+    }
+
+    public class SharedViewPayload
+    {
+        public GlobalSettingsPayload Global { get; set; }
+        public LocalSettingsPayload Local { get; set; }
+    }
+
     protected override void OnInitialized()
     {
         if (HttpContext != null)
@@ -597,8 +634,161 @@
             
         ElapsedTimer = new PeriodicTimer(TimeSpan.FromSeconds(1));
         _ = RunElapsedTimerAsync();
-            
+        
+        try
+        {
+            var uri = new Uri(NavManager.Uri);
+            if (uri.Query.Contains("view="))
+            {
+                string base64 = uri.Query.Split("view=")[1].Split('&')[0];
+                base64 = Uri.UnescapeDataString(base64);
+                string json = Encoding.UTF8.GetString(Convert.FromBase64String(base64));
+                SharedViewPayload payload = JsonSerializer.Deserialize<SharedViewPayload>(json);
+
+                if (payload != null)
+                {
+                    ApplySettings(payload.Global, payload.Local);
+                    IsViewingSharedState = true;
+                }
+            }
+        }
+        catch { } // Silently ignore malformed URLs and proceed with defaults
+
         LoadData();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && !IsViewingSharedState)
+        {
+            try 
+            {
+                string globalJson = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "MinqViewer_Global");
+                string localJson = await JSRuntime.InvokeAsync<string>("localStorage.getItem", $"MinqViewer_Local_{Contract.Name}");
+
+                bool settingsChanged = false;
+                GlobalSettingsPayload gSet = null;
+                LocalSettingsPayload lSet = null;
+
+                if (!string.IsNullOrWhiteSpace(globalJson)) 
+                {
+                    gSet = JsonSerializer.Deserialize<GlobalSettingsPayload>(globalJson);
+                    settingsChanged = true;
+                }
+                if (!string.IsNullOrWhiteSpace(localJson)) 
+                {
+                    lSet = JsonSerializer.Deserialize<LocalSettingsPayload>(localJson);
+                    settingsChanged = true;
+                }
+
+                if (settingsChanged) 
+                {
+                    ApplySettings(gSet, lSet);
+                    StateHasChanged();
+                    LoadData(); 
+                }
+            } 
+            catch { }
+        }
+    }
+
+    private void ApplySettings(GlobalSettingsPayload g, LocalSettingsPayload l)
+    {
+        if (g != null) 
+        {
+            PageSize = g.PageSize;
+            RefreshInterval = g.RefreshInterval;
+            TableFontSize = g.TableFontSize;
+            TimestampFormat = g.TimestampFormat;
+            FlattenJsonProperties = g.FlattenJsonProperties;
+            HideDefaultValues = g.HideDefaultValues;
+        }
+
+        if (l != null) 
+        {
+            PinnedColumnWidth = l.PinnedColumnWidth;
+            MaxColumnWidth = l.MaxColumnWidth;
+            RowClickBehavior = l.RowClickBehavior;
+            HiddenColumns = new HashSet<string>(l.HiddenColumns ?? new List<string>(), StringComparer.OrdinalIgnoreCase);
+        }
+
+        if (RowClickBehavior == RowClickBehaviorOption.DeleteRecord && !CanDeleteSingle) 
+        {
+            Log.Warn("User settings requested DeleteRecord behavior, but user lacks permission. Reverting to EditRecord.");
+            RowClickBehavior = RowClickBehaviorOption.EditRecord;
+        }
+
+        if (RefreshTimerComponent != null)
+            RefreshTimerComponent.Interval = RefreshInterval;
+    }
+
+    public async Task SavePreferencesAsync()
+    {
+        if (IsViewingSharedState) return;
+
+        try 
+        {
+            GlobalSettingsPayload g = new GlobalSettingsPayload 
+            {
+                PageSize = PageSize,
+                RefreshInterval = RefreshInterval,
+                TableFontSize = TableFontSize,
+                TimestampFormat = TimestampFormat,
+                FlattenJsonProperties = FlattenJsonProperties,
+                HideDefaultValues = HideDefaultValues
+            };
+
+            LocalSettingsPayload l = new LocalSettingsPayload 
+            {
+                PinnedColumnWidth = PinnedColumnWidth,
+                MaxColumnWidth = MaxColumnWidth,
+                RowClickBehavior = RowClickBehavior,
+                HiddenColumns = HiddenColumns.ToList()
+            };
+
+            await JSRuntime.InvokeVoidAsync("localStorage.setItem", "MinqViewer_Global", JsonSerializer.Serialize(g));
+            await JSRuntime.InvokeVoidAsync("localStorage.setItem", $"MinqViewer_Local_{Contract.Name}", JsonSerializer.Serialize(l));
+        } 
+        catch { }
+    }
+
+    public async Task CopyShareLink()
+    {
+        try 
+        {
+            SharedViewPayload payload = new SharedViewPayload 
+            {
+                Global = new GlobalSettingsPayload 
+                {
+                    PageSize = PageSize, RefreshInterval = RefreshInterval, TableFontSize = TableFontSize,
+                    TimestampFormat = TimestampFormat, FlattenJsonProperties = FlattenJsonProperties, HideDefaultValues = HideDefaultValues
+                },
+                Local = new LocalSettingsPayload 
+                {
+                    PinnedColumnWidth = PinnedColumnWidth, MaxColumnWidth = MaxColumnWidth,
+                    RowClickBehavior = RowClickBehavior, HiddenColumns = HiddenColumns.ToList()
+                }
+            };
+
+            string json = JsonSerializer.Serialize(payload);
+            string base64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(json));
+            string url = NavManager.GetUriWithQueryParameter("view", base64);
+
+            await JSRuntime.InvokeVoidAsync("navigator.clipboard.writeText", url);
+            Log.Info("Share link copied to clipboard!");
+        } 
+        catch (Exception ex) 
+        {
+            Log.Error($"Failed to copy share link: {ex.Message}");
+        }
+    }
+
+    public async Task SaveSharedAsDefault()
+    {
+        IsViewingSharedState = false;
+        await SavePreferencesAsync();
+        NavManager.NavigateTo(NavManager.GetUriWithQueryParameter("view", (string)null), replace: true);
+        Log.Info("Shared view saved as your personal default.");
     }
 
     public async Task RunElapsedTimerAsync()
@@ -632,6 +822,7 @@
     {
         HiddenColumns = newHiddenColumns;
         IsColumnPickerOpen = false;
+        _ = SavePreferencesAsync();
     }
 
     public void HandleRowClick(int rowIndex)
@@ -739,6 +930,7 @@
     public void OnPageSizeChanged()
     {
         PageNumber = 0;
+        _ = SavePreferencesAsync();
         LoadData();
     }
     
@@ -746,15 +938,27 @@
     {
         if (RefreshTimerComponent != null)
             RefreshTimerComponent.Interval = RefreshInterval;
+        _ = SavePreferencesAsync();
+    }
+
+    public void ChangeRowClickBehavior(RowClickBehaviorOption behavior)
+    {
+        RowClickBehavior = behavior;
+        _ = SavePreferencesAsync();
     }
 
     public void OnViewDataChanged()
     {
         if (LastRecords.Length > 0)
             ParseData(LastRecords);
+        _ = SavePreferencesAsync();
     }
 
-    public void ChangeTimestampFormat(TimestampFormatOption format) => TimestampFormat = format;
+    public void ChangeTimestampFormat(TimestampFormatOption format)
+    {
+        TimestampFormat = format;
+        _ = SavePreferencesAsync();
+    }
 
     public void PreviousPage()
     {
