@@ -13,6 +13,10 @@ public abstract class Minq<Model> : Singleton, IGdprHandler where Model : MinqDo
     
     protected Minq(string collection) => mongo = MinqClient<Model>.Connect(collection);
 
+    public virtual Model[] PageAllRecords(int pageSize, int pageNumber, out long remaining) => mongo
+        .All()
+        .Page(size: pageSize, number: pageNumber, out remaining);
+
     public virtual void Insert(params Model[] models) => mongo.Insert(models);
 
     public void Update(Model model)

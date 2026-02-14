@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk.Razor">
 
 	<PropertyGroup>
 		<RootNamespace>Maynard.Minq</RootNamespace>
@@ -59,6 +59,10 @@
     
     <ItemGroup>
       <Folder Include=".github\" />
+    </ItemGroup>
+    
+    <ItemGroup>
+      <ProjectReference Include="..\basic-utilities\basic-utilities.csproj" />
     </ItemGroup>
 
 	<Target Name="PushToNuGet"

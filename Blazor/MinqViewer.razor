@@ -1,0 +1,373 @@
+@using System.Reflection
+@using System.Text.Json
+@using Maynard.Json.Attributes
+@using Maynard.Json.Enums
+@using Maynard.Minq.Attributes
+@using Microsoft.Extensions.DependencyInjection
+@inject IServiceProvider ServiceProvider
+
+<style>
+    .minq-container {
+        width: 100%;
+        min-width: 0; 
+        display: grid; 
+        font-family: inherit;
+    }
+    
+    .minq-controls {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+    }
+
+    .minq-select {
+        padding: 8px 12px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        font-size: 1rem;
+        background-color: white;
+        outline: none;
+        transition: border-color 0.2s ease-in-out;
+        cursor: pointer;
+    }
+    .minq-select:focus {
+        border-color: #3f51b5; 
+    }
+
+    .minq-button {
+        background-color: transparent;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        padding: 8px 16px;
+        font-size: 1rem;
+        cursor: pointer;
+        transition: background-color 0.2s, color 0.2s;
+        margin: 0 4px;
+    }
+    .minq-button:hover:not(:disabled) {
+        background-color: #3f51b5;
+        color: white;
+        border-color: #3f51b5;
+    }
+    .minq-button:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+    }
+    
+    .minq-pagination-text {
+        font-weight: 500;
+        margin: 0 8px;
+    }
+
+    .minq-table-wrapper {
+        width: 100%;
+        overflow-x: auto;
+        border-radius: 8px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1), 0 1px 3px rgba(0,0,0,0.08);
+        background-color: white;
+    }
+    
+    .minq-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-family: monospace;
+        white-space: nowrap; 
+    }
+    
+    .minq-table th {
+        background-color: #37474f; 
+        color: #ffffff; 
+        font-weight: bold;
+        font-size: 1rem;
+        border-bottom: 2px solid #263238;
+    }
+    
+    .minq-table th, .minq-table td {
+        padding: 12px 16px;
+        border-bottom: 1px solid #e0e0e0;
+        text-align: left;
+    }
+    
+    .minq-table tbody tr {
+        background-color: #ffffff; /* Explicit base color for inheritance */
+    }
+
+    .minq-table tbody tr:nth-child(even) {
+        background-color: #fafafa;
+    }
+
+    .minq-table tbody tr:hover {
+        background-color: #e3f2fd; 
+    }
+    
+    .empty-state {
+        padding: 3rem;
+        text-align: center;
+        font-style: italic;
+        color: #666;
+        background-color: #f9f9f9;
+        border-radius: 8px;
+        border: 1px dashed #ccc;
+    }
+    
+    @@media (max-width: 768px) {
+        .minq-controls {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 1rem;
+        }
+    }
+</style>
+
+<div class="minq-container">
+    @if (HasError)
+    {
+        <div class="empty-state">Error: @ErrorMessage</div>
+    }
+    else if (IsLoading)
+    {
+        <div class="empty-state">Loading data...</div>
+    }
+    else if (TotalRecords == 0)
+    {
+        <div class="empty-state">No data exists yet.</div>
+    }
+    else
+    {
+        <div class="minq-controls">
+            <div>
+                <label style="font-weight: 500; margin-right: 8px;">Page Size:</label>
+                <select class="minq-select" @bind="PageSize" @bind:after="OnPageSizeChanged">
+                    <option value="10">10</option>
+                    <option value="25">25</option>
+                    <option value="50">50</option>
+                    <option value="100">100</option>
+                </select>
+            </div>
+            <div>
+                <button class="minq-button" @onclick="PreviousPage" disabled="@(PageNumber == 0)">&lt;</button>
+                <span class="minq-pagination-text"> @(PageNumber + 1) of @TotalPages </span>
+                <button class="minq-button" @onclick="NextPage" disabled="@(PageNumber + 1 >= TotalPages)">&gt;</button>
+            </div>
+        </div>
+
+        <div class="minq-table-wrapper">
+            <table class="minq-table">
+                <thead>
+                    <tr>
+                        @{ int headerOffset = 0; }
+                        @foreach (string column in Columns)
+                        {
+                            bool isSticky = ColumnDefinitions.ContainsKey(column) && ColumnDefinitions[column].IsSticky;
+                            string stickyStyle = isSticky ? $"position: sticky; left: {headerOffset}px; z-index: 2; width: 200px; min-width: 200px; max-width: 200px; overflow: hidden; text-overflow: ellipsis; border-right: 2px solid #263238;" : "";
+                            
+                            if (isSticky) 
+                                headerOffset += 200;
+
+                            <th style="@stickyStyle">@column</th>
+                        }
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (Dictionary<string, string> row in Rows)
+                    {
+                        <tr>
+                            @{ int cellOffset = 0; }
+                            @foreach (string column in Columns)
+                            {
+                                bool isSticky = ColumnDefinitions.ContainsKey(column) && ColumnDefinitions[column].IsSticky;
+                                string stickyStyle = isSticky ? $"position: sticky; left: {cellOffset}px; z-index: 1; width: 200px; min-width: 200px; max-width: 200px; overflow: hidden; text-overflow: ellipsis; background-color: inherit; border-right: 2px solid #e0e0e0;" : "";
+                                
+                                if (isSticky) 
+                                    cellOffset += 200;
+
+                                <td style="@stickyStyle">@(row.ContainsKey(column) ? row[column] : string.Empty)</td>
+                            }
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public Type Contract { get; set; }
+
+    public int PageSize { get; set; } = 25;
+    public int PageNumber { get; set; } = 0;
+    public long TotalRecords { get; set; } = 0;
+    public int TotalPages { get; set; } = 0;
+    public bool IsLoading { get; set; } = true;
+    public bool HasError { get; set; } = false;
+    public string ErrorMessage { get; set; } = string.Empty;
+
+    public List<string> Columns { get; set; } = [];
+    public List<Dictionary<string, string>> Rows { get; set; } = [];
+    public Dictionary<string, MinqColumnDef> ColumnDefinitions { get; set; } = [];
+
+    protected override void OnInitialized()
+    {
+        LoadData();
+    }
+
+    public void OnPageSizeChanged()
+    {
+        PageNumber = 0;
+        LoadData();
+    }
+
+    public void PreviousPage()
+    {
+        if (PageNumber > 0)
+        {
+            PageNumber--;
+            LoadData();
+        }
+    }
+
+    public void NextPage()
+    {
+        if (PageNumber + 1 < TotalPages)
+        {
+            PageNumber++;
+            LoadData();
+        }
+    }
+
+    public void LoadData()
+    {
+        IsLoading = true;
+        HasError = false;
+
+        try
+        {
+            object service = ServiceProvider.GetRequiredService(Contract);
+            MethodInfo method = Contract.GetMethod("PageAllRecords");
+
+            if (method == null)
+            {
+                HasError = true;
+                ErrorMessage = "Method PageAllRecords not found on the provided contract.";
+                IsLoading = false;
+                return;
+            }
+
+            object[] parameters = [PageSize, PageNumber, 0L];
+            object result = method.Invoke(service, parameters);
+
+            if (result is Array records)
+            {
+                long remaining = (long)parameters[2];
+                TotalRecords = (PageNumber * PageSize) + records.Length + remaining;
+                TotalPages = TotalRecords == 0 ? 1 : (int)Math.Ceiling((double)TotalRecords / PageSize);
+
+                ParseData(records);
+            }
+        }
+        catch (Exception ex)
+        {
+            HasError = true;
+            ErrorMessage = ex.Message;
+        }
+        
+        IsLoading = false;
+    }
+
+    public void LoadColumnDefinitions(Type modelType)
+    {
+        ColumnDefinitions.Clear();
+        PropertyInfo[] properties = modelType.GetProperties();
+
+        foreach (PropertyInfo prop in properties)
+        {
+            FlexKeys flexAttr = prop.GetCustomAttribute<FlexKeys>();
+            MinqViewAttribute viewAttr = prop.GetCustomAttribute<MinqViewAttribute>();
+            
+            string jsonKey = flexAttr != null && !string.IsNullOrWhiteSpace(flexAttr.Json) ? prop.Name : (flexAttr?.Json ?? prop.Name);
+
+            if (flexAttr != null && !string.IsNullOrWhiteSpace(flexAttr.Json))
+                jsonKey = flexAttr.Json;
+            else
+                jsonKey = prop.Name;
+
+            bool isIgnored = flexAttr != null && flexAttr.Ignore.HasFlag(Ignore.InBson);
+            bool isSticky = viewAttr != null && viewAttr.Sticky;
+
+            MinqColumnDef def = new MinqColumnDef();
+            def.Name = jsonKey;
+            def.IsIgnored = isIgnored;
+            def.IsSticky = isSticky;
+
+            ColumnDefinitions[jsonKey] = def;
+        }
+    }
+
+    public void ParseData(Array records)
+    {
+        Columns.Clear();
+        Rows.Clear();
+
+        if (records.Length == 0)
+            return;
+
+        Type modelType = records.GetType().GetElementType() ?? records.GetValue(0).GetType();
+        LoadColumnDefinitions(modelType);
+
+        foreach (object record in records)
+        {
+            MethodInfo toJsonMethod = record.GetType().GetMethod("ToJson");
+            
+            if (toJsonMethod != null)
+            {
+                string json = (string)toJsonMethod.Invoke(record, null);
+                JsonDocument document = JsonDocument.Parse(json);
+                Dictionary<string, string> rowData = [];
+
+                foreach (JsonProperty property in document.RootElement.EnumerateObject())
+                {
+                    bool isIgnored = ColumnDefinitions.ContainsKey(property.Name) && ColumnDefinitions[property.Name].IsIgnored;
+                    
+                    if (isIgnored)
+                        continue;
+
+                    if (!Columns.Contains(property.Name))
+                        Columns.Add(property.Name);
+
+                    rowData[property.Name] = property.Value.ToString();
+                }
+
+                Rows.Add(rowData);
+            }
+        }
+
+        ReorderStickyColumns();
+    }
+
+    public void ReorderStickyColumns()
+    {
+        List<string> stickyCols = [];
+        List<string> normalCols = [];
+
+        foreach (string col in Columns)
+        {
+            if (ColumnDefinitions.ContainsKey(col) && ColumnDefinitions[col].IsSticky)
+                stickyCols.Add(col);
+            else
+                normalCols.Add(col);
+        }
+
+        Columns.Clear();
+        Columns.AddRange(stickyCols);
+        Columns.AddRange(normalCols);
+    }
+
+    public class MinqColumnDef
+    {
+        public string Name { get; set; }
+        public bool IsIgnored { get; set; }
+        public bool IsSticky { get; set; }
+    }
+}
