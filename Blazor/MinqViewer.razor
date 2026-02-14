@@ -173,7 +173,11 @@
     
     .minq-table tbody tr {
         background-color: #ffffff;
-        cursor: pointer; 
+    }
+    
+    /* Only apply pointer if a row action is explicitly selected */
+    .minq-table tbody tr.minq-clickable-row {
+        cursor: pointer;
     }
 
     .minq-table tbody tr:nth-child(even) {
@@ -184,27 +188,6 @@
         background-color: #e3f2fd; 
     }
 
-    /* Boolean Badge Styles */
-    .minq-badge {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        padding: 4px 10px;
-        border-radius: 6px;
-        font-weight: 700;
-        font-size: 0.75rem;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        line-height: 1;
-        color: #ffffff;
-    }
-    .minq-badge-true {
-        background-color: #388e3c;
-    }
-    .minq-badge-false {
-        background-color: #d32f2f;
-    }
-    /* Boolean Badge Styles */
     .minq-badge {
         display: inline-flex;
         align-items: center;
@@ -225,13 +208,12 @@
         background-color: #d32f2f;
     }
 
-    /* Timestamp Badge Styles */
     .minq-badge-future {
         background-color: #1976d2; 
         text-transform: none; 
         font-family: monospace; 
         font-size: 0.85rem;
-        white-space: nowrap; /* Ensures long Local/UTC timestamps don't wrap */
+        white-space: nowrap; 
     }
     .minq-badge-past {
         background-color: #fbc02d; 
@@ -239,7 +221,7 @@
         text-transform: none;
         font-family: monospace;
         font-size: 0.85rem;
-        white-space: nowrap; /* Ensures long Local/UTC timestamps don't wrap */
+        white-space: nowrap; 
     }
     
     .empty-state {
@@ -354,6 +336,24 @@
                             </label>
                         </div>
                     </div>
+                    
+                    <div class="minq-setting-group">
+                        <h4>On Click</h4>
+                        <div class="minq-radio-group">
+                            <label class="minq-radio-label">
+                                <input type="radio" name="rowClickBehavior" value="SelectText" checked="@(RowClickBehavior == RowClickBehaviorOption.SelectText)" @onchange="@(() => RowClickBehavior = RowClickBehaviorOption.SelectText)" />
+                                Select Text
+                            </label>
+                            <label class="minq-radio-label">
+                                <input type="radio" name="rowClickBehavior" value="EditRecord" checked="@(RowClickBehavior == RowClickBehaviorOption.EditRecord)" @onchange="@(() => RowClickBehavior = RowClickBehaviorOption.EditRecord)" />
+                                Edit Record
+                            </label>
+                            <label class="minq-radio-label" style="@(!DeletionEnabled ? "opacity: 0.5;" : "")">
+                                <input type="radio" name="rowClickBehavior" value="DeleteRecord" disabled="@(!DeletionEnabled)" checked="@(RowClickBehavior == RowClickBehaviorOption.DeleteRecord)" @onchange="@(() => RowClickBehavior = RowClickBehaviorOption.DeleteRecord)" />
+                                Delete Record
+                            </label>
+                        </div>
+                    </div>
 
                     <div class="minq-setting-group">
                         <h4>Data Display</h4>
@@ -399,7 +399,7 @@
                         @foreach (Dictionary<string, string> row in Rows)
                         {
                             int currentIndex = rowIndex;
-                            <tr @onclick="() => OpenEditor(currentIndex)">
+                            <tr class="@(RowClickBehavior != RowClickBehaviorOption.SelectText ? "minq-clickable-row" : "")" @onclick="() => HandleRowClick(currentIndex)">
                                 @{ int cellOffset = 0; }
                                 @foreach (string column in VisibleColumns)
                                 {
@@ -448,7 +448,14 @@
                 <RecordEditor Model="SelectedRecord" 
                               ColumnDefinitions="ColumnDefinitions.Values" 
                               OnSave="SaveRecord" 
-                              OnCancel="CloseEditor" />
+                              OnCancel="CloseModals" />
+            }
+
+            @if (IsDeleteModalOpen && SelectedRecord != null)
+            {
+                <DeleteRecord Model="SelectedRecord" 
+                              OnDelete="DeleteRecord" 
+                              OnCancel="CloseModals" />
             }
         }
     </div>
@@ -456,12 +463,16 @@
 
 @code {
     public enum TimestampFormatOption { Local, Utc, Unix, Elapsed }
+    public enum RowClickBehaviorOption { SelectText, EditRecord, DeleteRecord }
 
     [Parameter]
     public Type Contract { get; set; }
 
     [Parameter]
     public string CustomQuery { get; set; }
+
+    [Parameter]
+    public bool DeletionEnabled { get; set; } = false;
 
     [CascadingParameter]
     public Microsoft.AspNetCore.Http.HttpContext? HttpContext { get; set; }
@@ -498,7 +509,9 @@
     public bool IsSettingsOpen { get; set; } = false;
     public bool IsColumnPickerOpen { get; set; } = false;
     
+    public RowClickBehaviorOption RowClickBehavior { get; set; } = RowClickBehaviorOption.SelectText;
     public bool IsEditorOpen { get; set; } = false;
+    public bool IsDeleteModalOpen { get; set; } = false;
     public object SelectedRecord { get; set; } = null;
     
     public TimestampFormatOption TimestampFormat { get; set; } = TimestampFormatOption.Local;
@@ -574,15 +587,23 @@
         IsColumnPickerOpen = false;
     }
 
-    public void OpenEditor(int rowIndex)
+    public void HandleRowClick(int rowIndex)
     {
+        if (RowClickBehavior == RowClickBehaviorOption.SelectText) 
+            return;
+            
         SelectedRecord = LastRecords.GetValue(rowIndex);
-        IsEditorOpen = true;
+        
+        if (RowClickBehavior == RowClickBehaviorOption.EditRecord)
+            IsEditorOpen = true;
+        else if (RowClickBehavior == RowClickBehaviorOption.DeleteRecord && DeletionEnabled)
+            IsDeleteModalOpen = true;
     }
 
-    public void CloseEditor()
+    public void CloseModals()
     {
         IsEditorOpen = false;
+        IsDeleteModalOpen = false;
         SelectedRecord = null;
     }
 
@@ -603,12 +624,38 @@
                 Log.Error($"Update method not found on contract {Contract.Name}.");
             }
 
-            CloseEditor();
+            CloseModals();
             LoadData(); 
         }
         catch (Exception ex)
         {
             Log.Error($"Failed to update record: {ex.Message}");
+        }
+    }
+
+    public void DeleteRecord(object modelToDelete)
+    {
+        try
+        {
+            object service = ServiceProvider.GetRequiredService(Contract);
+            MethodInfo deleteMethod = Contract.GetMethod("Delete");
+            
+            if (deleteMethod != null)
+            {
+                deleteMethod.Invoke(service, new[] { modelToDelete });
+                Log.Info($"Successfully deleted record via {Contract.Name}.Delete()");
+            }
+            else
+            {
+                Log.Error($"Delete method not found on contract {Contract.Name}.");
+            }
+
+            CloseModals();
+            LoadData(); 
+        }
+        catch (Exception ex)
+        {
+            Log.Error($"Failed to delete record: {ex.Message}");
         }
     }
 
@@ -792,6 +839,18 @@
             FlexIgnore flexIgnoreAttr = declaredProp.GetCustomAttribute<FlexIgnore>();
             MinqViewAttribute viewAttr = declaredProp.GetCustomAttribute<MinqViewAttribute>();
             
+            bool hasFlexIgnore = declaredProp.CustomAttributes.Any(a => a.AttributeType.Name.Contains("FlexIgnore"));
+
+            string jsonKey = prop.Name;
+            
+            if (flexAttr != null && !string.IsNullOrWhiteSpace(flexAttr.Json))
+                jsonKey = flexAttr.Json;
+            else if (prop.Name == "Id")
+                jsonKey = "_id"; 
+
+            string fullPath = string.IsNullOrEmpty(prefix) ? jsonKey : $"{prefix}.{jsonKey}";
+
+            bool isIgnored = false;
             bool isBsonIgnored = false;
             bool isJsonIgnored = false;
 
@@ -806,16 +865,7 @@
                 if (flexIgnoreAttr.Ignore.HasFlag(Ignore.InJson) || flexIgnoreAttr.Ignore == Ignore.Always) isJsonIgnored = true;
             }
 
-            bool isIgnored = isBsonIgnored; 
-
-            string jsonKey = prop.Name;
-            
-            if (flexAttr != null && !string.IsNullOrWhiteSpace(flexAttr.Json))
-                jsonKey = flexAttr.Json;
-            else if (prop.Name == "Id")
-                jsonKey = "_id"; 
-
-            string fullPath = string.IsNullOrEmpty(prefix) ? jsonKey : $"{prefix}.{jsonKey}";
+            isIgnored = isBsonIgnored; 
 
             bool isSticky = viewAttr != null && viewAttr.Sticky;
             bool isReadOnly = viewAttr != null && viewAttr.ReadOnly;
@@ -1042,3 +1092,4 @@
         public bool IsComplex { get; set; }
     }
 }
+

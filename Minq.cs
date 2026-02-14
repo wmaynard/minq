@@ -27,6 +27,15 @@ public abstract class Minq<Model> : Singleton, IGdprHandler where Model : MinqDo
 
     public virtual void Insert(params Model[] models) => mongo.Insert(models);
 
+    public virtual long Delete(Model model)
+    {
+        if (model == null)
+            return 0;
+        return mongo
+            .ExactId(model.Id)
+            .Delete();
+    }
+
     public void Update(Model model)
     {
         model.UpdatedOn = Timestamp.Now;

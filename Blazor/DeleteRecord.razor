@@ -1,0 +1,71 @@
+@using System.Reflection
+@using Microsoft.AspNetCore.Components
+@using Microsoft.AspNetCore.Components.Web
+
+<div class="minq-modal-backdrop" tabindex="-1" @ref="ModalRef" @onkeydown="HandleKeyDown" @onclick="Cancel">
+    <div class="minq-modal-surface" @onclick:stopPropagation="true">
+        
+        <div class="minq-modal-header">
+            <h3>Delete Record</h3>
+        </div>
+        
+        <div class="minq-modal-body">
+            <p style="margin: 0; color: #d32f2f; font-weight: 600;">Warning: This action cannot be undone.  If any code or other data relies on this document, you may unintentionally cause major problems.</p>
+            <p style="margin: 0; font-size: 0.95rem;">Please type the record ID <strong>@RecordId</strong> below to confirm deletion.</p>
+            
+            <div class="minq-form-group">
+                <input class="minq-input" type="text" @bind="ConfirmId" @bind:event="oninput" placeholder="@RecordId" />
+            </div>
+        </div>
+        
+        <div class="minq-modal-footer">
+            <button class="minq-button" @onclick="Cancel">Cancel</button>
+            <button class="minq-button minq-button-danger" disabled="@(!IsConfirmed)" @onclick="Confirm">Delete Record</button>
+        </div>
+        
+    </div>
+</div>
+
+@code {
+    [Parameter] 
+    public object Model { get; set; }
+    
+    [Parameter] 
+    public EventCallback<object> OnDelete { get; set; }
+    
+    [Parameter] 
+    public EventCallback OnCancel { get; set; }
+
+    public string RecordId { get; set; } = string.Empty;
+    public string ConfirmId { get; set; } = string.Empty;
+    
+    public bool IsConfirmed => string.Equals(RecordId, ConfirmId, StringComparison.OrdinalIgnoreCase);
+
+    private ElementReference ModalRef;
+
+    protected override void OnInitialized()
+    {
+        PropertyInfo idProp = Model?.GetType().GetProperty("Id");
+        RecordId = idProp?.GetValue(Model)?.ToString() ?? "UNKNOWN";
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+            await ModalRef.FocusAsync();
+    }
+
+    private async Task HandleKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Escape")
+            await Cancel();
+    }
+
+    public async Task Confirm()
+    {
+        if (IsConfirmed)
+            await OnDelete.InvokeAsync(Model);
+    }
+
+    public async Task Cancel() => await OnCancel.InvokeAsync();
+}

@@ -1,9 +1,12 @@
 @using System.Reflection
 @using Microsoft.AspNetCore.Components
 @using Microsoft.AspNetCore.Components.Web
+@using Microsoft.JSInterop
+@using Maynard.Logging
 @using System.Linq
+@inject IJSRuntime JSRuntime
 
-<div class="minq-modal-backdrop" @onclick="Cancel">
+<div class="minq-modal-backdrop" tabindex="-1" @ref="ModalRef" @onkeydown="HandleKeyDown" @onclick="Cancel">
     <div class="minq-modal-surface" @onclick:stopPropagation="true">
         
         <div class="minq-modal-header">
@@ -82,9 +85,15 @@
             }
         </div>
         
-        <div class="minq-modal-footer">
-            <button class="minq-button" @onclick="Cancel">Cancel</button>
-            <button class="minq-button minq-button-primary" @onclick="Apply">Update</button>
+        <div class="minq-modal-footer" style="justify-content: space-between;">
+            <div style="display: flex; gap: 0.5rem;">
+                <button class="minq-button" @onclick="CopyJson">Copy JSON</button>
+                <button class="minq-button" @onclick="CopyBson">Copy BSON</button>
+            </div>
+            <div style="display: flex; gap: 0.75rem;">
+                <button class="minq-button" @onclick="Cancel">Cancel</button>
+                <button class="minq-button minq-button-primary" @onclick="Apply">Update</button>
+            </div>
         </div>
         
     </div>
@@ -104,6 +113,7 @@
     public EventCallback OnCancel { get; set; }
 
     public List<FieldState> FieldStates { get; set; } = new List<FieldState>();
+    private ElementReference ModalRef;
 
     protected override void OnInitialized()
     {
@@ -111,7 +121,6 @@
             .Where(d => !d.IsIgnored && !d.IsComplex)
             .ToList();
 
-        // Sort using the exact same hierarchical OrderPath logic as the Viewer grid
         editableDefs.Sort((a, b) =>
         {
             int minLen = Math.Min(a.OrderPath.Count, b.OrderPath.Count);
@@ -149,20 +158,65 @@
             if (state.IsCollection && rawValue is System.Collections.IEnumerable enumerable)
             {
                 foreach (object item in enumerable)
-                {
                     state.CollectionValues.Add(item?.ToString() ?? string.Empty);
-                }
             }
             else if (state.IsBool)
-            {
                 state.BoolValue = rawValue is bool b && b;
+            else
+                state.SingleValue = rawValue?.ToString() ?? string.Empty;
+
+            FieldStates.Add(state);
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+            await ModalRef.FocusAsync();
+    }
+
+    private async Task HandleKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Escape")
+            await Cancel();
+    }
+
+    public async Task CopyJson()
+    {
+        try
+        {
+            MethodInfo toJsonMethod = Model.GetType().GetMethod("ToJson");
+            if (toJsonMethod != null)
+            {
+                string json = (string)toJsonMethod.Invoke(Model, null);
+                await JSRuntime.InvokeVoidAsync("navigator.clipboard.writeText", json);
+            }
+        }
+        catch (Exception ex)
+        {
+            Log.Error($"Failed to copy JSON: {ex.Message}");
+        }
+    }
+
+    public async Task CopyBson()
+    {
+        try
+        {
+            MethodInfo toBsonMethod = Model.GetType().GetMethod("ToBsonDocument");
+            if (toBsonMethod != null)
+            {
+                object bsonDoc = toBsonMethod.Invoke(Model, null);
+                string bsonStr = bsonDoc?.ToString() ?? string.Empty;
+                await JSRuntime.InvokeVoidAsync("navigator.clipboard.writeText", bsonStr);
             }
             else
             {
-                state.SingleValue = rawValue?.ToString() ?? string.Empty;
+                Log.Warn("ToBsonDocument method not found on model instance. If it is a MongoDB extension method, it cannot be called directly via instance reflection without targeting the static BsonExtensionMethods class.");
             }
-
-            FieldStates.Add(state);
+        }
+        catch (Exception ex)
+        {
+            Log.Error($"Failed to copy BSON: {ex.Message}");
         }
     }
 
