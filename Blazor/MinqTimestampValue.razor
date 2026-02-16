@@ -1,5 +1,8 @@
 @implements IDisposable
+@using System.ComponentModel
 @using Microsoft.AspNetCore.Components
+
+@attribute [EditorBrowsable(EditorBrowsableState.Never)]
 
 @if (Format != MinqViewer.TimestampFormatOption.Unix && !string.IsNullOrWhiteSpace(FormattedText))
 {

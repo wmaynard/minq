@@ -1,7 +1,10 @@
 @implements IDisposable
+@using System.ComponentModel
 @using System.Threading
 @using Microsoft.AspNetCore.Components
 @using Microsoft.AspNetCore.Components.Web
+
+@attribute [EditorBrowsable(EditorBrowsableState.Never)]
 
 <div class="@CssClass" 
      title="@TooltipText" 

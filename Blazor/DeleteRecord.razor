@@ -1,7 +1,10 @@
+@using System.ComponentModel
 @using System.Reflection
 @using Microsoft.AspNetCore.Components
 @using Microsoft.AspNetCore.Components.Web
 @using Maynard.Logging
+
+@attribute [EditorBrowsable(EditorBrowsableState.Never)]
 
 <div class="minq-modal-backdrop" tabindex="-1" @ref="ModalRef" @onkeydown="HandleKeyDown" @onclick="Cancel">
     <div class="minq-modal-surface" @onclick:stopPropagation="true">

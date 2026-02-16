@@ -1,5 +1,8 @@
+@using System.ComponentModel
 @using Microsoft.AspNetCore.Components
 @using Microsoft.AspNetCore.Components.Web
+
+@attribute [EditorBrowsable(EditorBrowsableState.Never)]
 
 <div class="minq-modal-backdrop" @onclick="Cancel">
     <div class="minq-modal-surface" @onclick:stopPropagation="true">

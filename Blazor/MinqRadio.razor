@@ -1,5 +1,8 @@
 @typeparam TValue
+@using System.ComponentModel
 @using Microsoft.AspNetCore.Components
+
+@attribute [EditorBrowsable(EditorBrowsableState.Never)]
 
 <div style="margin-top: 1.25rem;">
     @if (!string.IsNullOrWhiteSpace(Title))
