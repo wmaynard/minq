@@ -6,6 +6,7 @@ using System.Text;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using Maynard.Json;
 using Maynard.Json.Attributes;
 using Maynard.Json.Enums;
 using Maynard.Logging;
@@ -186,25 +187,13 @@ public partial class MinqViewer
             return;
         try 
         {
-            string globalJson = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "MinqViewer_Global");
-            string localJson = await JSRuntime.InvokeAsync<string>("localStorage.getItem", $"MinqViewer_Local_{Contract.Name}");
-
-            bool settingsChanged = false;
-            GlobalSettingsPayload gSet = null;
-            LocalSettingsPayload lSet = null;
-
-            if (!string.IsNullOrWhiteSpace(globalJson)) 
-            {
-                gSet = JsonSerializer.Deserialize<GlobalSettingsPayload>(globalJson);
-                settingsChanged = true;
-            }
-            if (!string.IsNullOrWhiteSpace(localJson)) 
-            {
-                lSet = JsonSerializer.Deserialize<LocalSettingsPayload>(localJson);
-                settingsChanged = true;
-            }
-
-            if (settingsChanged) 
+            FlexJson globalJson = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "MinqViewer_Global");
+            FlexJson localJson = await JSRuntime.InvokeAsync<string>("localStorage.getItem", $"MinqViewer_Local_{Contract.Name}");
+            
+            GlobalSettingsPayload gSet = globalJson?.ToModel<GlobalSettingsPayload>();
+            LocalSettingsPayload lSet = localJson?.ToModel<LocalSettingsPayload>();
+            
+            if (gSet != null || lSet != null) 
             {
                 ApplySettings(gSet, lSet);
                 StateHasChanged();
@@ -272,8 +261,8 @@ public partial class MinqViewer
                 HiddenColumns = HiddenColumns.ToList()
             };
 
-            await JSRuntime.InvokeVoidAsync("localStorage.setItem", "MinqViewer_Global", JsonSerializer.Serialize(g));
-            await JSRuntime.InvokeVoidAsync("localStorage.setItem", $"MinqViewer_Local_{Contract.Name}", JsonSerializer.Serialize(l));
+            await JSRuntime.InvokeVoidAsync("localStorage.setItem", "MinqViewer_Global", g.ToJson());
+            await JSRuntime.InvokeVoidAsync("localStorage.setItem", $"MinqViewer_Local_{Contract.Name}", l.ToJson());
         } 
         catch { }
     }
@@ -303,11 +292,10 @@ public partial class MinqViewer
                 }
             };
 
-            string json = JsonSerializer.Serialize(payload);
-            string base64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(json));
+            string base64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(payload.ToJson()));
             string url = NavManager.GetUriWithQueryParameter("view", base64);
-
-            await JSRuntime.InvokeVoidAsync("navigator.clipboard.writeText", url);
+            await JSRuntime.CopyToClipboard(url);
+            
             Log.Info("Share link copied to clipboard!");
         } 
         catch (Exception ex) 
@@ -376,7 +364,7 @@ public partial class MinqViewer
 
     public void OpenDeleteAllModal() => IsDeleteAllModalOpen = true;
 
-    public void CloseModals()
+    private void CloseModals()
     {
         IsEditorOpen = false;
         IsDeleteModalOpen = false;
@@ -384,7 +372,7 @@ public partial class MinqViewer
         SelectedRecord = null;
     }
 
-    public void SaveRecord(object updatedModel)
+    private void SaveRecord(object updatedModel)
     {
         try
         {
@@ -410,7 +398,7 @@ public partial class MinqViewer
         }
     }
 
-    public void DeleteRecord(object modelToDelete)
+    private void DeleteRecord(object modelToDelete)
     {
         try
         {
@@ -436,7 +424,7 @@ public partial class MinqViewer
         }
     }
 
-    public void DeleteAllRecords()
+    private void DeleteAllRecords()
     {
         try
         {
@@ -547,7 +535,7 @@ public partial class MinqViewer
             if (defaultMethod == null)
             {
                 HasError = true;
-                ErrorMessage = "Method PageAllRecords not found on the provided contract.";
+                ErrorMessage = $"Method {"PageAllRecords"} not found on the provided contract.";
                 IsLoading = false;
                 return;
             }
@@ -575,6 +563,15 @@ public partial class MinqViewer
                     targetMethod = customMethod;
             }
 
+            if (PageSize <= 0)
+            {
+                Log.Warn($"{nameof(PageSize)} was 0 or less.  This should never happen; a bug is present.  Defaulting to 1.", new
+                {
+                    Help = "This is likely the result of bad JSON deserialization."
+                });
+                PageSize = 1;
+            }
+            
             object[] parameters = [PageSize, PageNumber, 0L];
             object result = targetMethod.Invoke(service, parameters);
 
@@ -657,7 +654,7 @@ public partial class MinqViewer
             List<int> orderPath = [..currentOrderPath, order];
             PropertyInfo[] newPath = [..currentPropertyPath, declaredProp];
 
-            MinqColumnDefinition definition = new MinqColumnDefinition
+            MinqColumnDefinition definition = new()
             {
                 Name = fullPath,
                 PropertyName = prop.Name,
@@ -674,7 +671,7 @@ public partial class MinqViewer
                 IsTimestamp = isTimestamp,
                 IsBool = isBool,
                 IsNested = !string.IsNullOrEmpty(prefix),
-                IsComplex = IsComplexType(prop.PropertyType)
+                IsComplex = prop.PropertyType.IsComplex()
             };
 
             ColumnDefinitions[fullPath] = definition;
@@ -692,18 +689,6 @@ public partial class MinqViewer
             if (definition.IsComplex && !isIgnored)
                 BuildColumnDefinitions(prop.PropertyType, fullPath, orderPath, new HashSet<Type>(visitedTypes), newPath);
         }
-    }
-
-    private bool IsComplexType(Type type)
-    {
-        if (type == typeof(string) || type.IsPrimitive || type.IsEnum) return false;
-        if (type == typeof(DateTime) || type == typeof(DateTimeOffset) || type == typeof(decimal) || type == typeof(Guid)) return false;
-        if (type.IsArray || typeof(System.Collections.IEnumerable).IsAssignableFrom(type)) return false;
-        
-        Type underlyingType = Nullable.GetUnderlyingType(type);
-        if (underlyingType != null) return IsComplexType(underlyingType);
-
-        return type.IsClass || type.IsValueType;
     }
 
     public void ParseData(Array records)
@@ -733,43 +718,43 @@ public partial class MinqViewer
 
         foreach (object record in records)
         {
-            MethodInfo toJsonMethod = record.GetType().GetMethod("ToJson");
-            
-            if (toJsonMethod != null)
+            MethodInfo toJsonMethod = record.GetType().GetMethod(nameof(FlexModel.ToJson));
+
+            if (toJsonMethod == null)
             {
-                string json = (string)toJsonMethod.Invoke(record, null);
-                JsonDocument document = JsonDocument.Parse(json);
-                Dictionary<string, string> rowData = [];
-
-                if (FlattenJsonProperties)
-                {
-                    FlattenJsonElement(document.RootElement, string.Empty, rowData);
-                }
-                else
-                {
-                    foreach (JsonProperty property in document.RootElement.EnumerateObject())
-                    {
-                        string propName = property.Name;
-                        if (ColumnDefinitions.TryGetValue(propName, out MinqColumnDefinition def))
-                        {
-                            if (def.IsIgnored) continue;
-                            propName = def.Name; 
-                        }
-
-                        if (!Columns.Contains(propName))
-                            Columns.Add(propName);
-
-                        if (HideDefaultValues && IsDefaultValue(property.Value)) continue;
-
-                        rowData[propName] = property.Value.ToString();
-                    }
-                }
-
-                Rows.Add(rowData);
+                Log.Error($"Could not find method {nameof(FlexModel.ToJson)} on record.  Is it not a {nameof(FlexModel)}?");
+                return;
             }
+        
+            string json = (string)toJsonMethod.Invoke(record, null) ?? "{}";
+            JsonDocument document = JsonDocument.Parse(json);
+            Dictionary<string, string> rowData = [];
+
+            if (FlattenJsonProperties)
+                FlattenJsonElement(document.RootElement, string.Empty, rowData);
+            else
+                foreach (JsonProperty property in document.RootElement.EnumerateObject())
+                {
+                    string propName = property.Name;
+                    if (ColumnDefinitions.TryGetValue(propName, out MinqColumnDefinition def))
+                    {
+                        if (def.IsIgnored) continue;
+                        propName = def.Name; 
+                    }
+
+                    if (!Columns.Contains(propName))
+                        Columns.Add(propName);
+                    else if (HideDefaultValues && IsDefaultValue(property.Value))
+                        continue;
+
+                    rowData[propName] = property.Value.ToString();
+                }
+
+            Rows.Add(rowData);
         }
 
-        ReorderColumns();
+        
+        Columns.Sort(new ColumnComparer(ColumnDefinitions));
     }
 
     private void FlattenJsonElement(JsonElement element, string prefix, Dictionary<string, string> rowData)
@@ -789,9 +774,7 @@ public partial class MinqViewer
                 continue;
 
             if (property.Value.ValueKind == JsonValueKind.Object)
-            {
                 FlattenJsonElement(property.Value, rawPropName, rowData);
-            }
             else
             {
                 if (!Columns.Contains(propName))
@@ -827,29 +810,5 @@ public partial class MinqViewer
             default:
                 return false;
         }
-    }
-
-    public void ReorderColumns()
-    {
-        Columns.Sort((string a, string b) =>
-        {
-            MinqColumnDefinition definitionA = ColumnDefinitions.ContainsKey(a) ? ColumnDefinitions[a] : new MinqColumnDefinition();
-            MinqColumnDefinition definitionB = ColumnDefinitions.ContainsKey(b) ? ColumnDefinitions[b] : new MinqColumnDefinition();
-
-            if (definitionA.IsSticky != definitionB.IsSticky)
-                return definitionA.IsSticky ? -1 : 1;
-
-            int minLen = Math.Min(definitionA.OrderPath.Count, definitionB.OrderPath.Count);
-            for (int i = 0; i < minLen; i++)
-            {
-                if (definitionA.OrderPath[i] != definitionB.OrderPath[i])
-                    return definitionA.OrderPath[i].CompareTo(definitionB.OrderPath[i]);
-            }
-            
-            if (definitionA.OrderPath.Count != definitionB.OrderPath.Count)
-                return definitionA.OrderPath.Count.CompareTo(definitionB.OrderPath.Count);
-
-            return string.Compare(a, b, StringComparison.OrdinalIgnoreCase);
-        });
     }
 }
