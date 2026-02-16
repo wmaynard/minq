@@ -1,5 +1,6 @@
 @typeparam TValue
 @using System.ComponentModel
+@using Maynard.Minq.Blazor.Models
 @using Microsoft.AspNetCore.Components
 
 @attribute [EditorBrowsable(EditorBrowsableState.Never)]
@@ -25,7 +26,7 @@
     [Parameter] public TValue Value { get; set; }
     [Parameter] public EventCallback<TValue> ValueChanged { get; set; }
     [Parameter] public EventCallback OnChange { get; set; }
-    [Parameter] public IEnumerable<MinqViewer.MinqRadioOption<TValue>> Options { get; set; } = Array.Empty<MinqViewer.MinqRadioOption<TValue>>();
+    [Parameter] public IEnumerable<MinqRadioOption<TValue>> Options { get; set; } = Array.Empty<MinqRadioOption<TValue>>();
     
     // Automatically assigns a unique name so multiple radio groups on the page don't bleed together
     [Parameter] public string Name { get; set; } = Guid.NewGuid().ToString("N");

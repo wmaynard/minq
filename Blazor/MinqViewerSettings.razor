@@ -1,4 +1,6 @@
 @using System.ComponentModel
+@using Maynard.Minq.Blazor.Enums
+@using Maynard.Minq.Blazor.Models
 @using Microsoft.AspNetCore.Components
 @using Microsoft.AspNetCore.Components.Web
 
@@ -14,9 +16,9 @@
     }
 
     <MinqViewerSettingsGroup Title="Data">
-        <MinqSlider Title="Page Size" Options="Parent.PageSizeOptions" @bind-Value="Parent.PageSize" OnChange="Parent.OnPageSizeChanged" Unit="records" />
+        <MinqSlider Title="Page Size" Options="PageSizeOptions" @bind-Value="Parent.PageSize" OnChange="Parent.OnPageSizeChanged" Unit="records" />
         <div style="margin-top: 0.75rem;">
-            <MinqSlider Title="Refresh Rate" Options="Parent.RefreshOptions" @bind-Value="Parent.RefreshInterval" OnChange="Parent.OnRefreshIntervalChanged" Unit="s" />
+            <MinqSlider Title="Refresh Rate" Options="RefreshOptions" @bind-Value="Parent.RefreshInterval" OnChange="Parent.OnRefreshIntervalChanged" Unit="s" />
         </div>
     </MinqViewerSettingsGroup>
 
@@ -24,7 +26,7 @@
         <div style="display: flex; flex-direction: column; gap: 0.35rem;">
             <label style="font-size: 0.85rem; color: var(--minq-text-main); font-weight: 600;">Theme</label>
             <select class="minq-input" style="cursor: pointer;" value="@Parent.SelectedThemeName" @onchange="HandleThemeChange">
-                @foreach (var theme in Parent.AvailableThemes)
+                @foreach (var theme in MinqViewer.AvailableThemes)
                 {
                     <option value="@theme.Name">@theme.Name</option>
                 }
@@ -32,16 +34,16 @@
         </div>
         
         <div style="margin-top: 1rem;">
-            <MinqSlider Title="Font Size" Options="Parent.FontSizeOptions" @bind-Value="Parent.TableFontSize" OnChange="Parent.SavePreferencesAsync" Unit="px" />
+            <MinqSlider Title="Font Size" Options="FontSizeOptions" @bind-Value="Parent.TableFontSize" OnChange="Parent.SavePreferencesAsync" Unit="px" />
         </div>
     </MinqViewerSettingsGroup>
 
     <MinqViewerSettingsGroup Title="Columns">
         <div style="display: flex; flex-direction: column; gap: 0.25rem;">
-            <MinqSlider Title="Pinned Column Width" Options="Parent.PinnedWidthOptions" @bind-Value="Parent.PinnedColumnWidth" OnChange="Parent.SavePreferencesAsync" Unit="px" />
+            <MinqSlider Title="Pinned Column Width" Options="PinnedWidthOptions" @bind-Value="Parent.PinnedColumnWidth" OnChange="Parent.SavePreferencesAsync" Unit="px" />
             
             <div style="margin-top: 0.5rem;">
-                <MinqSlider Title="Unpinned Column Width" Options="Parent.MaxWidthOptions" @bind-Value="Parent.MaxColumnWidth" OnChange="Parent.SavePreferencesAsync" Unit="px" />
+                <MinqSlider Title="Unpinned Column Width" Options="MaxWidthOptions" @bind-Value="Parent.MaxColumnWidth" OnChange="Parent.SavePreferencesAsync" Unit="px" />
             </div>
             
             <button class="minq-button" style="margin-top: 1rem;" @onclick="Parent.OpenColumnPicker">Choose Columns</button>
@@ -89,6 +91,12 @@
 @code {
     [CascadingParameter]
     public MinqViewer Parent { get; set; }
+    
+    private static readonly int[] PageSizeOptions = [10, 25, 50, 75, 100];
+    private static readonly int[] RefreshOptions = Enumerable.Range(0, 31).Select(x => x * 10).ToArray();
+    private static readonly int[] FontSizeOptions = Enumerable.Range(6, 21).Select(x => x * 10).ToArray();
+    private static readonly int[] PinnedWidthOptions = Enumerable.Range(2, 9).Select(x => x * 50).ToArray();
+    private static readonly int[] MaxWidthOptions = Enumerable.Range(2, 23).Select(x => x * 50).ToArray();
 
     // Add this explicit handler!
     private async Task HandleThemeChange(ChangeEventArgs e)
@@ -97,18 +105,18 @@
         await Parent.OnThemeChangedAsync();
     }
 
-    private List<MinqViewer.MinqRadioOption<MinqViewer.TimestampFormatOption>> TimestampOptions => new()
+    private List<MinqRadioOption<TimestampFormatOption>> TimestampOptions => new()
     {
-        new() { Value = MinqViewer.TimestampFormatOption.Local, Label = "DateTime (Local)" },
-        new() { Value = MinqViewer.TimestampFormatOption.Utc, Label = "DateTime (UTC)" },
-        new() { Value = MinqViewer.TimestampFormatOption.Unix, Label = "Unix Timestamp (UTC)" },
-        new() { Value = MinqViewer.TimestampFormatOption.Elapsed, Label = "Elapsed Time" }
+        new() { Value = TimestampFormatOption.Local, Label = "DateTime (Local)" },
+        new() { Value = TimestampFormatOption.Utc, Label = "DateTime (UTC)" },
+        new() { Value = TimestampFormatOption.Unix, Label = "Unix Timestamp (UTC)" },
+        new() { Value = TimestampFormatOption.Elapsed, Label = "Elapsed Time" }
     };
 
-    private List<MinqViewer.MinqRadioOption<MinqViewer.RowClickBehaviorOption>> ClickOptions => new()
+    private List<MinqRadioOption<RowClickBehaviorOption>> ClickOptions => new()
     {
-        new() { Value = MinqViewer.RowClickBehaviorOption.SelectText, Label = "Select Text" },
-        new() { Value = MinqViewer.RowClickBehaviorOption.EditRecord, Label = "Edit Record" },
-        new() { Value = MinqViewer.RowClickBehaviorOption.DeleteRecord, Label = "Delete Record", IsDisabled = !Parent.CanDeleteSingle }
+        new() { Value = RowClickBehaviorOption.SelectText, Label = "Select Text" },
+        new() { Value = RowClickBehaviorOption.EditRecord, Label = "Edit Record" },
+        new() { Value = RowClickBehaviorOption.DeleteRecord, Label = "Delete Record", IsDisabled = !Parent.CanDeleteSingle }
     };
 }

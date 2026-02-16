@@ -5,6 +5,7 @@
 @using Microsoft.JSInterop
 @using Maynard.Logging
 @using System.Linq
+@using Maynard.Minq.Blazor.Models
 @inject IJSRuntime JSRuntime
 
 @attribute [EditorBrowsable(EditorBrowsableState.Never)]
@@ -22,10 +23,10 @@
             {
                 <div class="minq-form-group">
                     <div class="minq-field-header">
-                        <label>@field.Def.Name</label>
+                        <label>@field.Definition.Name</label>
                         <span class="minq-field-keys">
-                            (<span class="@(field.Def.IsJsonIgnored ? "minq-text-danger" : "")">@(field.Def.IsJsonIgnored ? "ignored" : (field.Def.JsonName ?? field.Def.PropertyName))</span> / 
-                             <span class="@(field.Def.IsBsonIgnored ? "minq-text-danger" : "")">@(field.Def.IsBsonIgnored ? "ignored" : (field.Def.BsonName ?? field.Def.PropertyName))</span>)
+                            (<span class="@(field.Definition.IsJsonIgnored ? "minq-text-danger" : "")">@(field.Definition.IsJsonIgnored ? "ignored" : (field.Definition.JsonName ?? field.Definition.PropertyName))</span> / 
+                             <span class="@(field.Definition.IsBsonIgnored ? "minq-text-danger" : "")">@(field.Definition.IsBsonIgnored ? "ignored" : (field.Definition.BsonName ?? field.Definition.PropertyName))</span>)
                         </span>
                     </div>
 
@@ -35,14 +36,14 @@
                         {
                             int idx = i;
                             <div class="minq-collection-row">
-                                <input class="minq-input" type="text" @bind="field.CollectionValues[idx]" disabled="@field.Def.ReadOnly" />
-                                @if (!field.Def.ReadOnly)
+                                <input class="minq-input" type="text" @bind="field.CollectionValues[idx]" disabled="@field.Definition.ReadOnly" />
+                                @if (!field.Definition.ReadOnly)
                                 {
                                     <button class="minq-button minq-button-danger" @onclick="() => field.CollectionValues.RemoveAt(idx)">X</button>
                                 }
                             </div>
                         }
-                        @if (!field.Def.ReadOnly)
+                        @if (!field.Definition.ReadOnly)
                         {
                             <button class="minq-button" style="align-self: flex-start;" @onclick="() => field.CollectionValues.Add(string.Empty)">+ Add Entry</button>
                         }
@@ -50,7 +51,7 @@
                     else if (field.IsBool)
                     {
                         <div style="padding: 4px 0;">
-                            @if (field.Def.ReadOnly)
+                            @if (field.Definition.ReadOnly)
                             {
                                 <input type="checkbox" checked="@field.BoolValue" disabled />
                             }
@@ -65,7 +66,7 @@
                     }
                     else if (field.IsEnum)
                     {
-                        <select class="minq-input" @bind="field.SingleValue" disabled="@field.Def.ReadOnly">
+                        <select class="minq-input" @bind="field.SingleValue" disabled="@field.Definition.ReadOnly">
                             @foreach (string val in Enum.GetNames(field.TargetType))
                             {
                                 <option value="@val">@val</option>
@@ -74,15 +75,15 @@
                     }
                     else if (field.IsChar)
                     {
-                        <input class="minq-input" type="text" value="@field.SingleValue" @oninput="(e) => UpdateChar(field, e)" disabled="@field.Def.ReadOnly" />
+                        <input class="minq-input" type="text" value="@field.SingleValue" @oninput="(e) => UpdateChar(field, e)" disabled="@field.Definition.ReadOnly" />
                     }
                     else if (field.IsNumeric)
                     {
-                        <input class="minq-input" type="number" step="any" @bind="field.SingleValue" disabled="@field.Def.ReadOnly" />
+                        <input class="minq-input" type="number" step="any" @bind="field.SingleValue" disabled="@field.Definition.ReadOnly" />
                     }
                     else
                     {
-                        <input class="minq-input" type="text" @bind="field.SingleValue" disabled="@field.Def.ReadOnly" />
+                        <input class="minq-input" type="text" @bind="field.SingleValue" disabled="@field.Definition.ReadOnly" />
                     }
                 </div>
             }
@@ -107,7 +108,7 @@
     public object Model { get; set; }
     
     [Parameter] 
-    public IEnumerable<MinqViewer.MinqColumnDef> ColumnDefinitions { get; set; } = new List<MinqViewer.MinqColumnDef>();
+    public IEnumerable<MinqColumnDefinition> ColumnDefinitions { get; set; } = new List<MinqColumnDefinition>();
     
     [Parameter] 
     public EventCallback<object> OnSave { get; set; }
@@ -120,7 +121,7 @@
 
     protected override void OnInitialized()
     {
-        List<MinqViewer.MinqColumnDef> editableDefs = ColumnDefinitions.Distinct()
+        List<MinqColumnDefinition> editableDefs = ColumnDefinitions.Distinct()
             .Where(d => !d.IsIgnored && !d.IsComplex)
             .ToList();
 
@@ -137,10 +138,10 @@
             return string.Compare(a.Name, b.Name, StringComparison.OrdinalIgnoreCase);
         });
 
-        foreach (MinqViewer.MinqColumnDef def in editableDefs)
+        foreach (MinqColumnDefinition def in editableDefs)
         {
             Type targetType = Nullable.GetUnderlyingType(def.PropertyType) ?? def.PropertyType;
-            FieldState state = new FieldState { Def = def, TargetType = targetType };
+            FieldState state = new FieldState { Definition = def, TargetType = targetType };
 
             if (targetType == typeof(bool)) 
                 state.IsBool = true;
@@ -229,10 +230,10 @@
         field.SingleValue = val.Length > 0 ? val.Substring(val.Length - 1) : string.Empty;
     }
 
-    private object ReadValue(MinqViewer.MinqColumnDef def)
+    private object ReadValue(MinqColumnDefinition definition)
     {
         object current = Model;
-        foreach (PropertyInfo prop in def.PropertyPath)
+        foreach (PropertyInfo prop in definition.PropertyPath)
         {
             if (current == null) return null;
             current = prop.GetValue(current);
@@ -244,13 +245,13 @@
     {
         foreach (FieldState state in FieldStates)
         {
-            if (state.Def.ReadOnly) continue;
+            if (state.Definition.ReadOnly) continue;
 
             object current = Model;
             
-            for (int i = 0; i < state.Def.PropertyPath.Length - 1; i++)
+            for (int i = 0; i < state.Definition.PropertyPath.Length - 1; i++)
             {
-                PropertyInfo prop = state.Def.PropertyPath[i];
+                PropertyInfo prop = state.Definition.PropertyPath[i];
                 object next = prop.GetValue(current);
                 
                 if (next == null)
@@ -262,7 +263,7 @@
                 current = next;
             }
 
-            PropertyInfo leafProp = state.Def.PropertyPath.Last();
+            PropertyInfo leafProp = state.Definition.PropertyPath.Last();
             object parsedVal = null;
             
             try
@@ -347,7 +348,7 @@
 
     public class FieldState
     {
-        public MinqViewer.MinqColumnDef Def { get; set; }
+        public MinqColumnDefinition Definition { get; set; }
         public Type TargetType { get; set; }
         public bool IsCollection { get; set; }
         public Type ElementType { get; set; }

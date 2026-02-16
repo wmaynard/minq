@@ -1,10 +1,11 @@
 @implements IDisposable
 @using System.ComponentModel
+@using Maynard.Minq.Blazor.Enums
 @using Microsoft.AspNetCore.Components
 
 @attribute [EditorBrowsable(EditorBrowsableState.Never)]
 
-@if (Format != MinqViewer.TimestampFormatOption.Unix && !string.IsNullOrWhiteSpace(FormattedText))
+@if (Format != TimestampFormatOption.Unix && !string.IsNullOrWhiteSpace(FormattedText))
 {
     <span class="minq-badge @(IsFuture ? "minq-badge-future" : "minq-badge-past")">@FormattedText</span>
 }
@@ -18,7 +19,7 @@ else
     public string RawValue { get; set; }
     
     [Parameter] 
-    public MinqViewer.TimestampFormatOption Format { get; set; }
+    public TimestampFormatOption Format { get; set; }
     
     [CascadingParameter] 
     public MinqViewer Parent { get; set; }
@@ -45,7 +46,7 @@ else
 
     private void HandleTick()
     {
-        if (Format == MinqViewer.TimestampFormatOption.Elapsed)
+        if (Format == TimestampFormatOption.Elapsed)
         {
             CalculateValue();
             InvokeAsync(StateHasChanged);
@@ -60,7 +61,7 @@ else
             return;
         }
         
-        if (Format == MinqViewer.TimestampFormatOption.Unix)
+        if (Format == TimestampFormatOption.Unix)
         {
             FormattedText = RawValue;
             return;
@@ -84,11 +85,11 @@ else
                 TimeSpan elapsed = DateTimeOffset.UtcNow - dto;
                 IsFuture = elapsed.TotalSeconds < 0;
 
-                if (Format == MinqViewer.TimestampFormatOption.Local)
+                if (Format == TimestampFormatOption.Local)
                     FormattedText = dto.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss");
-                else if (Format == MinqViewer.TimestampFormatOption.Utc)
+                else if (Format == TimestampFormatOption.Utc)
                     FormattedText = dto.ToUniversalTime().ToString("yyyy-MM-dd HH:mm:ss UTC");
-                else if (Format == MinqViewer.TimestampFormatOption.Elapsed)
+                else if (Format == TimestampFormatOption.Elapsed)
                 {
                     string prefix = IsFuture ? "in " : "";
                     elapsed = elapsed.Duration(); 
