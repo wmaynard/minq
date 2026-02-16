@@ -5,7 +5,7 @@ using System.Text.RegularExpressions;
 
 namespace Maynard.Minq.Blazor.Themes;
 
-internal abstract partial class ThemeProvider
+public abstract partial class ThemeProvider
 {
     // 1. Primary / Brand (Blues)
     internal abstract int Primary { get; }
