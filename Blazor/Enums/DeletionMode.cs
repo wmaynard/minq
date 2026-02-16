@@ -3,7 +3,7 @@ using System;
 namespace Maynard.Minq.Blazor.Enums;
 
 [Flags]
-public enum MinqDeletion
+public enum DeletionMode
 {
     None                    = 0b0000_0000,
     SingleRecordAdminOnly   = 0b0000_0001,

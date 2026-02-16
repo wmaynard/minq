@@ -5,7 +5,7 @@ using Maynard.Minq.Blazor.Enums;
 
 namespace Maynard.Minq.Blazor.Models;
 
-public class GlobalSettingsPayload : FlexModel
+internal class GlobalSettingsPayload : FlexModel
 {
     [FlexIgnore(ignore: Ignore.InBson)]
     public int PageSize { get; set; }

@@ -4,10 +4,10 @@ using Maynard.Json.Enums;
 
 namespace Maynard.Minq.Blazor.Models;
 
-public class SharedViewPayload : FlexModel
+internal class SharedViewPayload : FlexModel
 {
     [FlexIgnore(ignore: Ignore.InBson)]
-    public GlobalSettingsPayload Global { get; set; }
+    internal GlobalSettingsPayload Global { get; set; }
     [FlexIgnore(ignore: Ignore.InBson)]
-    public LocalSettingsPayload Local { get; set; }
+    internal LocalSettingsPayload Local { get; set; }
 }

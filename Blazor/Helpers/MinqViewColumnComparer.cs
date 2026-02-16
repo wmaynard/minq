@@ -4,7 +4,7 @@ using Maynard.Minq.Blazor.Models;
 
 namespace Maynard.Minq.Blazor.Helpers;
 
-internal sealed class ColumnComparer(Dictionary<string, MinqColumnDefinition> columnDefinitions) : IComparer<string>
+internal sealed class MinqViewColumnComparer(Dictionary<string, MinqColumnDefinition> columnDefinitions) : IComparer<string>
 {
     public int Compare(string a, string b)
     {

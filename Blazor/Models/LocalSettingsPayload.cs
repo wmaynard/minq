@@ -6,14 +6,14 @@ using Maynard.Minq.Blazor.Enums;
 
 namespace Maynard.Minq.Blazor.Models;
 
-public class LocalSettingsPayload : FlexModel
+internal class LocalSettingsPayload : FlexModel
 {
     [FlexIgnore(ignore: Ignore.InBson)]
-    public int PinnedColumnWidth { get; set; }
+    internal int PinnedColumnWidth { get; set; }
     [FlexIgnore(ignore: Ignore.InBson)]
-    public int MaxColumnWidth { get; set; }
+    internal int MaxColumnWidth { get; set; }
     [FlexIgnore(ignore: Ignore.InBson)]
-    public RowClickBehaviorOption RowClickBehavior { get; set; }
+    internal RowClickBehaviorOption RowClickBehavior { get; set; }
     [FlexIgnore(ignore: Ignore.InBson)]
-    public List<string> HiddenColumns { get; set; }
+    internal List<string> HiddenColumns { get; set; }
 }

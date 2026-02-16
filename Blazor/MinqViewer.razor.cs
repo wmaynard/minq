@@ -56,7 +56,7 @@ public partial class MinqViewer
     /// anyone who can view this tool.  This enum supports flags.
     /// </summary>
     [Parameter]
-    public MinqDeletion DeletionMode { get; set; } = MinqDeletion.None;
+    public DeletionMode DeletionMode { get; set; } = DeletionMode.None;
 
     /// <summary>
     /// Determines whether or not a user has administrator permissions.  This flag is useless if <see cref="DeletionMode"/>
@@ -98,10 +98,10 @@ public partial class MinqViewer
     public int PinnedColumnWidth { get; set; } = 200;
     public int MaxColumnWidth { get; set; } = 400;
     
-    public TimestampFormatOption TimestampFormat { get; set; } = TimestampFormatOption.Local;
+    internal TimestampFormatOption TimestampFormat { get; set; } = TimestampFormatOption.Local;
     public bool FlattenJsonProperties { get; set; }
     public bool HideDefaultValues { get; set; }
-    public RowClickBehaviorOption RowClickBehavior { get; set; } = RowClickBehaviorOption.SelectText;
+    internal RowClickBehaviorOption RowClickBehavior { get; set; } = RowClickBehaviorOption.SelectText;
     
     public int PageNumber { get; set; }
     public long TotalRecords { get; set; }
@@ -117,8 +117,8 @@ public partial class MinqViewer
     public bool IsDeleteAllModalOpen { get; set; }
     public object SelectedRecord { get; set; }
 
-    public bool CanDeleteSingle => DeletionMode.HasFlag(MinqDeletion.SingleRecord) || (IsAdmin && DeletionMode.HasFlag(MinqDeletion.SingleRecordAdminOnly));
-    public bool CanDeleteCollection => DeletionMode.HasFlag(MinqDeletion.Collection) || (IsAdmin && DeletionMode.HasFlag(MinqDeletion.CollectionAdminOnly));
+    public bool CanDeleteSingle => DeletionMode.HasFlag(DeletionMode.SingleRecord) || (IsAdmin && DeletionMode.HasFlag(DeletionMode.SingleRecordAdminOnly));
+    public bool CanDeleteCollection => DeletionMode.HasFlag(DeletionMode.Collection) || (IsAdmin && DeletionMode.HasFlag(DeletionMode.CollectionAdminOnly));
 
     private Array LastRecords { get; set; } = Array.Empty<object>();
 
@@ -691,7 +691,7 @@ public partial class MinqViewer
             Rows.Add(rowData);
         }
         
-        Columns.Sort(new ColumnComparer(ColumnDefinitions));
+        Columns.Sort(new MinqViewColumnComparer(ColumnDefinitions));
     }
 
     private void FlattenJsonElement(JsonElement element, string prefix, Dictionary<string, string> rowData)

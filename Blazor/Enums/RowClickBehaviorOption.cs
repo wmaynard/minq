@@ -1,6 +1,6 @@
 namespace Maynard.Minq.Blazor.Enums;
 
-public enum RowClickBehaviorOption
+internal enum RowClickBehaviorOption
 {
     SelectText,
     EditRecord,
