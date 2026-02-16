@@ -18,7 +18,7 @@
 @inject IJSRuntime JSRuntime
 
 <CascadingValue Value="this" IsFixed="true">
-    <div class="minq-container">
+    <div class="minq-container" style="@ThemeVariables">
         @if (HasError)
         {
             <div class="empty-state">Error: @ErrorMessage</div>
@@ -149,6 +149,8 @@
 </CascadingValue>
 
 @code {
+    // Evaluated only once per component lifecycle to save on reflection cost!
+    private string ThemeVariables { get; } = new Themes.DefaultThemeProvider().ToString();
     public enum TimestampFormatOption { Local, Utc, Unix, Elapsed }
     public enum RowClickBehaviorOption { SelectText, EditRecord, DeleteRecord }
 
