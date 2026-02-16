@@ -9,15 +9,16 @@
         </div>
     }
 
-    <MinqViewerSettingsGroup Title="Data">
+    <MinqViewerSettingsGroup Title="Page Options">
         <MinqSlider Title="Page Size" Options="Parent.PageSizeOptions" @bind-Value="Parent.PageSize" OnChange="Parent.OnPageSizeChanged" Unit="records" />
+        
         <div style="margin-top: 0.75rem;">
             <MinqSlider Title="Refresh Rate" Options="Parent.RefreshOptions" @bind-Value="Parent.RefreshInterval" OnChange="Parent.OnRefreshIntervalChanged" Unit="s" />
         </div>
-    </MinqViewerSettingsGroup>
-
-    <MinqViewerSettingsGroup Title="Font Size">
-        <MinqSlider Options="Parent.FontSizeOptions" @bind-Value="Parent.TableFontSize" OnChange="Parent.SavePreferencesAsync" Unit="px" />
+        
+        <div style="margin-top: 0.75rem;">
+            <MinqSlider Title="Font Size" Options="Parent.FontSizeOptions" @bind-Value="Parent.TableFontSize" OnChange="Parent.SavePreferencesAsync" Unit="px" />
+        </div>
     </MinqViewerSettingsGroup>
 
     <MinqViewerSettingsGroup Title="Columns">
