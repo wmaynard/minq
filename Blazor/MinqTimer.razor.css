@@ -6,11 +6,24 @@
     color: #78909c;
     font-size: 0.95rem;
     margin-right: 1.5rem;
-    transition: opacity 0.3s;
+    transition: opacity 0.3s, transform 0.1s; /* Added transform transition */
 }
 
 .minq-refresh-container.minq-timer-disabled {
     opacity: 0.4;
+}
+
+/* Make the entire container a button when not disabled */
+.minq-refresh-container:not(.minq-timer-disabled) {
+    cursor: pointer;
+}
+
+.minq-refresh-container:not(.minq-timer-disabled):hover {
+    transform: scale(1.03);
+}
+
+.minq-refresh-container:not(.minq-timer-disabled):active {
+    transform: scale(0.97);
 }
 
 .minq-refresh-ring {
@@ -20,19 +33,6 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    transition: transform 0.1s;
-}
-
-.minq-refresh-container:not(.minq-timer-disabled) .minq-refresh-ring {
-    cursor: pointer;
-}
-
-.minq-refresh-container:not(.minq-timer-disabled) .minq-refresh-ring:hover {
-    transform: scale(1.05);
-}
-
-.minq-refresh-container:not(.minq-timer-disabled) .minq-refresh-ring:active {
-    transform: scale(0.95);
 }
 
 .minq-refresh-ring svg {
@@ -40,6 +40,7 @@
     top: 0; 
     left: 0;
     transform: rotate(-90deg);
+    pointer-events: none; /* Prevents the SVG from swallowing mouse clicks! */
 }
 
 .minq-refresh-ring circle:nth-child(2) {
@@ -52,4 +53,5 @@
     font-size: 0.85rem;
     position: relative; 
     user-select: none;
+    pointer-events: none; /* Text won't swallow clicks either */
 }

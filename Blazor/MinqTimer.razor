@@ -1,10 +1,15 @@
 @implements IDisposable
 @using System.Threading
 @using Microsoft.AspNetCore.Components
+@using Microsoft.AspNetCore.Components.Web
 
-<div class="minq-refresh-container @(Interval <= 0 ? "minq-timer-disabled" : "")">
-    Auto-refresh
-    <div class="minq-refresh-ring" title="@TooltipText" @onclick="TogglePause">
+<div class="@CssClass" 
+     title="@TooltipText" 
+     @onclick="TogglePause">
+    
+    @(IsPaused ? "Paused" : "Auto-refresh")
+    
+    <div class="minq-refresh-ring">
         <svg width="36" height="36">
             <circle cx="18" cy="18" r="14" fill="none" stroke="#e0e0e0" stroke-width="4" />
             @if (Interval > 0 && !IsPaused)
@@ -53,6 +58,8 @@
     public double RefreshDashOffset => Interval > 0 ? (1.0 - ((double)SecondsRemaining / Interval)) * 87.964 : 87.964;
 
     public string TooltipText => Interval <= 0 ? "Refresh Disabled" : (IsPaused ? "Click to Resume" : "Click to Pause");
+    
+    public string CssClass => $"minq-refresh-container {(Interval <= 0 ? "minq-timer-disabled" : "")}";
 
     public PeriodicTimer Timer { get; set; }
     public CancellationTokenSource Cts { get; set; } = new CancellationTokenSource();
@@ -77,10 +84,13 @@
         }
     }
 
-    public void TogglePause()
+    public async Task TogglePause()
     {
         if (Interval > 0)
+        {
             IsPaused = !IsPaused;
+            await InvokeAsync(StateHasChanged);
+        }
     }
 
     public void ResetTimer()
