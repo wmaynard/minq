@@ -24,14 +24,8 @@
     font-size: 0.95rem;
 }
 
-.minq-radio-group {
-    display: flex;
-    flex-direction: column;
-    gap: 0.6rem;
-    margin-top: 0.5rem;
-}
-
-.minq-radio-label {
+/* Replaces .minq-radio-label for our toggle switches */
+.minq-toggle-label {
     cursor: pointer;
     font-size: 0.95rem;
     display: flex;
@@ -94,7 +88,7 @@
 .minq-button-danger {
     background-color: #f44336;
     color: white;
-    border-color: #f44336;
+    border: 1px solid #f44336;
 }
 .minq-button-danger:hover:not(:disabled) { 
     background-color: #d32f2f; 

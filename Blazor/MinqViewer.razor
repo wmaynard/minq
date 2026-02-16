@@ -732,22 +732,10 @@
         _ = SavePreferencesAsync();
     }
 
-    public void ChangeRowClickBehavior(RowClickBehaviorOption behavior)
-    {
-        RowClickBehavior = behavior;
-        _ = SavePreferencesAsync();
-    }
-
     public void OnViewDataChanged()
     {
         if (LastRecords.Length > 0)
             ParseData(LastRecords);
-        _ = SavePreferencesAsync();
-    }
-
-    public void ChangeTimestampFormat(TimestampFormatOption format)
-    {
-        TimestampFormat = format;
         _ = SavePreferencesAsync();
     }
 
@@ -1162,5 +1150,12 @@
         public bool IsBool { get; set; }
         public bool IsNested { get; set; }
         public bool IsComplex { get; set; }
+    }
+    
+    public class MinqRadioOption<T>
+    {
+        public T Value { get; set; }
+        public string Label { get; set; }
+        public bool IsDisabled { get; set; }
     }
 }

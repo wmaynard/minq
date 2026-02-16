@@ -11,11 +11,9 @@
 
     <MinqViewerSettingsGroup Title="Page Options">
         <MinqSlider Title="Page Size" Options="Parent.PageSizeOptions" @bind-Value="Parent.PageSize" OnChange="Parent.OnPageSizeChanged" Unit="records" />
-        
         <div style="margin-top: 0.75rem;">
             <MinqSlider Title="Refresh Rate" Options="Parent.RefreshOptions" @bind-Value="Parent.RefreshInterval" OnChange="Parent.OnRefreshIntervalChanged" Unit="s" />
         </div>
-        
         <div style="margin-top: 0.75rem;">
             <MinqSlider Title="Font Size" Options="Parent.FontSizeOptions" @bind-Value="Parent.TableFontSize" OnChange="Parent.SavePreferencesAsync" Unit="px" />
         </div>
@@ -33,54 +31,16 @@
         </div>
     </MinqViewerSettingsGroup>
 
-    <MinqViewerSettingsGroup Title="Timestamp Format">
-        <div class="minq-radio-group">
-            <label class="minq-radio-label">
-                <input type="radio" name="timestampFormat" value="Local" checked="@(Parent.TimestampFormat == MinqViewer.TimestampFormatOption.Local)" @onchange="@(() => Parent.ChangeTimestampFormat(MinqViewer.TimestampFormatOption.Local))" />
-                DateTime (Local)
-            </label>
-            <label class="minq-radio-label">
-                <input type="radio" name="timestampFormat" value="Utc" checked="@(Parent.TimestampFormat == MinqViewer.TimestampFormatOption.Utc)" @onchange="@(() => Parent.ChangeTimestampFormat(MinqViewer.TimestampFormatOption.Utc))" />
-                DateTime (UTC)
-            </label>
-            <label class="minq-radio-label">
-                <input type="radio" name="timestampFormat" value="Unix" checked="@(Parent.TimestampFormat == MinqViewer.TimestampFormatOption.Unix)" @onchange="@(() => Parent.ChangeTimestampFormat(MinqViewer.TimestampFormatOption.Unix))" />
-                Unix Timestamp (UTC)
-            </label>
-            <label class="minq-radio-label">
-                <input type="radio" name="timestampFormat" value="Elapsed" checked="@(Parent.TimestampFormat == MinqViewer.TimestampFormatOption.Elapsed)" @onchange="@(() => Parent.ChangeTimestampFormat(MinqViewer.TimestampFormatOption.Elapsed))" />
-                Elapsed Time
-            </label>
-        </div>
-    </MinqViewerSettingsGroup>
-    
-    <MinqViewerSettingsGroup Title="On Click">
-        <div class="minq-radio-group">
-            <label class="minq-radio-label">
-                <input type="radio" name="rowClickBehavior" value="SelectText" checked="@(Parent.RowClickBehavior == MinqViewer.RowClickBehaviorOption.SelectText)" @onchange="@(() => Parent.ChangeRowClickBehavior(MinqViewer.RowClickBehaviorOption.SelectText))" />
-                Select Text
-            </label>
-            <label class="minq-radio-label">
-                <input type="radio" name="rowClickBehavior" value="EditRecord" checked="@(Parent.RowClickBehavior == MinqViewer.RowClickBehaviorOption.EditRecord)" @onchange="@(() => Parent.ChangeRowClickBehavior(MinqViewer.RowClickBehaviorOption.EditRecord))" />
-                Edit Record
-            </label>
-            <label class="minq-radio-label" style="@(!Parent.CanDeleteSingle ? "opacity: 0.5;" : "")">
-                <input type="radio" name="rowClickBehavior" value="DeleteRecord" disabled="@(!Parent.CanDeleteSingle)" checked="@(Parent.RowClickBehavior == MinqViewer.RowClickBehaviorOption.DeleteRecord)" @onchange="@(() => Parent.ChangeRowClickBehavior(MinqViewer.RowClickBehaviorOption.DeleteRecord))" />
-                Delete Record
-            </label>
-        </div>
-    </MinqViewerSettingsGroup>
-
-    <MinqViewerSettingsGroup Title="Data Display">
-        <div class="minq-radio-group">
-            <label class="minq-radio-label">
+    <MinqViewerSettingsGroup Title="Table Options">
+        <div style="display: flex; flex-direction: column; gap: 0.6rem; margin-top: 0.25rem;">
+            <label class="minq-toggle-label">
                 <div class="minq-switch">
                     <input type="checkbox" @bind="Parent.FlattenJsonProperties" @bind:after="Parent.OnViewDataChanged" />
                     <span class="minq-slider-round"></span>
                 </div>
                 Flatten Nested Objects
             </label>
-            <label class="minq-radio-label">
+            <label class="minq-toggle-label">
                 <div class="minq-switch">
                     <input type="checkbox" @bind="Parent.HideDefaultValues" @bind:after="Parent.OnViewDataChanged" />
                     <span class="minq-slider-round"></span>
@@ -88,6 +48,18 @@
                 Hide Default Values
             </label>
         </div>
+
+        <MinqRadio Title="Timestamp Format" 
+                   Name="timestampFormat"
+                   Options="TimestampOptions" 
+                   @bind-Value="Parent.TimestampFormat" 
+                   OnChange="Parent.SavePreferencesAsync" />
+                   
+        <MinqRadio Title="On Click" 
+                   Name="rowClickBehavior"
+                   Options="ClickOptions" 
+                   @bind-Value="Parent.RowClickBehavior" 
+                   OnChange="Parent.SavePreferencesAsync" />
     </MinqViewerSettingsGroup>
 
     <MinqViewerSettingsGroup Title="Danger Zone">
@@ -100,4 +72,19 @@
 @code {
     [CascadingParameter]
     public MinqViewer Parent { get; set; }
+
+    private List<MinqViewer.MinqRadioOption<MinqViewer.TimestampFormatOption>> TimestampOptions => new()
+    {
+        new() { Value = MinqViewer.TimestampFormatOption.Local, Label = "DateTime (Local)" },
+        new() { Value = MinqViewer.TimestampFormatOption.Utc, Label = "DateTime (UTC)" },
+        new() { Value = MinqViewer.TimestampFormatOption.Unix, Label = "Unix Timestamp (UTC)" },
+        new() { Value = MinqViewer.TimestampFormatOption.Elapsed, Label = "Elapsed Time" }
+    };
+
+    private List<MinqViewer.MinqRadioOption<MinqViewer.RowClickBehaviorOption>> ClickOptions => new()
+    {
+        new() { Value = MinqViewer.RowClickBehaviorOption.SelectText, Label = "Select Text" },
+        new() { Value = MinqViewer.RowClickBehaviorOption.EditRecord, Label = "Edit Record" },
+        new() { Value = MinqViewer.RowClickBehaviorOption.DeleteRecord, Label = "Delete Record", IsDisabled = !Parent.CanDeleteSingle }
+    };
 }

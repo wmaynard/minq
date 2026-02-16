@@ -1,0 +1,39 @@
+@typeparam TValue
+@using Microsoft.AspNetCore.Components
+
+<div style="margin-top: 1.25rem;">
+    @if (!string.IsNullOrWhiteSpace(Title))
+    {
+        <div style="font-size: 0.85rem; color: #555; font-weight: 500; margin-bottom: 0.4rem;">@Title</div>
+    }
+    <div class="minq-radio-group">
+        @foreach (var opt in Options)
+        {
+            <label class="minq-radio-label" style="@(opt.IsDisabled ? "opacity: 0.5;" : "")">
+                <input type="radio" name="@Name" disabled="@opt.IsDisabled" checked="@(opt.Value.Equals(Value))" @onchange="@(() => HandleChange(opt.Value))" />
+                @opt.Label
+            </label>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter] public string Title { get; set; }
+    [Parameter] public TValue Value { get; set; }
+    [Parameter] public EventCallback<TValue> ValueChanged { get; set; }
+    [Parameter] public EventCallback OnChange { get; set; }
+    [Parameter] public IEnumerable<MinqViewer.MinqRadioOption<TValue>> Options { get; set; } = Array.Empty<MinqViewer.MinqRadioOption<TValue>>();
+    
+    // Automatically assigns a unique name so multiple radio groups on the page don't bleed together
+    [Parameter] public string Name { get; set; } = Guid.NewGuid().ToString("N");
+
+    private async Task HandleChange(TValue newValue)
+    {
+        Value = newValue;
+        await ValueChanged.InvokeAsync(newValue);
+        if (OnChange.HasDelegate)
+        {
+            await OnChange.InvokeAsync();
+        }
+    }
+}
