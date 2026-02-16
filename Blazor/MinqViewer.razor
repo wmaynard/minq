@@ -201,7 +201,17 @@ public void ApplySelectedTheme()
     }
 }
     // Evaluated only once per component lifecycle to save on reflection cost!
-    private string ThemeVariables { get; } = new Themes.LightThemeProvider().ToString();
+    // Expose the dynamically discovered themes to the UI
+    public IReadOnlyList<ThemeProvider> AvailableThemes => ThemeManager.GetAvailableThemes();
+
+    // Default to Light Mode
+    public string SelectedThemeName { get; set; } = "Light Mode";
+
+    // Dynamically render the CSS variables based on the selected theme
+    private string ThemeVariables => AvailableThemes
+        .FirstOrDefault(t => t.Name == SelectedThemeName)?.ToString() 
+        ?? new LightThemeProvider().ToString();
+    
     public enum TimestampFormatOption { Local, Utc, Unix, Elapsed }
     public enum RowClickBehaviorOption { SelectText, EditRecord, DeleteRecord }
 
@@ -311,6 +321,7 @@ public void ApplySelectedTheme()
         public TimestampFormatOption TimestampFormat { get; set; }
         public bool FlattenJsonProperties { get; set; }
         public bool HideDefaultValues { get; set; }
+        public string ThemeName { get; set; }
     }
 
     public class LocalSettingsPayload
@@ -326,7 +337,6 @@ public void ApplySelectedTheme()
         public GlobalSettingsPayload Global { get; set; }
         public LocalSettingsPayload Local { get; set; }
     }
-
     protected override void OnInitialized()
     {
         if (HttpContext != null)
@@ -402,6 +412,9 @@ public void ApplySelectedTheme()
             TimestampFormat = g.TimestampFormat;
             FlattenJsonProperties = g.FlattenJsonProperties;
             HideDefaultValues = g.HideDefaultValues;
+            
+            if (!string.IsNullOrWhiteSpace(g.ThemeName))
+                SelectedThemeName = g.ThemeName;
         }
 
         if (l != null) 
@@ -435,7 +448,8 @@ public void ApplySelectedTheme()
                 TableFontSize = TableFontSize,
                 TimestampFormat = TimestampFormat,
                 FlattenJsonProperties = FlattenJsonProperties,
-                HideDefaultValues = HideDefaultValues
+                HideDefaultValues = HideDefaultValues,
+                ThemeName = SelectedThemeName
             };
 
             LocalSettingsPayload l = new LocalSettingsPayload 
@@ -461,7 +475,8 @@ public void ApplySelectedTheme()
                 Global = new GlobalSettingsPayload 
                 {
                     PageSize = PageSize, RefreshInterval = RefreshInterval, TableFontSize = TableFontSize,
-                    TimestampFormat = TimestampFormat, FlattenJsonProperties = FlattenJsonProperties, HideDefaultValues = HideDefaultValues
+                    TimestampFormat = TimestampFormat, FlattenJsonProperties = FlattenJsonProperties, HideDefaultValues = HideDefaultValues,
+                    ThemeName = SelectedThemeName
                 },
                 Local = new LocalSettingsPayload 
                 {
