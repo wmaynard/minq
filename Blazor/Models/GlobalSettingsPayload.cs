@@ -14,7 +14,7 @@ internal class GlobalSettingsPayload : FlexModel
     [FlexIgnore(ignore: Ignore.InBson)]
     public int TableFontSize { get; set; }
     [FlexIgnore(ignore: Ignore.InBson)]
-    public TimestampFormatOption TimestampFormat { get; set; }
+    public MinqViewerTimestampFormatOption MinqViewerTimestampFormat { get; set; }
     [FlexIgnore(ignore: Ignore.InBson)]
     public bool FlattenJsonProperties { get; set; }
     [FlexIgnore(ignore: Ignore.InBson)]

@@ -70,7 +70,7 @@
         <MinqRadio Title="Timestamp Format" 
                    Name="timestampFormat"
                    Options="TimestampOptions" 
-                   @bind-Value="Settings.TimestampFormat" 
+                   @bind-Value="Settings.MinqViewerTimestampFormat" 
                    OnChange="OnPreferencesChanged" />
                    
         <MinqRadio Title="On Click" 
@@ -120,12 +120,12 @@
     // This wrapper is STRICTLY for the native HTML checkboxes
     private Task InvokeOnViewDataChanged() => OnViewDataChanged.InvokeAsync();
 
-    private List<MinqRadioOption<TimestampFormatOption>> TimestampOptions => new()
+    private List<MinqRadioOption<MinqViewerTimestampFormatOption>> TimestampOptions => new()
     {
-        new() { Value = TimestampFormatOption.Local, Label = "DateTime (Local)" },
-        new() { Value = TimestampFormatOption.Utc, Label = "DateTime (UTC)" },
-        new() { Value = TimestampFormatOption.Unix, Label = "Unix Timestamp (UTC)" },
-        new() { Value = TimestampFormatOption.Elapsed, Label = "Elapsed Time" }
+        new() { Value = MinqViewerTimestampFormatOption.Local, Label = "DateTime (Local)" },
+        new() { Value = MinqViewerTimestampFormatOption.Utc, Label = "DateTime (UTC)" },
+        new() { Value = MinqViewerTimestampFormatOption.Unix, Label = "Unix Timestamp (UTC)" },
+        new() { Value = MinqViewerTimestampFormatOption.Elapsed, Label = "Elapsed Time" }
     };
 
     private List<MinqRadioOption<RowClickBehaviorOption>> ClickOptions => new()

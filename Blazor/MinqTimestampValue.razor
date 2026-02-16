@@ -5,7 +5,7 @@
 
 @attribute [EditorBrowsable(EditorBrowsableState.Never)]
 
-@if (Format != TimestampFormatOption.Unix && !string.IsNullOrWhiteSpace(FormattedText))
+@if (Format != MinqViewerTimestampFormatOption.Unix && !string.IsNullOrWhiteSpace(FormattedText))
 {
     <span class="minq-badge @(IsFuture ? "minq-badge-future" : "minq-badge-past")">@FormattedText</span>
 }
@@ -19,7 +19,7 @@ else
     public string RawValue { get; set; }
     
     [Parameter] 
-    public TimestampFormatOption Format { get; set; }
+    public MinqViewerTimestampFormatOption Format { get; set; }
     
     [CascadingParameter] 
     public MinqViewer Parent { get; set; }
@@ -46,7 +46,7 @@ else
 
     private void HandleTick()
     {
-        if (Format == TimestampFormatOption.Elapsed)
+        if (Format == MinqViewerTimestampFormatOption.Elapsed)
         {
             CalculateValue();
             InvokeAsync(StateHasChanged);
@@ -61,7 +61,7 @@ else
             return;
         }
         
-        if (Format == TimestampFormatOption.Unix)
+        if (Format == MinqViewerTimestampFormatOption.Unix)
         {
             FormattedText = RawValue;
             return;
@@ -85,11 +85,11 @@ else
                 TimeSpan elapsed = DateTimeOffset.UtcNow - dto;
                 IsFuture = elapsed.TotalSeconds < 0;
 
-                if (Format == TimestampFormatOption.Local)
+                if (Format == MinqViewerTimestampFormatOption.Local)
                     FormattedText = dto.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss");
-                else if (Format == TimestampFormatOption.Utc)
+                else if (Format == MinqViewerTimestampFormatOption.Utc)
                     FormattedText = dto.ToUniversalTime().ToString("yyyy-MM-dd HH:mm:ss UTC");
-                else if (Format == TimestampFormatOption.Elapsed)
+                else if (Format == MinqViewerTimestampFormatOption.Elapsed)
                 {
                     string prefix = IsFuture ? "in " : "";
                     elapsed = elapsed.Duration(); 

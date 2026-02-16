@@ -98,7 +98,7 @@
                                     <td style="@stickyStyle" title="@cellValue">
                                         @if (cellDef != null && cellDef.IsTimestamp)
                                         {
-                                            <MinqTimestampValue RawValue="@cellValue" Format="State.TimestampFormat" />
+                                            <MinqTimestampValue RawValue="@cellValue" Format="State.MinqViewerTimestampFormat" />
                                         }
                                         else if (cellDef != null && cellDef.IsBool && !string.IsNullOrWhiteSpace(cellValue))
                                         {

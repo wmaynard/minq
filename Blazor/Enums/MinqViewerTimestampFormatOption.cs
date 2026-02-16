@@ -1,6 +1,6 @@
 namespace Maynard.Minq.Blazor.Enums;
 
-public enum TimestampFormatOption
+public enum MinqViewerTimestampFormatOption
 {
     Local, 
     Utc, 

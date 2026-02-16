@@ -20,7 +20,6 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.JSInterop;
 
-
 namespace Maynard.Minq.Blazor;
 
 public partial class MinqViewer
@@ -36,7 +35,7 @@ public partial class MinqViewer
     public string CustomQuery { get; set; }
 
     [Parameter]
-    public DeletionMode DeletionMode { get; set; } = DeletionMode.None;
+    public MinqViewerDeletionMode MinqViewerDeletionMode { get; set; } = MinqViewerDeletionMode.None;
 
     [Parameter]
     public bool IsAdmin { get; set; }
@@ -74,8 +73,8 @@ public partial class MinqViewer
     public bool IsDeleteAllModalOpen { get; set; }
     public object SelectedRecord { get; set; }
 
-    public bool CanDeleteSingle => DeletionMode.HasFlag(DeletionMode.SingleRecord) || (IsAdmin && DeletionMode.HasFlag(DeletionMode.SingleRecordAdminOnly));
-    public bool CanDeleteCollection => DeletionMode.HasFlag(DeletionMode.Collection) || (IsAdmin && DeletionMode.HasFlag(DeletionMode.CollectionAdminOnly));
+    public bool CanDeleteSingle => MinqViewerDeletionMode.HasFlag(MinqViewerDeletionMode.SingleRecord) || (IsAdmin && MinqViewerDeletionMode.HasFlag(MinqViewerDeletionMode.SingleRecordAdminOnly));
+    public bool CanDeleteCollection => MinqViewerDeletionMode.HasFlag(MinqViewerDeletionMode.Collection) || (IsAdmin && MinqViewerDeletionMode.HasFlag(MinqViewerDeletionMode.CollectionAdminOnly));
 
     private Array LastRecords { get; set; } = Array.Empty<object>();
 
@@ -121,7 +120,7 @@ public partial class MinqViewer
                 PageSize = State.PageSize,
                 RefreshInterval = State.RefreshInterval,
                 TableFontSize = State.TableFontSize,
-                TimestampFormat = State.TimestampFormat,
+                MinqViewerTimestampFormat = State.MinqViewerTimestampFormat,
                 FlattenJsonProperties = State.FlattenJsonProperties,
                 HideDefaultValues = State.HideDefaultValues,
                 ThemeName = State.SelectedThemeName
@@ -156,9 +155,6 @@ public partial class MinqViewer
 
     protected override void OnInitialized()
     {
-        if (HttpContext != null)
-            Log.Warn("MinqViewer is executing in a server request context (Static SSR or Prerendering). If it remains unresponsive after loading, verify the parent page has an interactive render mode applied.");
-            
         ElapsedTimer = new PeriodicTimer(TimeSpan.FromSeconds(1));
         _ = RunElapsedTimerAsync();
         
@@ -181,13 +177,15 @@ public partial class MinqViewer
         }
         catch { } 
 
-        LoadData();
+        if (IsViewingSharedState)
+            LoadData();
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (!firstRender || IsViewingSharedState)
             return;
+            
         try 
         {
             FlexJson globalJson = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "MinqViewer_Global");
@@ -197,36 +195,37 @@ public partial class MinqViewer
             LocalSettingsPayload lSet = localJson?.ToModel<LocalSettingsPayload>();
             
             if (gSet != null || lSet != null) 
-            {
                 ApplySettings(gSet, lSet);
-                LoadData(); 
-                StateHasChanged();
-            }
         } 
         catch { }
+        finally
+        {
+            LoadData(); 
+            StateHasChanged();
+        }
     }
 
-    private void ApplySettings(GlobalSettingsPayload g, LocalSettingsPayload l)
+    private void ApplySettings(GlobalSettingsPayload global, LocalSettingsPayload local)
     {
-        if (g != null) 
+        if (global != null) 
         {
-            State.PageSize = g.PageSize;
-            State.RefreshInterval = g.RefreshInterval;
-            State.TableFontSize = g.TableFontSize;
-            State.TimestampFormat = g.TimestampFormat;
-            State.FlattenJsonProperties = g.FlattenJsonProperties;
-            State.HideDefaultValues = g.HideDefaultValues;
+            State.PageSize = global.PageSize;
+            State.RefreshInterval = global.RefreshInterval;
+            State.TableFontSize = global.TableFontSize;
+            State.MinqViewerTimestampFormat = global.MinqViewerTimestampFormat;
+            State.FlattenJsonProperties = global.FlattenJsonProperties;
+            State.HideDefaultValues = global.HideDefaultValues;
             
-            if (!string.IsNullOrWhiteSpace(g.ThemeName))
-                State.SelectedThemeName = g.ThemeName;
+            if (!string.IsNullOrWhiteSpace(global.ThemeName))
+                State.SelectedThemeName = global.ThemeName;
         }
 
-        if (l != null) 
+        if (local != null) 
         {
-            State.PinnedColumnWidth = l.PinnedColumnWidth;
-            State.MaxColumnWidth = l.MaxColumnWidth;
-            State.RowClickBehavior = l.RowClickBehavior;
-            HiddenColumns = new HashSet<string>(l.HiddenColumns ?? new List<string>(), StringComparer.OrdinalIgnoreCase);
+            State.PinnedColumnWidth = local.PinnedColumnWidth;
+            State.MaxColumnWidth = local.MaxColumnWidth;
+            State.RowClickBehavior = local.RowClickBehavior;
+            HiddenColumns = new HashSet<string>(local.HiddenColumns ?? new List<string>(), StringComparer.OrdinalIgnoreCase);
         }
 
         if (State.RowClickBehavior == RowClickBehaviorOption.DeleteRecord && !CanDeleteSingle) 
@@ -250,7 +249,7 @@ public partial class MinqViewer
                     PageSize = State.PageSize, 
                     RefreshInterval = State.RefreshInterval, 
                     TableFontSize = State.TableFontSize,
-                    TimestampFormat = State.TimestampFormat, 
+                    MinqViewerTimestampFormat = State.MinqViewerTimestampFormat, 
                     FlattenJsonProperties = State.FlattenJsonProperties, 
                     HideDefaultValues = State.HideDefaultValues, 
                     ThemeName = State.SelectedThemeName
@@ -281,7 +280,7 @@ public partial class MinqViewer
         try
         {
             while (await ElapsedTimer.WaitForNextTickAsync(ElapsedCts.Token))
-                if (State.TimestampFormat == TimestampFormatOption.Elapsed)
+                if (State.MinqViewerTimestampFormat == MinqViewerTimestampFormatOption.Elapsed)
                     OnSecondTicked?.Invoke();
         }
         catch (OperationCanceledException) { }
