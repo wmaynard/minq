@@ -28,7 +28,7 @@ internal static class ObjectExtension
             int i => i == 0,
             long l => l == 0,
             decimal dec => dec == 0,
-            bool => false, // Matching original JsonElement logic where false is not "default"
+            bool => false, // Any boolean value is considered not default here; otherwise, false booleans are hidden from display
             FlexJson fj => !fj.Keys.Any(),
             IDictionary dict => dict.Count == 0,
             IEnumerable e => !e.Cast<object>().Any(),

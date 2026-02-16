@@ -111,11 +111,12 @@ public partial class MinqViewer
     
     internal async Task SavePreferencesAsync()
     {
-        if (IsViewingSharedState) return;
+        if (IsViewingSharedState)
+            return;
 
-        try 
+        try
         {
-            GlobalSettingsPayload g = new() 
+            GlobalSettingsPayload g = new()
             {
                 PageSize = State.PageSize,
                 RefreshInterval = State.RefreshInterval,
@@ -126,7 +127,7 @@ public partial class MinqViewer
                 ThemeName = State.SelectedThemeName
             };
 
-            LocalSettingsPayload l = new() 
+            LocalSettingsPayload l = new()
             {
                 PinnedColumnWidth = State.PinnedColumnWidth,
                 MaxColumnWidth = State.MaxColumnWidth,
@@ -136,8 +137,11 @@ public partial class MinqViewer
 
             await JSRuntime.InvokeVoidAsync("localStorage.setItem", "MinqViewer_Global", g.ToJson());
             await JSRuntime.InvokeVoidAsync("localStorage.setItem", $"MinqViewer_Local_{Contract.Name}", l.ToJson());
-        } 
-        catch { }
+        }
+        catch (Exception ex)
+        {
+            Log.Error("Unable to save preferences.", ex);
+        }
     }
     
     internal async Task SaveSharedAsDefault()
@@ -339,9 +343,7 @@ public partial class MinqViewer
                 Log.Info($"Successfully updated record via {Contract.Name}.Update()");
             }
             else
-            {
                 Log.Error($"Update method not found on contract {Contract.Name}.");
-            }
 
             CloseModals();
             LoadData(); 
@@ -594,7 +596,6 @@ public partial class MinqViewer
         BuildColumnDefinitions(modelType, string.Empty, [], [], []);
 
         foreach (MinqColumnDefinition def in ColumnDefinitions.Values.Where(d => !d.IsIgnored))
-        {
             if (State.FlattenJsonProperties)
             {
                 if (!def.IsComplex && !Columns.Contains(def.Name))
@@ -602,55 +603,35 @@ public partial class MinqViewer
             }
             else if (!def.IsNested && !Columns.Contains(def.Name))
                 Columns.Add(def.Name);
-        }
 
         foreach (object record in records)
         {
-            string json = "{}";
-            
-            // Cleanly prioritize the FlexModel base class, fallback to reflection if needed
-            if (record is FlexModel flexModel)
+            MethodInfo toJsonMethod = record.GetType().GetMethod(nameof(FlexModel.ToJson));
+            if (toJsonMethod == null)
             {
-                json = flexModel.ToJson() ?? "{}";
-            }
-            else
-            {
-                MethodInfo toJsonMethod = record.GetType().GetMethod(nameof(FlexModel.ToJson));
-                if (toJsonMethod == null)
-                {
-                    Log.Error($"Could not find method {nameof(FlexModel.ToJson)} on record. Is it not a {nameof(FlexModel)}?");
-                    return;
-                }
-                json = (string)toJsonMethod.Invoke(record, null) ?? "{}";
+                Log.Error($"Could not find method {nameof(FlexModel.ToJson)} on record. Is it not a {nameof(FlexModel)}?", record);
+                return;
             }
             
-            // FlexJson's implicit string operator handles the parsing for us here
-            FlexJson document = json;
+            FlexJson document = (string)toJsonMethod.Invoke(record, null) ?? "{}";
             Dictionary<string, string> rowData = [];
-
+            
             if (State.FlattenJsonProperties)
-            {
                 FlattenObject(document, string.Empty, rowData);
-            }
             else
-            {
-                foreach (KeyValuePair<string, object> property in document)
+                foreach (string key in document.Keys)
                 {
-                    string propName = property.Key;
-                    if (ColumnDefinitions.TryGetValue(propName, out MinqColumnDefinition def))
-                    {
-                        if (def.IsIgnored) continue;
-                        propName = def.Name; 
-                    }
-
-                    if (!Columns.Contains(propName))
-                        Columns.Add(propName);
-                    else if (State.HideDefaultValues && property.Value.IsDefault())
+                    string toAdd = ColumnDefinitions.TryGetValue(key, out MinqColumnDefinition def)
+                        ? def.Name
+                        : key;
+                    if (def?.IsIgnored ?? false)
                         continue;
-
-                    rowData[propName] = property.Value?.ToString() ?? string.Empty;
+                    if (!Columns.Contains(toAdd))
+                        Columns.Add(toAdd);
+                    else if (State.HideDefaultValues && (document[key]?.IsDefault() ?? true))
+                        continue;
+                    rowData[toAdd] = document[key]?.ToString() ?? string.Empty;
                 }
-            }
 
             Rows.Add(rowData);
         }
@@ -658,14 +639,17 @@ public partial class MinqViewer
         Columns.Sort(new MinqViewColumnComparer(ColumnDefinitions));
     }
 
-    // Swapped out JsonElement for an IDictionary to recursively walk the FlexJson
-    private void FlattenObject(IDictionary<string, object> element, string prefix, Dictionary<string, string> rowData)
+    private void FlattenObject(FlexJson element, string prefix, Dictionary<string, string> rowData)
     {
-        if (element == null) return;
-        
-        foreach (KeyValuePair<string, object> property in element)
+        if (element == null) 
+            return;
+
+        foreach (string key in element.Keys)
         {
-            string rawPropName = string.IsNullOrEmpty(prefix) ? property.Key : $"{prefix}.{property.Key}";
+            if (State.HideDefaultValues && (element[key]?.IsDefault() ?? true))
+                continue;
+            
+            string rawPropName = string.IsNullOrEmpty(prefix) ? key : $"{prefix}.{key}";
             string propName = rawPropName;
             
             if (ColumnDefinitions.TryGetValue(rawPropName, out MinqColumnDefinition def))
@@ -674,21 +658,14 @@ public partial class MinqViewer
                     continue;
                 propName = def.Name;
             }
-
-            if (State.HideDefaultValues && property.Value.IsDefault())
-                continue;
-
-            // FlexJson neatly parses nested JSON objects into nested dictionaries.
-            if (property.Value is IDictionary<string, object> nestedDict)
-            {
-                FlattenObject(nestedDict, rawPropName, rowData);
-            }
+            
+            if (element[key] is FlexJson nested)
+                FlattenObject(nested, rawPropName, rowData);
             else
             {
                 if (!Columns.Contains(propName))
                     Columns.Add(propName);
-
-                rowData[propName] = property.Value?.ToString() ?? string.Empty;
+                rowData[propName] = element[key]?.ToString() ?? string.Empty;
             }
         }
     }
