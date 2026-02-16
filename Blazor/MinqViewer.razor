@@ -150,57 +150,6 @@
 </CascadingValue>
 
 @code {
-    public List<ThemeProvider> SystemThemes { get; set; } = new();
-public List<ThemeProvider> CustomThemes { get; set; } = new();
-public string CurrentThemeName { get; set; } = "Default";
-public ThemeProvider ActiveTheme { get; set; }
-
-public void DiscoverThemes()
-{
-    Type baseType = typeof(ThemeProvider);
-    Assembly systemAssembly = baseType.Assembly; // The assembly containing your library
-    
-    // 1. Load System Themes
-    SystemThemes = systemAssembly.GetTypes()
-        .Where(t => t.IsClass && !t.IsAbstract && t.IsSubclassOf(baseType))
-        .Select(t => (ThemeProvider)Activator.CreateInstance(t))
-        .OrderBy(t => t.Name)
-        .ToList();
-
-    // 2. Load Custom Themes (From the developer's app)
-    CustomThemes = new List<ThemeProvider>();
-    
-    var appAssemblies = AppDomain.CurrentDomain.GetAssemblies()
-        .Where(a => a != systemAssembly && !a.FullName.StartsWith("System") && !a.FullName.StartsWith("Microsoft"));
-        
-    foreach (var assembly in appAssemblies)
-    {
-        try 
-        {
-            var types = assembly.GetTypes()
-                .Where(t => t.IsClass && !t.IsAbstract && t.IsSubclassOf(baseType))
-                .Select(t => (ThemeProvider)Activator.CreateInstance(t));
-                
-            CustomThemes.AddRange(types);
-        } 
-        catch { /* Ignore dynamically emitted/unsupported assemblies */ }
-    }
-    
-    CustomThemes = CustomThemes.OrderBy(t => t.Name).ToList();
-}
-
-public void ApplySelectedTheme()
-{
-    if (CurrentThemeName == "Default")
-    {
-        ActiveTheme = null; // Let the fallback CSS handle it
-    }
-    else
-    {
-        ActiveTheme = SystemThemes.Concat(CustomThemes).FirstOrDefault(t => t.Name == CurrentThemeName);
-    }
-}
-    // Evaluated only once per component lifecycle to save on reflection cost!
     // Expose the dynamically discovered themes to the UI
     public IReadOnlyList<ThemeProvider> AvailableThemes => ThemeManager.GetAvailableThemes();
 
@@ -337,6 +286,7 @@ public void ApplySelectedTheme()
         public GlobalSettingsPayload Global { get; set; }
         public LocalSettingsPayload Local { get; set; }
     }
+
     protected override void OnInitialized()
     {
         if (HttpContext != null)
@@ -475,8 +425,8 @@ public void ApplySelectedTheme()
                 Global = new GlobalSettingsPayload 
                 {
                     PageSize = PageSize, RefreshInterval = RefreshInterval, TableFontSize = TableFontSize,
-                    TimestampFormat = TimestampFormat, FlattenJsonProperties = FlattenJsonProperties, HideDefaultValues = HideDefaultValues,
-                    ThemeName = SelectedThemeName
+                    TimestampFormat = TimestampFormat, FlattenJsonProperties = FlattenJsonProperties, 
+                    HideDefaultValues = HideDefaultValues, ThemeName = SelectedThemeName
                 },
                 Local = new LocalSettingsPayload 
                 {
@@ -504,6 +454,13 @@ public void ApplySelectedTheme()
         await SavePreferencesAsync();
         NavManager.NavigateTo(NavManager.GetUriWithQueryParameter("view", (string)null), replace: true);
         Log.Info("Shared view saved as your personal default.");
+    }
+
+    // Force the UI to re-render the style block immediately when the dropdown changes
+    public async Task OnThemeChangedAsync()
+    {
+        await SavePreferencesAsync();
+        StateHasChanged(); 
     }
 
     public async Task RunElapsedTimerAsync()
