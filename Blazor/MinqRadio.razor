@@ -1,7 +1,7 @@
 @typeparam TValue
 @using System.ComponentModel
 @using Maynard.Minq.Blazor.Models
-@using Microsoft.AspNetCore.Components
+@using Microsoft.AspNetCore.Components.Web
 
 @attribute [EditorBrowsable(EditorBrowsableState.Never)]
 
@@ -11,7 +11,7 @@
         <div class="minq-radio-title">@Title</div>
     }
     <div class="minq-radio-group">
-        @foreach (var opt in Options)
+        @foreach (MinqRadioOption<TValue> opt in Options)
         {
             <label class="minq-radio-label" style="@(opt.IsDisabled ? "opacity: 0.5;" : "")">
                 <input type="radio" name="@Name" disabled="@opt.IsDisabled" checked="@(opt.Value.Equals(Value))" @onchange="@(() => HandleChange(opt.Value))" />
@@ -36,8 +36,6 @@
         Value = newValue;
         await ValueChanged.InvokeAsync(newValue);
         if (OnChange.HasDelegate)
-        {
             await OnChange.InvokeAsync();
-        }
     }
 }
