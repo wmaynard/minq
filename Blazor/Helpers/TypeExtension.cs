@@ -30,4 +30,20 @@ internal static class TypeExtension
             return type.IsClass || type.IsValueType;
         }
     }
+
+    internal static string GetFriendlyName(this Type type)
+    {
+        if (type.IsByRef)
+            type = type.GetElementType() ?? type;
+
+        return type switch
+        {
+            _ when type.IsArray => $"{type.GetElementType()?.Name}[]",
+            _ when type == typeof(int) => "int",
+            _ when type == typeof(long) => "long",
+            _ when type == typeof(string) => "string",
+            _ when type == typeof(bool) => "bool",
+            _ => type.Name
+        };
+    }
 }

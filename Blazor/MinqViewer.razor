@@ -119,33 +119,22 @@
 
             @if (IsColumnPickerOpen)
             {
-                <ColumnPicker AvailableColumns="PickerColumns" 
-                              HiddenColumns="HiddenColumns" 
-                              OnApply="ApplyColumns" 
-                              OnCancel="CloseColumnPicker" />
+                <ColumnPicker AvailableColumns="PickerColumns" HiddenColumns="HiddenColumns" OnApply="ApplyColumns" OnCancel="CloseColumnPicker" />
             }
             
             @if (IsEditorOpen && SelectedRecord != null)
             {
-                <RecordEditor Model="SelectedRecord" 
-                              ColumnDefinitions="ColumnDefinitions.Values" 
-                              OnSave="SaveRecord" 
-                              OnCancel="CloseModals" />
+                <RecordEditor Model="SelectedRecord" ColumnDefinitions="ColumnDefinitions.Values" OnSave="SaveRecord" OnCancel="CloseModals" />
             }
 
             @if (IsDeleteModalOpen && SelectedRecord != null)
             {
-                <DeleteRecord Model="SelectedRecord" 
-                              IsCollection="false"
-                              OnDelete="DeleteRecord" 
-                              OnCancel="CloseModals" />
+                <DeleteRecord Model="SelectedRecord" IsCollection="false"OnDelete="DeleteRecord" OnCancel="CloseModals" />
             }
 
             @if (IsDeleteAllModalOpen)
             {
-                <DeleteRecord IsCollection="true"
-                              OnDeleteCollection="DeleteAllRecords" 
-                              OnCancel="CloseModals" />
+                <DeleteRecord IsCollection="true"OnDeleteCollection="DeleteAllRecords" OnCancel="CloseModals" />
             }
         }
     </div>

@@ -147,7 +147,53 @@ public partial class MinqViewer
     // Serialization DTOs
 
 
+    #region Settings Callbacks    
+    // Force the UI to re-render the style block immediately when the dropdown changes
+    internal async Task OnThemeChangedAsync()
+    {
+        await SavePreferencesAsync();
+        StateHasChanged(); 
+    }
+    internal async Task SavePreferencesAsync()
+    {
+        if (IsViewingSharedState) return;
 
+        try 
+        {
+            GlobalSettingsPayload g = new() 
+            {
+                PageSize = PageSize,
+                RefreshInterval = RefreshInterval,
+                TableFontSize = TableFontSize,
+                TimestampFormat = TimestampFormat,
+                FlattenJsonProperties = FlattenJsonProperties,
+                HideDefaultValues = HideDefaultValues,
+                ThemeName = SelectedThemeName
+            };
+
+            LocalSettingsPayload l = new() 
+            {
+                PinnedColumnWidth = PinnedColumnWidth,
+                MaxColumnWidth = MaxColumnWidth,
+                RowClickBehavior = RowClickBehavior,
+                HiddenColumns = HiddenColumns.ToList()
+            };
+
+            await JSRuntime.InvokeVoidAsync("localStorage.setItem", "MinqViewer_Global", g.ToJson());
+            await JSRuntime.InvokeVoidAsync("localStorage.setItem", $"MinqViewer_Local_{Contract.Name}", l.ToJson());
+        } 
+        catch { }
+    }
+    
+    internal async Task SaveSharedAsDefault()
+    {
+        IsViewingSharedState = false;
+        await SavePreferencesAsync();
+        NavManager.NavigateTo(NavManager.GetUriWithQueryParameter("view", (string)null), replace: true);
+        Log.Info("Shared view saved as your personal default.");
+    }
+    
+    #endregion Settings Callbacks
 
 
 
@@ -235,39 +281,8 @@ public partial class MinqViewer
         if (RefreshTimerComponent != null)
             RefreshTimerComponent.Interval = RefreshInterval;
     }
-
-    public async Task SavePreferencesAsync()
-    {
-        if (IsViewingSharedState) return;
-
-        try 
-        {
-            GlobalSettingsPayload g = new() 
-            {
-                PageSize = PageSize,
-                RefreshInterval = RefreshInterval,
-                TableFontSize = TableFontSize,
-                TimestampFormat = TimestampFormat,
-                FlattenJsonProperties = FlattenJsonProperties,
-                HideDefaultValues = HideDefaultValues,
-                ThemeName = SelectedThemeName
-            };
-
-            LocalSettingsPayload l = new() 
-            {
-                PinnedColumnWidth = PinnedColumnWidth,
-                MaxColumnWidth = MaxColumnWidth,
-                RowClickBehavior = RowClickBehavior,
-                HiddenColumns = HiddenColumns.ToList()
-            };
-
-            await JSRuntime.InvokeVoidAsync("localStorage.setItem", "MinqViewer_Global", g.ToJson());
-            await JSRuntime.InvokeVoidAsync("localStorage.setItem", $"MinqViewer_Local_{Contract.Name}", l.ToJson());
-        } 
-        catch { }
-    }
-
-    public async Task CopyShareLink()
+    
+    private async Task CopyShareLink()
     {
         try 
         {
@@ -304,22 +319,11 @@ public partial class MinqViewer
         }
     }
 
-    public async Task SaveSharedAsDefault()
-    {
-        IsViewingSharedState = false;
-        await SavePreferencesAsync();
-        NavManager.NavigateTo(NavManager.GetUriWithQueryParameter("view", (string)null), replace: true);
-        Log.Info("Shared view saved as your personal default.");
-    }
 
-    // Force the UI to re-render the style block immediately when the dropdown changes
-    public async Task OnThemeChangedAsync()
-    {
-        await SavePreferencesAsync();
-        StateHasChanged(); 
-    }
 
-    public async Task RunElapsedTimerAsync()
+
+
+    private async Task RunElapsedTimerAsync()
     {
         try
         {
@@ -337,12 +341,12 @@ public partial class MinqViewer
         ElapsedTimer?.Dispose();
     }
 
-    public void ToggleSettings() => IsSettingsOpen = !IsSettingsOpen;
+    private void ToggleSettings() => IsSettingsOpen = !IsSettingsOpen;
     
-    public void OpenColumnPicker() => IsColumnPickerOpen = true;
-    public void CloseColumnPicker() => IsColumnPickerOpen = false;
+    internal void OpenColumnPicker() => IsColumnPickerOpen = true;
+    private void CloseColumnPicker() => IsColumnPickerOpen = false;
 
-    public void ApplyColumns(HashSet<string> newHiddenColumns)
+    private void ApplyColumns(HashSet<string> newHiddenColumns)
     {
         HiddenColumns = newHiddenColumns;
         IsColumnPickerOpen = false;
@@ -472,7 +476,7 @@ public partial class MinqViewer
         _ = SavePreferencesAsync();
     }
 
-    public void PreviousPage()
+    private void PreviousPage()
     {
         if (PageNumber <= 0)
             return;
@@ -480,7 +484,7 @@ public partial class MinqViewer
         LoadData();
     }
 
-    public void NextPage()
+    private void NextPage()
     {
         if (PageNumber + 1 >= TotalPages)
             return;
@@ -488,36 +492,20 @@ public partial class MinqViewer
         LoadData();
     }
 
-    public string GenerateSignatureString(MethodInfo method)
+    private string GenerateSignatureString(MethodInfo method)
     {
-        string returnType = GetFriendlyTypeName(method.ReturnType);
+        string returnType = method.ReturnType.GetFriendlyName();
         ParameterInfo[] parameters = method.GetParameters();
         List<string> paramStrings = [];
 
         foreach (ParameterInfo p in parameters)
         {
             string modifier = p.IsOut ? "out " : (p.ParameterType.IsByRef ? "ref " : "");
-            string typeName = GetFriendlyTypeName(p.ParameterType);
+            string typeName = p.ParameterType.GetFriendlyName();
             paramStrings.Add($"{modifier}{typeName} {p.Name}");
         }
 
         return $"{returnType} {method.Name}({string.Join(", ", paramStrings)})";
-    }
-
-    public string GetFriendlyTypeName(Type type)
-    {
-        if (type.IsByRef)
-            type = type.GetElementType() ?? type;
-
-        if (type.IsArray)
-            return $"{type.GetElementType()?.Name}[]";
-
-        if (type == typeof(int)) return "int";
-        if (type == typeof(long)) return "long";
-        if (type == typeof(string)) return "string";
-        if (type == typeof(bool)) return "bool";
-        
-        return type.Name;
     }
 
     public void LoadData()
@@ -567,7 +555,7 @@ public partial class MinqViewer
             {
                 Log.Warn($"{nameof(PageSize)} was 0 or less.  This should never happen; a bug is present.  Defaulting to 1.", new
                 {
-                    Help = "This is likely the result of bad JSON deserialization."
+                    Help = "This is likely the result of bad JSON deserialization.  Try deleting local storage and refreshing the page."
                 });
                 PageSize = 1;
             }
@@ -594,16 +582,10 @@ public partial class MinqViewer
         IsLoading = false;
     }
 
-    public void LoadColumnDefinitions(Type modelType)
-    {
-        ColumnDefinitions.Clear();
-        BuildColumnDefinitions(modelType, string.Empty, [], [], []);
-    }
-
     private void BuildColumnDefinitions(Type type, string prefix, List<int> currentOrderPath, HashSet<Type> visitedTypes, PropertyInfo[] currentPropertyPath)
     {
-        if (visitedTypes.Contains(type)) return;
-        visitedTypes.Add(type);
+        if (!visitedTypes.Add(type))
+            return;
 
         PropertyInfo[] properties = type.GetProperties();
 
@@ -616,8 +598,6 @@ public partial class MinqViewer
             FlexKeys flexAttr = declaredProp.GetCustomAttribute<FlexKeys>();
             FlexIgnore flexIgnoreAttr = declaredProp.GetCustomAttribute<FlexIgnore>();
             MinqViewAttribute viewAttr = declaredProp.GetCustomAttribute<MinqViewAttribute>();
-            
-            bool hasFlexIgnore = declaredProp.CustomAttributes.Any(a => a.AttributeType.Name.Contains("FlexIgnore"));
 
             string jsonKey = prop.Name;
             
@@ -691,7 +671,7 @@ public partial class MinqViewer
         }
     }
 
-    public void ParseData(Array records)
+    private void ParseData(Array records)
     {
         Columns.Clear();
         Rows.Clear();
@@ -700,21 +680,17 @@ public partial class MinqViewer
             return;
 
         Type modelType = records.GetType().GetElementType() ?? records.GetValue(0).GetType();
-        LoadColumnDefinitions(modelType);
+        ColumnDefinitions.Clear();
+        BuildColumnDefinitions(modelType, string.Empty, [], [], []);
 
         foreach (MinqColumnDefinition def in ColumnDefinitions.Values.Where(d => !d.IsIgnored))
-        {
             if (FlattenJsonProperties)
             {
                 if (!def.IsComplex && !Columns.Contains(def.Name))
                     Columns.Add(def.Name);
             }
-            else
-            {
-                if (!def.IsNested && !Columns.Contains(def.Name))
-                    Columns.Add(def.Name);
-            }
-        }
+            else if (!def.IsNested && !Columns.Contains(def.Name))
+                Columns.Add(def.Name);
 
         foreach (object record in records)
         {
@@ -744,7 +720,7 @@ public partial class MinqViewer
 
                     if (!Columns.Contains(propName))
                         Columns.Add(propName);
-                    else if (HideDefaultValues && IsDefaultValue(property.Value))
+                    else if (HideDefaultValues && property.Value.IsDefault())
                         continue;
 
                     rowData[propName] = property.Value.ToString();
@@ -766,11 +742,12 @@ public partial class MinqViewer
             
             if (ColumnDefinitions.TryGetValue(rawPropName, out MinqColumnDefinition def))
             {
-                if (def.IsIgnored) continue;
+                if (def.IsIgnored) 
+                    continue;
                 propName = def.Name;
             }
 
-            if (HideDefaultValues && IsDefaultValue(property.Value))
+            if (HideDefaultValues && property.Value.IsDefault())
                 continue;
 
             if (property.Value.ValueKind == JsonValueKind.Object)
@@ -782,33 +759,6 @@ public partial class MinqViewer
 
                 rowData[propName] = property.Value.ToString();
             }
-        }
-    }
-
-    private bool IsDefaultValue(JsonElement element)
-    {
-        switch (element.ValueKind)
-        {
-            case JsonValueKind.Null:
-            case JsonValueKind.Undefined:
-                return true;
-            case JsonValueKind.String:
-                string text = element.GetString();
-                if (string.IsNullOrEmpty(text)) return true;
-                if (text == "00000000-0000-0000-0000-000000000000") return true;
-                if (text == "0001-01-01T00:00:00" || text == "0001-01-01T00:00:00Z") return true;
-                return false;
-            case JsonValueKind.Number:
-                if (element.TryGetDouble(out double num) && num == 0) return true;
-                return false;
-            case JsonValueKind.False:
-                return false;
-            case JsonValueKind.Array:
-                return element.GetArrayLength() == 0;
-            case JsonValueKind.Object:
-                return !element.EnumerateObject().Any();
-            default:
-                return false;
         }
     }
 }
