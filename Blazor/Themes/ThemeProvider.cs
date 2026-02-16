@@ -7,53 +7,55 @@ namespace Maynard.Minq.Blazor.Themes;
 
 public abstract partial class ThemeProvider
 {
+    public abstract string Name { get; }
+    
     // 1. Primary / Brand (Blues)
-    internal abstract int Primary { get; }
-    internal abstract int PrimaryHover { get; }
-    internal abstract int PrimaryLight { get; }
+    public abstract int Primary { get; }
+    public abstract int PrimaryHover { get; }
+    public abstract int PrimaryLight { get; }
 
     // 2. Accents / Info (Light Blues)
-    internal abstract int AccentBg { get; }
-    internal abstract int AccentBorder { get; }
-    internal abstract int AccentText { get; }
+    public abstract int AccentBg { get; }
+    public abstract int AccentBorder { get; }
+    public abstract int AccentText { get; }
 
     // 3. Danger / Alerts (Reds)
-    internal abstract int Danger { get; }
-    internal abstract int DangerHover { get; }
-    internal abstract int DangerLight { get; }
-    internal abstract int DangerDisabled { get; }
+    public abstract int Danger { get; }
+    public abstract int DangerHover { get; }
+    public abstract int DangerLight { get; }
+    public abstract int DangerDisabled { get; }
 
     // 4. Status Badges
-    internal abstract int BadgeTrue { get; }
-    internal abstract int BadgeFalse { get; }
-    internal abstract int BadgeFuture { get; }
-    internal abstract int BadgePast { get; }
-    internal abstract int BadgePastText { get; }
+    public abstract int BadgeTrue { get; }
+    public abstract int BadgeFalse { get; }
+    public abstract int BadgeFuture { get; }
+    public abstract int BadgePast { get; }
+    public abstract int BadgePastText { get; }
 
     // 5. Table Headers & Timers
-    internal abstract int HeaderBg { get; }
-    internal abstract int HeaderBorder { get; }
-    internal abstract int TimerText { get; }
+    public abstract int HeaderBg { get; }
+    public abstract int HeaderBorder { get; }
+    public abstract int TimerText { get; }
 
     // 6. Backgrounds / Surfaces
-    internal abstract int BgSurface { get; }
-    internal abstract int BgAlt { get; }
-    internal abstract int BgEmpty { get; }
-    internal abstract int BgDisabled { get; }
-    internal abstract int BgHover { get; }
-    internal abstract string Overlay { get; } // String to support rgba()
+    public abstract int BgSurface { get; }
+    public abstract int BgAlt { get; }
+    public abstract int BgEmpty { get; }
+    public abstract int BgDisabled { get; }
+    public abstract int BgHover { get; }
+    public abstract string Overlay { get; } // String to support rgba()
 
     // 7. Borders / Lines
-    internal abstract int BorderLight { get; }
-    internal abstract int Border { get; }
-    internal abstract int BorderDark { get; }
+    public abstract int BorderLight { get; }
+    public abstract int Border { get; }
+    public abstract int BorderDark { get; }
 
     // 8. Text / Typography
-    internal abstract int TextDark { get; }
-    internal abstract int TextMain { get; }
-    internal abstract int TextMuted { get; }
-    internal abstract int TextDisabled { get; }
-    internal abstract int TextLight { get; }
+    public abstract int TextDark { get; }
+    public abstract int TextMain { get; }
+    public abstract int TextMuted { get; }
+    public abstract int TextDisabled { get; }
+    public abstract int TextLight { get; }
 
     public override string ToString()
     {
