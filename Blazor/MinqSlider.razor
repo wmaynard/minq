@@ -1,6 +1,11 @@
 @using Microsoft.AspNetCore.Components
 @using Microsoft.AspNetCore.Components.Web
 
+@if (!string.IsNullOrWhiteSpace(Title))
+{
+    <div style="font-size: 0.85rem; color: #555; font-weight: 500; margin-bottom: 0.4rem;">@Title</div>
+}
+
 <div class="minq-slider-wrapper">
     <div class="minq-slider-bubble" style="left: calc(@(Percentage)% + @(8 - (Percentage * 0.16))px);">
         @CurrentDisplayValue @Unit
@@ -20,6 +25,8 @@
 </div>
 
 @code {
+    [Parameter] 
+    public string Title { get; set; }
     [Parameter] 
     public int[] Options { get; set; } = [];
     

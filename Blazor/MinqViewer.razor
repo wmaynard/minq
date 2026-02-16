@@ -57,106 +57,10 @@
         border-color: #3f51b5;
         color: #3f51b5;
     }
-
-    .minq-button-danger {
-        background-color: #f44336;
-        color: white;
-        border-color: #f44336;
-    }
-    .minq-button-danger:hover:not(:disabled) { 
-        background-color: #d32f2f; 
-        border-color: #d32f2f;
-    }
-    .minq-button-danger:disabled {
-        background-color: #ffcdd2;
-        border-color: #ffcdd2;
-        color: #ffffff;
-    }
     
     .minq-pagination-text {
         font-weight: 500;
         margin: 0 8px;
-    }
-
-    .minq-settings-panel {
-        display: flex;
-        flex-wrap: wrap; 
-        gap: 3rem;
-        padding: 1.25rem 1.5rem;
-        background-color: #fafafa;
-        border: 1px solid #e0e0e0;
-        border-radius: 8px;
-        margin-bottom: 1.5rem;
-        box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);
-    }
-    .minq-setting-group {
-        display: flex;
-        flex-direction: column;
-        flex: 1;
-        min-width: 200px; 
-        max-width: 300px;
-        gap: 0.75rem;
-    }
-    .minq-setting-group h4 {
-        margin: 0;
-        font-size: 0.85rem;
-        color: #666;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        border-bottom: 1px solid #ccc;
-        padding-bottom: 4px;
-    }
-    
-    .minq-radio-group {
-        display: flex;
-        flex-direction: column;
-        gap: 0.6rem;
-        margin-top: 0.5rem;
-    }
-    .minq-radio-label {
-        cursor: pointer;
-        font-size: 0.95rem;
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-    }
-
-    .minq-switch {
-        position: relative;
-        display: inline-block;
-        width: 36px;
-        height: 20px;
-        flex-shrink: 0;
-    }
-    .minq-switch input {
-        opacity: 0;
-        width: 0;
-        height: 0;
-    }
-    .minq-slider-round {
-        position: absolute;
-        cursor: pointer;
-        top: 0; left: 0; right: 0; bottom: 0;
-        background-color: #ccc;
-        transition: .3s;
-        border-radius: 20px;
-    }
-    .minq-slider-round:before {
-        position: absolute;
-        content: "";
-        height: 14px;
-        width: 14px;
-        left: 3px;
-        bottom: 3px;
-        background-color: white;
-        transition: .3s;
-        border-radius: 50%;
-    }
-    .minq-switch input:checked + .minq-slider-round {
-        background-color: #3f51b5;
-    }
-    .minq-switch input:checked + .minq-slider-round:before {
-        transform: translateX(16px);
     }
 
     .minq-table-wrapper {
@@ -254,13 +158,6 @@
             align-items: flex-start;
             gap: 1rem;
         }
-        .minq-settings-panel {
-            flex-direction: column;
-            gap: 2rem;
-        }
-        .minq-setting-group {
-            max-width: 100%;
-        }
     }
 </style>
 
@@ -290,10 +187,7 @@
                     </button>
                 </div>
                 <div style="display: flex; align-items: center;">
-                    @if (RefreshInterval > 0)
-                    {
-                        <MinqTimer @ref="RefreshTimerComponent" Interval="RefreshInterval" OnRefreshTriggered="LoadData" />
-                    }
+                    <MinqTimer @ref="RefreshTimerComponent" Interval="RefreshInterval" OnRefreshTriggered="LoadData" />
                     
                     <button class="minq-button" @onclick="PreviousPage" disabled="@(PageNumber == 0)">&lt;</button>
                     <span class="minq-pagination-text"> @(PageNumber + 1) of @TotalPages </span>
@@ -303,110 +197,7 @@
 
             @if (IsSettingsOpen)
             {
-                <div class="minq-settings-panel">
-                    @if (IsViewingSharedState)
-                    {
-                        <div style="width: 100%; background-color: #e3f2fd; color: #1565c0; padding: 12px 16px; border-radius: 6px; margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center; border: 1px solid #bbdefb; font-size: 0.95rem;">
-                            <span><strong>Shared View Active:</strong> Your local preferences are currently paused to display this URL.</span>
-                            <button class="minq-button minq-button-primary" style="margin: 0;" @onclick="SaveSharedAsDefault">Save as My Default</button>
-                        </div>
-                    }
-
-                    <div class="minq-setting-group">
-                        <h4>Paging</h4>
-                        <MinqSlider Options="PageSizeOptions" @bind-Value="PageSize" OnChange="OnPageSizeChanged" Unit="records" />
-                    </div>
-                    
-                    <div class="minq-setting-group">
-                        <h4>Data Refresh</h4>
-                        <MinqSlider Options="RefreshOptions" @bind-Value="RefreshInterval" OnChange="OnRefreshIntervalChanged" Unit="s" />
-                    </div>
-
-                    <div class="minq-setting-group">
-                        <h4>Font Size</h4>
-                        <MinqSlider Options="FontSizeOptions" @bind-Value="TableFontSize" OnChange="SavePreferencesAsync" Unit="px" />
-                    </div>
-
-                    <div class="minq-setting-group">
-                        <h4>Columns</h4>
-                        <div style="display: flex; flex-direction: column; gap: 0.25rem; margin-top: 0.5rem;">
-                            <span style="font-size: 0.85rem; color: #555; font-weight: 500;">Pinned Column Width</span>
-                            <MinqSlider Options="PinnedWidthOptions" @bind-Value="PinnedColumnWidth" OnChange="SavePreferencesAsync" Unit="px" />
-                            
-                            <span style="font-size: 0.85rem; color: #555; font-weight: 500; margin-top: 0.5rem;">Unpinned Column Width</span>
-                            <MinqSlider Options="MaxWidthOptions" @bind-Value="MaxColumnWidth" OnChange="SavePreferencesAsync" Unit="px" />
-                            
-                            <button class="minq-button" style="margin-top: 1rem;" @onclick="OpenColumnPicker">Choose Columns</button>
-                        </div>
-                    </div>
-
-                    <div class="minq-setting-group">
-                        <h4>Timestamp Format</h4>
-                        <div class="minq-radio-group">
-                            <label class="minq-radio-label">
-                                <input type="radio" name="timestampFormat" value="Local" checked="@(TimestampFormat == TimestampFormatOption.Local)" @onchange="@(() => ChangeTimestampFormat(TimestampFormatOption.Local))" />
-                                DateTime (Local)
-                            </label>
-                            <label class="minq-radio-label">
-                                <input type="radio" name="timestampFormat" value="Utc" checked="@(TimestampFormat == TimestampFormatOption.Utc)" @onchange="@(() => ChangeTimestampFormat(TimestampFormatOption.Utc))" />
-                                DateTime (UTC)
-                            </label>
-                            <label class="minq-radio-label">
-                                <input type="radio" name="timestampFormat" value="Unix" checked="@(TimestampFormat == TimestampFormatOption.Unix)" @onchange="@(() => ChangeTimestampFormat(TimestampFormatOption.Unix))" />
-                                Unix Timestamp (UTC)
-                            </label>
-                            <label class="minq-radio-label">
-                                <input type="radio" name="timestampFormat" value="Elapsed" checked="@(TimestampFormat == TimestampFormatOption.Elapsed)" @onchange="@(() => ChangeTimestampFormat(TimestampFormatOption.Elapsed))" />
-                                Elapsed Time
-                            </label>
-                        </div>
-                    </div>
-                    
-                    <div class="minq-setting-group">
-                        <h4>On Click</h4>
-                        <div class="minq-radio-group">
-                            <label class="minq-radio-label">
-                                <input type="radio" name="rowClickBehavior" value="SelectText" checked="@(RowClickBehavior == RowClickBehaviorOption.SelectText)" @onchange="@(() => ChangeRowClickBehavior(RowClickBehaviorOption.SelectText))" />
-                                Select Text
-                            </label>
-                            <label class="minq-radio-label">
-                                <input type="radio" name="rowClickBehavior" value="EditRecord" checked="@(RowClickBehavior == RowClickBehaviorOption.EditRecord)" @onchange="@(() => ChangeRowClickBehavior(RowClickBehaviorOption.EditRecord))" />
-                                Edit Record
-                            </label>
-                            <label class="minq-radio-label" style="@(!CanDeleteSingle ? "opacity: 0.5;" : "")">
-                                <input type="radio" name="rowClickBehavior" value="DeleteRecord" disabled="@(!CanDeleteSingle)" checked="@(RowClickBehavior == RowClickBehaviorOption.DeleteRecord)" @onchange="@(() => ChangeRowClickBehavior(RowClickBehaviorOption.DeleteRecord))" />
-                                Delete Record
-                            </label>
-                        </div>
-                    </div>
-
-                    <div class="minq-setting-group">
-                        <h4>Data Display</h4>
-                        <div class="minq-radio-group">
-                            <label class="minq-radio-label">
-                                <div class="minq-switch">
-                                    <input type="checkbox" @bind="FlattenJsonProperties" @bind:after="OnViewDataChanged" />
-                                    <span class="minq-slider-round"></span>
-                                </div>
-                                Flatten Nested Objects
-                            </label>
-                            <label class="minq-radio-label">
-                                <div class="minq-switch">
-                                    <input type="checkbox" @bind="HideDefaultValues" @bind:after="OnViewDataChanged" />
-                                    <span class="minq-slider-round"></span>
-                                </div>
-                                Hide Default Values
-                            </label>
-                        </div>
-                    </div>
-
-                    <div class="minq-setting-group">
-                        <h4>Danger Zone</h4>
-                        <div style="margin-top: 0.5rem;">
-                            <button class="minq-button minq-button-danger" disabled="@(!CanDeleteCollection)" @onclick="OpenDeleteAllModal">Delete All Records</button>
-                        </div>
-                    </div>
-                </div>
+                <MinqViewerSettings />
             }
 
             <div class="minq-table-wrapper">
@@ -652,7 +443,7 @@
                 }
             }
         }
-        catch { } // Silently ignore malformed URLs and proceed with defaults
+        catch { } 
 
         LoadData();
     }

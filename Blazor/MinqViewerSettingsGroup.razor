@@ -1,0 +1,14 @@
+@using Microsoft.AspNetCore.Components
+
+<div class="minq-setting-group">
+    <h4>@Title</h4>
+    @ChildContent
+</div>
+
+@code {
+    [Parameter] 
+    public string Title { get; set; }
+    
+    [Parameter] 
+    public RenderFragment ChildContent { get; set; }
+}

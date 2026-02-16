@@ -6,7 +6,13 @@
     color: #78909c;
     font-size: 0.95rem;
     margin-right: 1.5rem;
+    transition: opacity 0.3s;
 }
+
+.minq-refresh-container.minq-timer-disabled {
+    opacity: 0.4;
+}
+
 .minq-refresh-ring {
     position: relative;
     width: 36px;
@@ -14,19 +20,36 @@
     display: flex;
     justify-content: center;
     align-items: center;
+    transition: transform 0.1s;
 }
+
+.minq-refresh-container:not(.minq-timer-disabled) .minq-refresh-ring {
+    cursor: pointer;
+}
+
+.minq-refresh-container:not(.minq-timer-disabled) .minq-refresh-ring:hover {
+    transform: scale(1.05);
+}
+
+.minq-refresh-container:not(.minq-timer-disabled) .minq-refresh-ring:active {
+    transform: scale(0.95);
+}
+
 .minq-refresh-ring svg {
     position: absolute;
     top: 0; 
     left: 0;
     transform: rotate(-90deg);
 }
+
 .minq-refresh-ring circle:nth-child(2) {
-    transition: stroke-dashoffset 1s linear; 
+    transition: stroke-dashoffset 1s linear, stroke 0.3s; 
 }
+
 .minq-refresh-value {
     font-weight: 700;
     color: #37474f;
     font-size: 0.85rem;
-    position: relative; /* Naturally elevates the text above the absolute SVG without using z-index */
+    position: relative; 
+    user-select: none;
 }

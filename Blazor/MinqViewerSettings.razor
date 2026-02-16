@@ -1,0 +1,102 @@
+@using Microsoft.AspNetCore.Components
+
+<div class="minq-settings-panel">
+    @if (Parent.IsViewingSharedState)
+    {
+        <div class="minq-shared-alert">
+            <span><strong>Shared View Active:</strong> Your local preferences are currently paused to display this URL.</span>
+            <button class="minq-button minq-button-primary" style="margin: 0;" @onclick="Parent.SaveSharedAsDefault">Save as My Default</button>
+        </div>
+    }
+
+    <MinqViewerSettingsGroup Title="Data">
+        <MinqSlider Title="Page Size" Options="Parent.PageSizeOptions" @bind-Value="Parent.PageSize" OnChange="Parent.OnPageSizeChanged" Unit="records" />
+        <div style="margin-top: 0.75rem;">
+            <MinqSlider Title="Refresh Rate" Options="Parent.RefreshOptions" @bind-Value="Parent.RefreshInterval" OnChange="Parent.OnRefreshIntervalChanged" Unit="s" />
+        </div>
+    </MinqViewerSettingsGroup>
+
+    <MinqViewerSettingsGroup Title="Font Size">
+        <MinqSlider Options="Parent.FontSizeOptions" @bind-Value="Parent.TableFontSize" OnChange="Parent.SavePreferencesAsync" Unit="px" />
+    </MinqViewerSettingsGroup>
+
+    <MinqViewerSettingsGroup Title="Columns">
+        <div style="display: flex; flex-direction: column; gap: 0.25rem;">
+            <MinqSlider Title="Pinned Column Width" Options="Parent.PinnedWidthOptions" @bind-Value="Parent.PinnedColumnWidth" OnChange="Parent.SavePreferencesAsync" Unit="px" />
+            
+            <div style="margin-top: 0.5rem;">
+                <MinqSlider Title="Unpinned Column Width" Options="Parent.MaxWidthOptions" @bind-Value="Parent.MaxColumnWidth" OnChange="Parent.SavePreferencesAsync" Unit="px" />
+            </div>
+            
+            <button class="minq-button" style="margin-top: 1rem;" @onclick="Parent.OpenColumnPicker">Choose Columns</button>
+        </div>
+    </MinqViewerSettingsGroup>
+
+    <MinqViewerSettingsGroup Title="Timestamp Format">
+        <div class="minq-radio-group">
+            <label class="minq-radio-label">
+                <input type="radio" name="timestampFormat" value="Local" checked="@(Parent.TimestampFormat == MinqViewer.TimestampFormatOption.Local)" @onchange="@(() => Parent.ChangeTimestampFormat(MinqViewer.TimestampFormatOption.Local))" />
+                DateTime (Local)
+            </label>
+            <label class="minq-radio-label">
+                <input type="radio" name="timestampFormat" value="Utc" checked="@(Parent.TimestampFormat == MinqViewer.TimestampFormatOption.Utc)" @onchange="@(() => Parent.ChangeTimestampFormat(MinqViewer.TimestampFormatOption.Utc))" />
+                DateTime (UTC)
+            </label>
+            <label class="minq-radio-label">
+                <input type="radio" name="timestampFormat" value="Unix" checked="@(Parent.TimestampFormat == MinqViewer.TimestampFormatOption.Unix)" @onchange="@(() => Parent.ChangeTimestampFormat(MinqViewer.TimestampFormatOption.Unix))" />
+                Unix Timestamp (UTC)
+            </label>
+            <label class="minq-radio-label">
+                <input type="radio" name="timestampFormat" value="Elapsed" checked="@(Parent.TimestampFormat == MinqViewer.TimestampFormatOption.Elapsed)" @onchange="@(() => Parent.ChangeTimestampFormat(MinqViewer.TimestampFormatOption.Elapsed))" />
+                Elapsed Time
+            </label>
+        </div>
+    </MinqViewerSettingsGroup>
+    
+    <MinqViewerSettingsGroup Title="On Click">
+        <div class="minq-radio-group">
+            <label class="minq-radio-label">
+                <input type="radio" name="rowClickBehavior" value="SelectText" checked="@(Parent.RowClickBehavior == MinqViewer.RowClickBehaviorOption.SelectText)" @onchange="@(() => Parent.ChangeRowClickBehavior(MinqViewer.RowClickBehaviorOption.SelectText))" />
+                Select Text
+            </label>
+            <label class="minq-radio-label">
+                <input type="radio" name="rowClickBehavior" value="EditRecord" checked="@(Parent.RowClickBehavior == MinqViewer.RowClickBehaviorOption.EditRecord)" @onchange="@(() => Parent.ChangeRowClickBehavior(MinqViewer.RowClickBehaviorOption.EditRecord))" />
+                Edit Record
+            </label>
+            <label class="minq-radio-label" style="@(!Parent.CanDeleteSingle ? "opacity: 0.5;" : "")">
+                <input type="radio" name="rowClickBehavior" value="DeleteRecord" disabled="@(!Parent.CanDeleteSingle)" checked="@(Parent.RowClickBehavior == MinqViewer.RowClickBehaviorOption.DeleteRecord)" @onchange="@(() => Parent.ChangeRowClickBehavior(MinqViewer.RowClickBehaviorOption.DeleteRecord))" />
+                Delete Record
+            </label>
+        </div>
+    </MinqViewerSettingsGroup>
+
+    <MinqViewerSettingsGroup Title="Data Display">
+        <div class="minq-radio-group">
+            <label class="minq-radio-label">
+                <div class="minq-switch">
+                    <input type="checkbox" @bind="Parent.FlattenJsonProperties" @bind:after="Parent.OnViewDataChanged" />
+                    <span class="minq-slider-round"></span>
+                </div>
+                Flatten Nested Objects
+            </label>
+            <label class="minq-radio-label">
+                <div class="minq-switch">
+                    <input type="checkbox" @bind="Parent.HideDefaultValues" @bind:after="Parent.OnViewDataChanged" />
+                    <span class="minq-slider-round"></span>
+                </div>
+                Hide Default Values
+            </label>
+        </div>
+    </MinqViewerSettingsGroup>
+
+    <MinqViewerSettingsGroup Title="Danger Zone">
+        <div style="margin-top: 0.5rem;">
+            <button class="minq-button minq-button-danger" disabled="@(!Parent.CanDeleteCollection)" @onclick="Parent.OpenDeleteAllModal">Delete All Records</button>
+        </div>
+    </MinqViewerSettingsGroup>
+</div>
+
+@code {
+    [CascadingParameter]
+    public MinqViewer Parent { get; set; }
+}

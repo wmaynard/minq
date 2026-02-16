@@ -2,17 +2,40 @@
 @using System.Threading
 @using Microsoft.AspNetCore.Components
 
-<div class="minq-refresh-container">
+<div class="minq-refresh-container @(Interval <= 0 ? "minq-timer-disabled" : "")">
     Auto-refresh
-    <div class="minq-refresh-ring">
+    <div class="minq-refresh-ring" title="@TooltipText" @onclick="TogglePause">
         <svg width="36" height="36">
             <circle cx="18" cy="18" r="14" fill="none" stroke="#e0e0e0" stroke-width="4" />
-            <circle cx="18" cy="18" r="14" fill="none" stroke="#3f51b5" stroke-width="4" 
-                    stroke-dasharray="87.96" 
-                    stroke-dashoffset="@RefreshDashOffset.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture)" 
-                    stroke-linecap="round" />
+            @if (Interval > 0 && !IsPaused)
+            {
+                <circle cx="18" cy="18" r="14" fill="none" stroke="#3f51b5" stroke-width="4" 
+                        stroke-dasharray="87.96" 
+                        stroke-dashoffset="@RefreshDashOffset.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture)" 
+                        stroke-linecap="round" />
+            }
+            else if (IsPaused && Interval > 0)
+            {
+                <circle cx="18" cy="18" r="14" fill="none" stroke="#9e9e9e" stroke-width="4" 
+                        stroke-dasharray="87.96" 
+                        stroke-dashoffset="0" 
+                        stroke-linecap="round" />
+            }
         </svg>
-        <div class="minq-refresh-value">@SecondsRemaining</div>
+        <div class="minq-refresh-value">
+            @if (Interval <= 0)
+            {
+                <span style="font-size: 1.2rem; line-height: 0;">-</span>
+            }
+            else if (IsPaused)
+            {
+                <span style="letter-spacing: 1px; font-size: 0.75rem;">||</span>
+            }
+            else
+            {
+                @SecondsRemaining
+            }
+        </div>
     </div>
 </div>
 
@@ -25,8 +48,11 @@
 
     public int SecondsRemaining { get; set; }
     public int LastInterval { get; set; }
+    public bool IsPaused { get; set; } = false;
     
-    public double RefreshDashOffset => Interval > 0 ? (1.0 - ((double)SecondsRemaining / Interval)) * 87.964 : 0;
+    public double RefreshDashOffset => Interval > 0 ? (1.0 - ((double)SecondsRemaining / Interval)) * 87.964 : 87.964;
+
+    public string TooltipText => Interval <= 0 ? "Refresh Disabled" : (IsPaused ? "Click to Resume" : "Click to Pause");
 
     public PeriodicTimer Timer { get; set; }
     public CancellationTokenSource Cts { get; set; } = new CancellationTokenSource();
@@ -45,7 +71,16 @@
         {
             LastInterval = Interval;
             SecondsRemaining = Interval;
+            
+            if (Interval <= 0)
+                IsPaused = false;
         }
+    }
+
+    public void TogglePause()
+    {
+        if (Interval > 0)
+            IsPaused = !IsPaused;
     }
 
     public void ResetTimer()
@@ -60,7 +95,7 @@
         {
             while (await Timer.WaitForNextTickAsync(Cts.Token))
             {
-                if (Interval > 0)
+                if (Interval > 0 && !IsPaused)
                 {
                     SecondsRemaining--;
                     
