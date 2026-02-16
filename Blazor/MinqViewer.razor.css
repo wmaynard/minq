@@ -4,6 +4,8 @@
     display: grid; 
     font-family: inherit;
     isolation: isolate; 
+    color: var(--minq-text-main); /* Ensure default text inherits theme */
+    background-color: var(--minq-bg-surface);
 }
 
 .minq-controls {
@@ -62,10 +64,11 @@
 
 .minq-table th {
     background-color: var(--minq-header-bg); 
-    color: var(--minq-bg-surface); 
+    color: var(--minq-header-text); /* Fixed */
+    border-bottom: 2px solid var(--minq-header-border);
     font-weight: bold;
     border-bottom: 2px solid var(--minq-header-border);
-    font-size: inherit; 
+    font-size: inherit;
 }
 
 .minq-table th, .minq-table td {

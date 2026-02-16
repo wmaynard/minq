@@ -1,3 +1,10 @@
+.minq-radio-title {
+    font-size: 0.85rem;
+    color: var(--minq-text-main);
+    font-weight: 500;
+    margin-bottom: 0.4rem;
+}
+
 .minq-radio-group {
     display: flex;
     flex-direction: column;
@@ -12,3 +19,4 @@
     align-items: center;
     gap: 0.5rem;
 }
+

@@ -9,6 +9,8 @@ public abstract partial class ThemeProvider
 {
     public abstract string Name { get; }
     
+    public abstract int HeaderText { get; }
+    
     // 1. Primary / Brand (Blues)
     public abstract int Primary { get; }
     public abstract int PrimaryHover { get; }

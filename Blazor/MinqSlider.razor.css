@@ -1,3 +1,10 @@
+.minq-slider-title {
+    font-size: 0.85rem;
+    color: var(--minq-text-main);
+    font-weight: 500;
+    margin-bottom: 0.4rem;
+}
+
 .minq-slider-wrapper {
     position: relative;
     width: 100%;
@@ -17,7 +24,7 @@
     position: absolute;
     top: 0;
     background-color: var(--minq-header-bg);
-    color: var(--minq-bg-surface);
+    color: var(--minq-header-text); /* Fixed: Decoupled from BgSurface */
     padding: 4px 8px;
     border-radius: 4px;
     font-size: 0.85rem;
@@ -25,7 +32,7 @@
     white-space: nowrap;
     transform: translateX(-50%);
     z-index: 10;
-    transition: left 0.1s ease-out; 
+    transition: left 0.1s ease-out;
 }
 
 .minq-slider-bubble::after {

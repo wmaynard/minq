@@ -3,6 +3,8 @@ namespace Maynard.Minq.Blazor.Themes;
 internal class LightThemeProvider : ThemeProvider
 {
     public override string Name => "Light Mode";
+    
+    public override int HeaderText => 0xFFFFFF; // White text for the dark blue headers
     // 1. Primary / Brand (Blues)
     public override int Primary => 0x3F51B5;
     public override int PrimaryHover => 0x303F9F;

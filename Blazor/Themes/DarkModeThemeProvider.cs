@@ -3,6 +3,8 @@ namespace Maynard.Minq.Blazor.Themes;
 public class DarkThemeProvider : ThemeProvider
 {
     public override string Name => "Dark Mode";
+    
+    public override int HeaderText => 0xE0E0E0; // Light gray text for the dark gray headers
 
     // 1. Primary / Brand (Blues - Lightened for dark bg contrast)
     public override int Primary => 0x7986CB; 
