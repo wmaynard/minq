@@ -35,9 +35,9 @@
 
 .minq-refresh-value {
     font-weight: 700;
-    color: var(--minq-header-bg);
     font-size: 0.85rem;
     position: relative; 
     user-select: none;
     pointer-events: none; 
+    color: var(--minq-text-main);
 }
