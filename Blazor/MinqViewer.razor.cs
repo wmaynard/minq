@@ -199,8 +199,8 @@ public partial class MinqViewer
             if (gSet != null || lSet != null) 
             {
                 ApplySettings(gSet, lSet);
-                StateHasChanged();
                 LoadData(); 
+                StateHasChanged();
             }
         } 
         catch { }
