@@ -15,6 +15,7 @@ using Maynard.Minq.Blazor.Enums;
 using Maynard.Minq.Blazor.Helpers;
 using Maynard.Minq.Blazor.Models;
 using Maynard.Minq.Blazor.Themes;
+using Maynard.Minq.Models;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
@@ -62,7 +63,7 @@ public partial class MinqViewer
     /// does not have any Admin flags.
     /// </summary>
     [Parameter]
-    public bool IsAdmin { get; set; } = false;
+    public bool IsAdmin { get; set; }
     #endregion Parameters
     
     
@@ -86,9 +87,9 @@ public partial class MinqViewer
     public MinqTimer RefreshTimerComponent { get; set; }
     
     public PeriodicTimer ElapsedTimer { get; set; }
-    public CancellationTokenSource ElapsedCts { get; set; } = new CancellationTokenSource();
+    public CancellationTokenSource ElapsedCts { get; set; } = new();
 
-    public bool IsViewingSharedState { get; set; } = false;
+    public bool IsViewingSharedState { get; set; }
 
     // Default Settings
     public int PageSize { get; set; } = 25;
@@ -98,23 +99,23 @@ public partial class MinqViewer
     public int MaxColumnWidth { get; set; } = 400;
     
     public TimestampFormatOption TimestampFormat { get; set; } = TimestampFormatOption.Local;
-    public bool FlattenJsonProperties { get; set; } = false;
-    public bool HideDefaultValues { get; set; } = false;
+    public bool FlattenJsonProperties { get; set; }
+    public bool HideDefaultValues { get; set; }
     public RowClickBehaviorOption RowClickBehavior { get; set; } = RowClickBehaviorOption.SelectText;
     
-    public int PageNumber { get; set; } = 0;
-    public long TotalRecords { get; set; } = 0;
-    public int TotalPages { get; set; } = 0;
+    public int PageNumber { get; set; }
+    public long TotalRecords { get; set; }
+    public int TotalPages { get; set; }
     public bool IsLoading { get; set; } = true;
-    public bool HasError { get; set; } = false;
+    public bool HasError { get; set; }
     public string ErrorMessage { get; set; } = string.Empty;
 
-    public bool IsSettingsOpen { get; set; } = false;
-    public bool IsColumnPickerOpen { get; set; } = false;
-    public bool IsEditorOpen { get; set; } = false;
-    public bool IsDeleteModalOpen { get; set; } = false;
-    public bool IsDeleteAllModalOpen { get; set; } = false;
-    public object SelectedRecord { get; set; } = null;
+    public bool IsSettingsOpen { get; set; }
+    public bool IsColumnPickerOpen { get; set; }
+    public bool IsEditorOpen { get; set; }
+    public bool IsDeleteModalOpen { get; set; }
+    public bool IsDeleteAllModalOpen { get; set; }
+    public object SelectedRecord { get; set; }
 
     public bool CanDeleteSingle => DeletionMode.HasFlag(MinqDeletion.SingleRecord) || (IsAdmin && DeletionMode.HasFlag(MinqDeletion.SingleRecordAdminOnly));
     public bool CanDeleteCollection => DeletionMode.HasFlag(MinqDeletion.Collection) || (IsAdmin && DeletionMode.HasFlag(MinqDeletion.CollectionAdminOnly));
@@ -339,6 +340,7 @@ public partial class MinqViewer
         ElapsedCts.Cancel();
         ElapsedCts.Dispose();
         ElapsedTimer?.Dispose();
+        GC.SuppressFinalize(this);
     }
 
     private void ToggleSettings() => IsSettingsOpen = !IsSettingsOpen;
@@ -353,7 +355,7 @@ public partial class MinqViewer
         _ = SavePreferencesAsync();
     }
 
-    public void HandleRowClick(int rowIndex)
+    private void HandleRowClick(int rowIndex)
     {
         if (RowClickBehavior == RowClickBehaviorOption.SelectText) 
             return;
@@ -366,7 +368,7 @@ public partial class MinqViewer
             IsDeleteModalOpen = true;
     }
 
-    public void OpenDeleteAllModal() => IsDeleteAllModalOpen = true;
+    internal void OpenDeleteAllModal() => IsDeleteAllModalOpen = true;
 
     private void CloseModals()
     {
@@ -455,21 +457,21 @@ public partial class MinqViewer
         }
     }
 
-    public void OnPageSizeChanged()
+    internal void OnPageSizeChanged()
     {
         PageNumber = 0;
         _ = SavePreferencesAsync();
         LoadData();
     }
     
-    public void OnRefreshIntervalChanged()
+    internal void OnRefreshIntervalChanged()
     {
         if (RefreshTimerComponent != null)
             RefreshTimerComponent.Interval = RefreshInterval;
         _ = SavePreferencesAsync();
     }
 
-    public void OnViewDataChanged()
+    internal void OnViewDataChanged()
     {
         if (LastRecords.Length > 0)
             ParseData(LastRecords);
@@ -490,22 +492,6 @@ public partial class MinqViewer
             return;
         PageNumber++;
         LoadData();
-    }
-
-    private string GenerateSignatureString(MethodInfo method)
-    {
-        string returnType = method.ReturnType.GetFriendlyName();
-        ParameterInfo[] parameters = method.GetParameters();
-        List<string> paramStrings = [];
-
-        foreach (ParameterInfo p in parameters)
-        {
-            string modifier = p.IsOut ? "out " : (p.ParameterType.IsByRef ? "ref " : "");
-            string typeName = p.ParameterType.GetFriendlyName();
-            paramStrings.Add($"{modifier}{typeName} {p.Name}");
-        }
-
-        return $"{returnType} {method.Name}({string.Join(", ", paramStrings)})";
     }
 
     public void LoadData()
@@ -538,8 +524,8 @@ public partial class MinqViewer
                     Log.Error($"Custom query '{CustomQuery}' not found on contract '{Contract.Name}'. Falling back to PageAllRecords.");
                 else if (!defaultMethod.SignatureMatches(customMethod))
                 {
-                    string expectedSignature = GenerateSignatureString(defaultMethod);
-                    string actualSignature = GenerateSignatureString(customMethod);
+                    string expectedSignature = defaultMethod.GenerateSignatureString();
+                    string actualSignature = defaultMethod.GenerateSignatureString();
                     Log.Error($"Custom Query does not match the required parameter signature.  Falling back to {Contract.Name}.{defaultMethod.Name}().", data: new
                     {
                         ExpectedSignature = expectedSignature,
@@ -591,72 +577,48 @@ public partial class MinqViewer
 
         foreach (PropertyInfo prop in properties)
         {
-            PropertyInfo declaredProp = prop;
-            if (prop.DeclaringType != null)
-                declaredProp = prop.DeclaringType.GetProperty(prop.Name) ?? prop;
-
-            FlexKeys flexAttr = declaredProp.GetCustomAttribute<FlexKeys>();
-            FlexIgnore flexIgnoreAttr = declaredProp.GetCustomAttribute<FlexIgnore>();
+            PropertyInfo declaredProp = prop?.DeclaringType.GetProperty(prop.Name) ?? prop;
+            FlexKeys flexKeys = declaredProp.GetCustomAttribute<FlexKeys>();
             MinqViewAttribute viewAttr = declaredProp.GetCustomAttribute<MinqViewAttribute>();
 
-            string jsonKey = prop.Name;
-            
-            if (flexAttr != null && !string.IsNullOrWhiteSpace(flexAttr.Json))
-                jsonKey = flexAttr.Json;
-            else if (prop.Name == "Id")
-                jsonKey = "_id"; 
+            string jsonKey = prop.Name switch
+            {
+                _ when !string.IsNullOrWhiteSpace(flexKeys?.Json) => flexKeys.Json,
+                nameof(MinqDocument.Id) => "_id",
+                _ => prop.Name
+            };
 
             string fullPath = string.IsNullOrEmpty(prefix) ? jsonKey : $"{prefix}.{jsonKey}";
 
-            bool isIgnored = false;
-            bool isBsonIgnored = false;
-            bool isJsonIgnored = false;
+            Ignore policy = declaredProp.GetCustomAttribute<FlexIgnore>()?.Ignore ?? Ignore.Never
+                | declaredProp.GetCustomAttribute<FlexKeys>()?.Ignore ?? Ignore.Never;
 
-            if (flexAttr != null)
-            {
-                if (flexAttr.Ignore.HasFlag(Ignore.InBson) || flexAttr.Ignore == Ignore.Always) isBsonIgnored = true;
-                if (flexAttr.Ignore.HasFlag(Ignore.InJson) || flexAttr.Ignore == Ignore.Always) isJsonIgnored = true;
-            }
-            if (flexIgnoreAttr != null)
-            {
-                if (flexIgnoreAttr.Ignore.HasFlag(Ignore.InBson) || flexIgnoreAttr.Ignore == Ignore.Always) isBsonIgnored = true;
-                if (flexIgnoreAttr.Ignore.HasFlag(Ignore.InJson) || flexIgnoreAttr.Ignore == Ignore.Always) isJsonIgnored = true;
-            }
-
-            isIgnored = isBsonIgnored; 
-
-            bool isSticky = viewAttr != null && viewAttr.Sticky;
-            bool isReadOnly = viewAttr != null && viewAttr.ReadOnly;
-            int order = viewAttr != null ? viewAttr.Order : int.MaxValue;
-            bool isTimestamp = prop.PropertyType == typeof(long) || prop.PropertyType == typeof(long?);
-            bool isBool = prop.PropertyType == typeof(bool) || prop.PropertyType == typeof(bool?);
-
-            List<int> orderPath = [..currentOrderPath, order];
+            List<int> orderPath = [..currentOrderPath, viewAttr?.Order ?? int.MaxValue];
             PropertyInfo[] newPath = [..currentPropertyPath, declaredProp];
 
             MinqColumnDefinition definition = new()
             {
                 Name = fullPath,
                 PropertyName = prop.Name,
-                BsonName = flexAttr?.Bson,
-                JsonName = flexAttr?.Json,
+                BsonName = flexKeys?.Bson,
+                JsonName = flexKeys?.Json,
                 PropertyPath = newPath,
                 PropertyType = prop.PropertyType,
-                IsIgnored = isIgnored,
-                IsJsonIgnored = isJsonIgnored,
-                IsBsonIgnored = isBsonIgnored,
-                IsSticky = isSticky,
-                ReadOnly = isReadOnly,
+                IsIgnored = policy.HasFlag(Ignore.InBson),
+                IsJsonIgnored = policy.HasFlag(Ignore.InJson),
+                IsBsonIgnored = policy.HasFlag(Ignore.InBson),
+                IsSticky = viewAttr?.Sticky ?? false,
+                ReadOnly = viewAttr?.ReadOnly ?? false,
                 OrderPath = orderPath,
-                IsTimestamp = isTimestamp,
-                IsBool = isBool,
+                IsTimestamp = prop.PropertyType == typeof(long) || prop.PropertyType == typeof(long?),
+                IsBool = prop.PropertyType == typeof(bool) || prop.PropertyType == typeof(bool?),
                 IsNested = !string.IsNullOrEmpty(prefix),
                 IsComplex = prop.PropertyType.IsComplex()
             };
 
             ColumnDefinitions[fullPath] = definition;
 
-            if (prop.Name == "Id" && (flexAttr == null || string.IsNullOrWhiteSpace(flexAttr.Json)))
+            if (prop.Name == nameof(MinqDocument.Id) && (flexKeys == null || string.IsNullOrWhiteSpace(flexKeys.Json)))
             {
                 string idPath1 = string.IsNullOrEmpty(prefix) ? "_id" : $"{prefix}._id";
                 string idPath2 = string.IsNullOrEmpty(prefix) ? "id" : $"{prefix}.id";
@@ -666,7 +628,7 @@ public partial class MinqViewer
                 ColumnDefinitions[idPath3] = definition;
             }
 
-            if (definition.IsComplex && !isIgnored)
+            if (definition.IsComplex && !policy.HasFlag(Ignore.InBson))
                 BuildColumnDefinitions(prop.PropertyType, fullPath, orderPath, new HashSet<Type>(visitedTypes), newPath);
         }
     }
@@ -679,7 +641,7 @@ public partial class MinqViewer
         if (records.Length == 0)
             return;
 
-        Type modelType = records.GetType().GetElementType() ?? records.GetValue(0).GetType();
+        Type modelType = records.GetType().GetElementType() ?? records.GetValue(0)!.GetType();
         ColumnDefinitions.Clear();
         BuildColumnDefinitions(modelType, string.Empty, [], [], []);
 
@@ -728,7 +690,6 @@ public partial class MinqViewer
 
             Rows.Add(rowData);
         }
-
         
         Columns.Sort(new ColumnComparer(ColumnDefinitions));
     }

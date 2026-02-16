@@ -1,10 +1,11 @@
+using System.Collections.Generic;
 using System.Reflection;
 
 namespace Maynard.Minq.Blazor.Helpers;
 
-public static class MethodInfoExtension
+internal static class MethodInfoExtension
 {
-    public static bool SignatureMatches(this MethodInfo info, MethodInfo other)
+    internal static bool SignatureMatches(this MethodInfo info, MethodInfo other)
     {
         if (info.ReturnType != other.ReturnType) 
             return false;
@@ -22,5 +23,20 @@ public static class MethodInfoExtension
                 return false;
         
         return true;
+    }
+    internal static string GenerateSignatureString(this MethodInfo method)
+    {
+        string returnType = method.ReturnType.GetFriendlyName();
+        ParameterInfo[] parameters = method.GetParameters();
+        List<string> paramStrings = [];
+
+        foreach (ParameterInfo p in parameters)
+        {
+            string modifier = p.IsOut ? "out " : (p.ParameterType.IsByRef ? "ref " : "");
+            string typeName = p.ParameterType.GetFriendlyName();
+            paramStrings.Add($"{modifier}{typeName} {p.Name}");
+        }
+
+        return $"{returnType} {method.Name}({string.Join(", ", paramStrings)})";
     }
 }
