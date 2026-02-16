@@ -1,0 +1,28 @@
+.minq-badge {
+    color: var(--minq-bg-surface);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-weight: 700;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    line-height: 1;
+}
+.minq-badge-future {
+    background-color: var(--minq-badge-future); 
+    text-transform: none; 
+    font-family: monospace; 
+    font-size: 0.85rem;
+    white-space: nowrap; 
+}
+.minq-badge-past {
+    background-color: var(--minq-badge-past); 
+    color: var(--minq-badge-past-text); 
+    text-transform: none;
+    font-family: monospace;
+    font-size: 0.85rem;
+    white-space: nowrap; 
+}

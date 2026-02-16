@@ -111,22 +111,6 @@
 .minq-badge-true { background-color: var(--minq-badge-true); }
 .minq-badge-false { background-color: var(--minq-badge-false); }
 
-.minq-badge-future {
-    background-color: var(--minq-badge-future); 
-    text-transform: none; 
-    font-family: monospace; 
-    font-size: 0.85rem;
-    white-space: nowrap; 
-}
-.minq-badge-past {
-    background-color: var(--minq-badge-past); 
-    color: var(--minq-badge-past-text); 
-    text-transform: none;
-    font-family: monospace;
-    font-size: 0.85rem;
-    white-space: nowrap; 
-}
-
 .empty-state {
     padding: 3rem;
     text-align: center;
