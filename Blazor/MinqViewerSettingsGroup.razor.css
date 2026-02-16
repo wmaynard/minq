@@ -10,10 +10,10 @@
 .minq-setting-group h4 {
     margin: 0;
     font-size: 0.85rem;
-    color: #666;
+    color: var(--minq-text-muted);
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    border-bottom: 1px solid #ccc;
+    border-bottom: 1px solid var(--minq-border-dark);
     padding-bottom: 4px;
 }
 

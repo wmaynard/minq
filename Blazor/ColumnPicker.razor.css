@@ -1,10 +1,8 @@
 .minq-modal-backdrop {
     position: fixed;
-    top: 0; 
-    left: 0; 
-    width: 100vw; 
-    height: 100vh;
-    background-color: rgba(0,0,0,0.5);
+    top: 0; left: 0; 
+    width: 100vw; height: 100vh;
+    background-color: var(--minq-overlay);
     display: flex;
     justify-content: center;
     align-items: center;
@@ -13,7 +11,7 @@
 }
 
 .minq-modal-surface {
-    background-color: white;
+    background-color: var(--minq-bg-surface);
     border-radius: 8px;
     box-shadow: 0 10px 25px rgba(0,0,0,0.2);
     width: 90%;
@@ -25,13 +23,13 @@
 
 .minq-modal-header {
     padding: 1rem 1.5rem;
-    border-bottom: 1px solid #eee;
+    border-bottom: 1px solid var(--minq-border-light);
 }
 
 .minq-modal-header h3 { 
     margin: 0; 
     font-size: 1.2rem; 
-    color: #333; 
+    color: var(--minq-text-dark); 
 }
 
 .minq-modal-body {
@@ -49,61 +47,44 @@
     gap: 0.75rem;
     cursor: pointer;
     font-size: 0.95rem;
-    color: #333;
+    color: var(--minq-text-dark);
     transition: color 0.2s;
 }
 
 .minq-column-option.dimmed {
-    color: #aaa;
+    color: var(--minq-text-light);
 }
 
-/* Toggle Switch Styles */
 .minq-switch {
     position: relative;
     display: inline-block;
-    width: 36px;
-    height: 20px;
+    width: 36px; height: 20px;
     flex-shrink: 0;
 }
-
-.minq-switch input {
-    opacity: 0;
-    width: 0;
-    height: 0;
-}
+.minq-switch input { opacity: 0; width: 0; height: 0; }
 
 .minq-slider-round {
     position: absolute;
     cursor: pointer;
     top: 0; left: 0; right: 0; bottom: 0;
-    background-color: #ccc;
+    background-color: var(--minq-border-dark);
     transition: .3s;
     border-radius: 20px;
 }
-
 .minq-slider-round:before {
-    position: absolute;
-    content: "";
-    height: 14px;
-    width: 14px;
-    left: 3px;
-    bottom: 3px;
-    background-color: white;
+    position: absolute; content: "";
+    height: 14px; width: 14px;
+    left: 3px; bottom: 3px;
+    background-color: var(--minq-bg-surface);
     transition: .3s;
     border-radius: 50%;
 }
-
-.minq-switch input:checked + .minq-slider-round {
-    background-color: #3f51b5;
-}
-
-.minq-switch input:checked + .minq-slider-round:before {
-    transform: translateX(16px);
-}
+.minq-switch input:checked + .minq-slider-round { background-color: var(--minq-primary); }
+.minq-switch input:checked + .minq-slider-round:before { transform: translateX(16px); }
 
 .minq-modal-footer {
     padding: 1rem 1.5rem;
-    border-top: 1px solid #eee;
+    border-top: 1px solid var(--minq-border-light);
     display: flex;
     justify-content: flex-end;
     gap: 0.75rem;
@@ -111,24 +92,19 @@
 
 .minq-button {
     background-color: transparent;
-    border: 1px solid #ccc;
+    border: 1px solid var(--minq-border-dark);
+    color: var(--minq-text-dark);
     border-radius: 4px;
     padding: 8px 16px;
     font-size: 1rem;
     cursor: pointer;
     transition: background-color 0.2s, color 0.2s;
 }
-
-.minq-button:hover {
-    background-color: #f0f0f0;
-}
+.minq-button:hover:not(:disabled) { background-color: var(--minq-bg-hover); }
 
 .minq-button-primary {
-    background-color: #3f51b5;
-    color: white;
-    border: 1px solid #3f51b5;
+    background-color: var(--minq-primary);
+    color: var(--minq-bg-surface);
+    border: 1px solid var(--minq-primary);
 }
-
-.minq-button-primary:hover {
-    background-color: #303f9f;
-}
+.minq-button-primary:hover:not(:disabled) { background-color: var(--minq-primary-hover); }

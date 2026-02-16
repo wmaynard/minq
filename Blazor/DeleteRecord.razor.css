@@ -2,17 +2,17 @@
     position: fixed;
     top: 0; left: 0; 
     width: 100vw; height: 100vh;
-    background-color: rgba(0,0,0,0.5);
+    background-color: var(--minq-overlay);
     display: flex;
     justify-content: center;
     align-items: center;
     z-index: 9999;
     font-family: inherit;
-    outline: none; /* Prevents focus ring on the backdrop */
+    outline: none; 
 }
 
 .minq-modal-surface {
-    background-color: white;
+    background-color: var(--minq-bg-surface);
     border-radius: 8px;
     box-shadow: 0 10px 25px rgba(0,0,0,0.2);
     width: 90%;
@@ -23,13 +23,13 @@
 
 .minq-modal-header {
     padding: 1rem 1.5rem;
-    border-bottom: 1px solid #eee;
+    border-bottom: 1px solid var(--minq-border-light);
 }
 
 .minq-modal-header h3 { 
     margin: 0; 
     font-size: 1.2rem; 
-    color: #333; 
+    color: var(--minq-text-dark); 
 }
 
 .minq-modal-body {
@@ -48,7 +48,7 @@
 .minq-input {
     width: 100%;
     padding: 8px 12px;
-    border: 1px solid #ccc;
+    border: 1px solid var(--minq-border-dark);
     border-radius: 4px;
     font-family: inherit;
     font-size: 0.95rem;
@@ -56,13 +56,13 @@
 }
 
 .minq-input:focus {
-    border-color: #f44336; /* Danger focus color */
+    border-color: var(--minq-danger); 
     outline: none;
 }
 
 .minq-modal-footer {
     padding: 1rem 1.5rem;
-    border-top: 1px solid #eee;
+    border-top: 1px solid var(--minq-border-light);
     display: flex;
     justify-content: flex-end;
     gap: 0.75rem;
@@ -70,26 +70,24 @@
 
 .minq-button {
     background-color: transparent;
-    border: 1px solid #ccc;
+    border: 1px solid var(--minq-border-dark);
+    color: var(--minq-text-dark);
     border-radius: 4px;
     padding: 8px 16px;
     font-size: 1rem;
     cursor: pointer;
     transition: background-color 0.2s, color 0.2s;
 }
-
-.minq-button:hover { background-color: #f0f0f0; }
+.minq-button:hover:not(:disabled) { background-color: var(--minq-bg-hover); }
 
 .minq-button-danger {
-    background-color: #f44336;
-    color: white;
-    border-color: #f44336;
+    background-color: var(--minq-danger);
+    color: var(--minq-bg-surface);
+    border-color: var(--minq-danger);
 }
-
-.minq-button-danger:hover:not(:disabled) { background-color: #d32f2f; }
-
+.minq-button-danger:hover:not(:disabled) { background-color: var(--minq-danger-hover); }
 .minq-button-danger:disabled {
-    background-color: #ffcdd2;
-    border-color: #ffcdd2;
+    background-color: var(--minq-danger-disabled);
+    border-color: var(--minq-danger-disabled);
     cursor: not-allowed;
 }

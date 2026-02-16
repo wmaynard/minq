@@ -1,0 +1,190 @@
+.minq-container {
+    /* 1. Primary / Brand (Blues) */
+    --minq-primary: #3f51b5;
+    --minq-primary-hover: #303f9f;
+    --minq-primary-light: #e8eaf6;
+
+    /* 2. Accents / Info (Light Blues) */
+    --minq-accent-bg: #e3f2fd;
+    --minq-accent-border: #bbdefb;
+    --minq-accent-text: #1565c0;
+
+    /* 3. Danger / Alerts (Reds) */
+    --minq-danger: #f44336;
+    --minq-danger-hover: #d32f2f;
+    --minq-danger-light: #ffebee;
+    --minq-danger-disabled: #ffcdd2;
+
+    /* 4. Status Badges */
+    --minq-badge-true: #388e3c;
+    --minq-badge-false: #d32f2f;
+    --minq-badge-future: #1976d2;
+    --minq-badge-past: #fbc02d;
+    --minq-badge-past-text: #212121;
+    
+    /* 5. Table Headers & Timers */
+    --minq-header-bg: #37474f;
+    --minq-header-border: #263238;
+    --minq-timer-text: #78909c;
+
+    /* 6. Backgrounds / Surfaces */
+    --minq-bg-surface: #ffffff;
+    --minq-bg-alt: #fafafa;
+    --minq-bg-empty: #f9f9f9;
+    --minq-bg-disabled: #f5f5f5;
+    --minq-bg-hover: #f0f0f0;
+    --minq-overlay: rgba(0, 0, 0, 0.5);
+
+    /* 7. Borders / Lines */
+    --minq-border-light: #eee;
+    --minq-border: #e0e0e0;
+    --minq-border-dark: #ccc;
+
+    /* 8. Text / Typography */
+    --minq-text-dark: #333;
+    --minq-text-main: #555;
+    --minq-text-muted: #666;
+    --minq-text-disabled: #888;
+    --minq-text-light: #aaa;
+
+    width: 100%;
+    min-width: 0; 
+    display: grid; 
+    font-family: inherit;
+    isolation: isolate; 
+}
+
+.minq-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+/* Master Button Styles */
+.minq-button {
+    background-color: transparent;
+    border: 1px solid var(--minq-border-dark);
+    color: var(--minq-text-dark);
+    border-radius: 4px;
+    padding: 8px 16px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background-color 0.2s, color 0.2s, border-color 0.2s;
+    margin: 0 4px;
+}
+.minq-button:hover:not(:disabled) {
+    background-color: var(--minq-bg-hover);
+    color: var(--minq-text-dark);
+}
+.minq-button:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+.minq-button.active {
+    background-color: var(--minq-primary-light);
+    border-color: var(--minq-primary);
+    color: var(--minq-primary);
+}
+
+.minq-pagination-text {
+    font-weight: 500;
+    margin: 0 8px;
+}
+
+.minq-table-wrapper {
+    width: 100%;
+    overflow-x: auto;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1), 0 1px 3px rgba(0,0,0,0.08);
+    background-color: var(--minq-bg-surface);
+}
+
+.minq-table {
+    width: 100%;
+    border-collapse: separate; 
+    border-spacing: 0;         
+    font-family: monospace;
+    white-space: nowrap; 
+}
+
+.minq-table th {
+    background-color: var(--minq-header-bg); 
+    color: var(--minq-bg-surface); 
+    font-weight: bold;
+    border-bottom: 2px solid var(--minq-header-border);
+    font-size: inherit; 
+}
+
+.minq-table th, .minq-table td {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--minq-border);
+    text-align: left;
+    box-sizing: border-box; 
+}
+
+.minq-table tbody tr {
+    background-color: var(--minq-bg-surface);
+}
+
+.minq-table tbody tr.minq-clickable-row {
+    cursor: pointer;
+}
+
+.minq-table tbody tr:nth-child(even) {
+    background-color: var(--minq-bg-alt);
+}
+
+.minq-table tbody tr:hover {
+    background-color: var(--minq-accent-bg); 
+}
+
+.minq-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-weight: 700;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    line-height: 1;
+    color: var(--minq-bg-surface);
+}
+.minq-badge-true { background-color: var(--minq-badge-true); }
+.minq-badge-false { background-color: var(--minq-badge-false); }
+
+.minq-badge-future {
+    background-color: var(--minq-badge-future); 
+    text-transform: none; 
+    font-family: monospace; 
+    font-size: 0.85rem;
+    white-space: nowrap; 
+}
+.minq-badge-past {
+    background-color: var(--minq-badge-past); 
+    color: var(--minq-badge-past-text); 
+    text-transform: none;
+    font-family: monospace;
+    font-size: 0.85rem;
+    white-space: nowrap; 
+}
+
+.empty-state {
+    padding: 3rem;
+    text-align: center;
+    font-style: italic;
+    color: var(--minq-text-muted);
+    background-color: var(--minq-bg-empty);
+    border-radius: 8px;
+    border: 1px dashed var(--minq-border-dark);
+}
+
+@media (max-width: 768px) {
+    .minq-controls {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+}

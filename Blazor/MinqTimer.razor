@@ -11,17 +11,17 @@
     
     <div class="minq-refresh-ring">
         <svg width="36" height="36">
-            <circle cx="18" cy="18" r="14" fill="none" stroke="#e0e0e0" stroke-width="4" />
+            <circle cx="18" cy="18" r="14" fill="none" stroke="var(--minq-border)" stroke-width="4" />
             @if (Interval > 0 && !IsPaused)
             {
-                <circle cx="18" cy="18" r="14" fill="none" stroke="#3f51b5" stroke-width="4" 
+                <circle cx="18" cy="18" r="14" fill="none" stroke="var(--minq-primary)" stroke-width="4" 
                         stroke-dasharray="87.96" 
                         stroke-dashoffset="@RefreshDashOffset.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture)" 
                         stroke-linecap="round" />
             }
             else if (IsPaused && Interval > 0)
             {
-                <circle cx="18" cy="18" r="14" fill="none" stroke="#9e9e9e" stroke-width="4" 
+                <circle cx="18" cy="18" r="14" fill="none" stroke="var(--minq-text-disabled)" stroke-width="4" 
                         stroke-dasharray="87.96" 
                         stroke-dashoffset="0" 
                         stroke-linecap="round" />
