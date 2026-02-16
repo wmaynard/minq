@@ -9,11 +9,11 @@ namespace Maynard.Minq.Blazor.Models;
 internal class LocalSettingsPayload : FlexModel
 {
     [FlexIgnore(ignore: Ignore.InBson)]
-    internal int PinnedColumnWidth { get; set; }
+    public int PinnedColumnWidth { get; set; }
     [FlexIgnore(ignore: Ignore.InBson)]
-    internal int MaxColumnWidth { get; set; }
+    public int MaxColumnWidth { get; set; }
     [FlexIgnore(ignore: Ignore.InBson)]
-    internal RowClickBehaviorOption RowClickBehavior { get; set; }
+    public RowClickBehaviorOption RowClickBehavior { get; set; }
     [FlexIgnore(ignore: Ignore.InBson)]
-    internal List<string> HiddenColumns { get; set; }
+    public List<string> HiddenColumns { get; set; }
 }

@@ -7,7 +7,7 @@ namespace Maynard.Minq.Blazor.Models;
 internal class SharedViewPayload : FlexModel
 {
     [FlexIgnore(ignore: Ignore.InBson)]
-    internal GlobalSettingsPayload Global { get; set; }
+    public GlobalSettingsPayload Global { get; set; }
     [FlexIgnore(ignore: Ignore.InBson)]
-    internal LocalSettingsPayload Local { get; set; }
+    public LocalSettingsPayload Local { get; set; }
 }

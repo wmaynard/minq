@@ -24,62 +24,32 @@ using Microsoft.JSInterop;
 
 namespace Maynard.Minq.Blazor;
 
-/// <summary>
-/// Main viewer component for Minq data visualization.  Be very aware of what data you are exposing to users!  This component
-/// is primarily aimed at developers and administrators who have elevated privileges to view and manage data.  To lock this behind
-/// IAM or any other form of access control, be sure to pass in a boolean value to IsAdmin.  At this time, that is as granular
-/// as the control gets for viewing data out of the box.  If you need something more specific, you can leverage Blazor with @if
-/// and the CustomQuery feature to tailor some data, but we're aware this is just a workaround.
-/// </summary>
 public partial class MinqViewer
 {
     #region Parameters
     [CascadingParameter]
     public HttpContext HttpContext { get; set; }
     
-    /// <summary>
-    /// The type of MINQ to use for the viewer.  Use the typeof() operator on your MINQ class to generate a table from it.
-    /// </summary>
     [Parameter]
     public Type Contract { get; set; }
 
-    /// <summary>
-    /// A custom paging function to change the default behavior of the viewer.  The parameter signature must match the stock
-    /// paging method PageAllRecords(int pageSize, int pageNumber, out long remaining), where pageSize is zero-indexed.
-    /// </summary>
     [Parameter]
     public string CustomQuery { get; set; }
 
-    /// <summary>
-    /// Allows deletion of individual records or of the entire collection.  We strongly recommend that you disable this
-    /// in production environments as it is a destructive operation that can't easily be undone, and will be accessible by
-    /// anyone who can view this tool.  This enum supports flags.
-    /// </summary>
     [Parameter]
     public DeletionMode DeletionMode { get; set; } = DeletionMode.None;
 
-    /// <summary>
-    /// Determines whether or not a user has administrator permissions.  This flag is useless if <see cref="DeletionMode"/>
-    /// does not have any Admin flags.
-    /// </summary>
     [Parameter]
     public bool IsAdmin { get; set; }
     #endregion Parameters
     
-    
-    
-    
-    
-    
-    // Expose the dynamically discovered themes to the UI
     public static readonly IReadOnlyList<ThemeProvider> AvailableThemes = ThemeManager.GetAvailableThemes();
     
-    public string SelectedThemeName { get; set; } = "Dark Mode";
+    // The consolidated State object for the viewer settings
+    public MinqViewerState State { get; set; } = new();
 
-    // Dynamically render the CSS variables based on the selected theme
-    // For an explanation of why this was needed, see the markdown file in Themes.
     private string ThemeVariables => AvailableThemes
-        .FirstOrDefault(t => t.Name == SelectedThemeName)?.ToString() 
+        .FirstOrDefault(t => t.Name == State.SelectedThemeName)?.ToString() 
         ?? new LightThemeProvider().ToString();
 
     public event Action OnSecondTicked;
@@ -91,18 +61,6 @@ public partial class MinqViewer
 
     public bool IsViewingSharedState { get; set; }
 
-    // Default Settings
-    public int PageSize { get; set; } = 25;
-    public int RefreshInterval { get; set; } = 30;
-    public int TableFontSize { get; set; } = 14;
-    public int PinnedColumnWidth { get; set; } = 200;
-    public int MaxColumnWidth { get; set; } = 400;
-    
-    internal TimestampFormatOption TimestampFormat { get; set; } = TimestampFormatOption.Local;
-    public bool FlattenJsonProperties { get; set; }
-    public bool HideDefaultValues { get; set; }
-    internal RowClickBehaviorOption RowClickBehavior { get; set; } = RowClickBehaviorOption.SelectText;
-    
     public int PageNumber { get; set; }
     public long TotalRecords { get; set; }
     public int TotalPages { get; set; }
@@ -145,45 +103,45 @@ public partial class MinqViewer
     public List<Dictionary<string, string>> Rows { get; set; } = [];
     public Dictionary<string, MinqColumnDefinition> ColumnDefinitions { get; set; } = new Dictionary<string, MinqColumnDefinition>(StringComparer.OrdinalIgnoreCase);
 
-    // Serialization DTOs
-
-
     #region Settings Callbacks    
-    // Force the UI to re-render the style block immediately when the dropdown changes
     internal async Task OnThemeChangedAsync()
     {
         await SavePreferencesAsync();
         StateHasChanged(); 
     }
+    
     internal async Task SavePreferencesAsync()
     {
         if (IsViewingSharedState) return;
 
-        try 
+        try
         {
-            GlobalSettingsPayload g = new() 
+            GlobalSettingsPayload g = new()
             {
-                PageSize = PageSize,
-                RefreshInterval = RefreshInterval,
-                TableFontSize = TableFontSize,
-                TimestampFormat = TimestampFormat,
-                FlattenJsonProperties = FlattenJsonProperties,
-                HideDefaultValues = HideDefaultValues,
-                ThemeName = SelectedThemeName
+                PageSize = State.PageSize,
+                RefreshInterval = State.RefreshInterval,
+                TableFontSize = State.TableFontSize,
+                TimestampFormat = State.TimestampFormat,
+                FlattenJsonProperties = State.FlattenJsonProperties,
+                HideDefaultValues = State.HideDefaultValues,
+                ThemeName = State.SelectedThemeName
             };
 
-            LocalSettingsPayload l = new() 
+            LocalSettingsPayload l = new()
             {
-                PinnedColumnWidth = PinnedColumnWidth,
-                MaxColumnWidth = MaxColumnWidth,
-                RowClickBehavior = RowClickBehavior,
+                PinnedColumnWidth = State.PinnedColumnWidth,
+                MaxColumnWidth = State.MaxColumnWidth,
+                RowClickBehavior = State.RowClickBehavior,
                 HiddenColumns = HiddenColumns.ToList()
             };
 
             await JSRuntime.InvokeVoidAsync("localStorage.setItem", "MinqViewer_Global", g.ToJson());
             await JSRuntime.InvokeVoidAsync("localStorage.setItem", $"MinqViewer_Local_{Contract.Name}", l.ToJson());
-        } 
-        catch { }
+        }
+        catch
+        {
+            Log.Error("Failed to save preferences.");
+        }
     }
     
     internal async Task SaveSharedAsDefault()
@@ -195,8 +153,6 @@ public partial class MinqViewer
     }
     
     #endregion Settings Callbacks
-
-
 
     protected override void OnInitialized()
     {
@@ -254,33 +210,33 @@ public partial class MinqViewer
     {
         if (g != null) 
         {
-            PageSize = g.PageSize;
-            RefreshInterval = g.RefreshInterval;
-            TableFontSize = g.TableFontSize;
-            TimestampFormat = g.TimestampFormat;
-            FlattenJsonProperties = g.FlattenJsonProperties;
-            HideDefaultValues = g.HideDefaultValues;
+            State.PageSize = g.PageSize;
+            State.RefreshInterval = g.RefreshInterval;
+            State.TableFontSize = g.TableFontSize;
+            State.TimestampFormat = g.TimestampFormat;
+            State.FlattenJsonProperties = g.FlattenJsonProperties;
+            State.HideDefaultValues = g.HideDefaultValues;
             
             if (!string.IsNullOrWhiteSpace(g.ThemeName))
-                SelectedThemeName = g.ThemeName;
+                State.SelectedThemeName = g.ThemeName;
         }
 
         if (l != null) 
         {
-            PinnedColumnWidth = l.PinnedColumnWidth;
-            MaxColumnWidth = l.MaxColumnWidth;
-            RowClickBehavior = l.RowClickBehavior;
+            State.PinnedColumnWidth = l.PinnedColumnWidth;
+            State.MaxColumnWidth = l.MaxColumnWidth;
+            State.RowClickBehavior = l.RowClickBehavior;
             HiddenColumns = new HashSet<string>(l.HiddenColumns ?? new List<string>(), StringComparer.OrdinalIgnoreCase);
         }
 
-        if (RowClickBehavior == RowClickBehaviorOption.DeleteRecord && !CanDeleteSingle) 
+        if (State.RowClickBehavior == RowClickBehaviorOption.DeleteRecord && !CanDeleteSingle) 
         {
             Log.Warn("User settings requested DeleteRecord behavior, but user lacks permission. Reverting to EditRecord.");
-            RowClickBehavior = RowClickBehaviorOption.EditRecord;
+            State.RowClickBehavior = RowClickBehaviorOption.EditRecord;
         }
 
         if (RefreshTimerComponent != null)
-            RefreshTimerComponent.Interval = RefreshInterval;
+            RefreshTimerComponent.Interval = State.RefreshInterval;
     }
     
     private async Task CopyShareLink()
@@ -291,19 +247,19 @@ public partial class MinqViewer
             {
                 Global = new GlobalSettingsPayload 
                 {
-                    PageSize = PageSize, 
-                    RefreshInterval = RefreshInterval, 
-                    TableFontSize = TableFontSize,
-                    TimestampFormat = TimestampFormat, 
-                    FlattenJsonProperties = FlattenJsonProperties, 
-                    HideDefaultValues = HideDefaultValues, 
-                    ThemeName = SelectedThemeName
+                    PageSize = State.PageSize, 
+                    RefreshInterval = State.RefreshInterval, 
+                    TableFontSize = State.TableFontSize,
+                    TimestampFormat = State.TimestampFormat, 
+                    FlattenJsonProperties = State.FlattenJsonProperties, 
+                    HideDefaultValues = State.HideDefaultValues, 
+                    ThemeName = State.SelectedThemeName
                 },
                 Local = new LocalSettingsPayload 
                 {
-                    PinnedColumnWidth = PinnedColumnWidth,
-                    MaxColumnWidth = MaxColumnWidth,
-                    RowClickBehavior = RowClickBehavior, 
+                    PinnedColumnWidth = State.PinnedColumnWidth,
+                    MaxColumnWidth = State.MaxColumnWidth,
+                    RowClickBehavior = State.RowClickBehavior, 
                     HiddenColumns = HiddenColumns.ToList()
                 }
             };
@@ -320,16 +276,12 @@ public partial class MinqViewer
         }
     }
 
-
-
-
-
     private async Task RunElapsedTimerAsync()
     {
         try
         {
             while (await ElapsedTimer.WaitForNextTickAsync(ElapsedCts.Token))
-                if (TimestampFormat == TimestampFormatOption.Elapsed)
+                if (State.TimestampFormat == TimestampFormatOption.Elapsed)
                     OnSecondTicked?.Invoke();
         }
         catch (OperationCanceledException) { }
@@ -357,14 +309,14 @@ public partial class MinqViewer
 
     private void HandleRowClick(int rowIndex)
     {
-        if (RowClickBehavior == RowClickBehaviorOption.SelectText) 
+        if (State.RowClickBehavior == RowClickBehaviorOption.SelectText) 
             return;
             
         SelectedRecord = LastRecords.GetValue(rowIndex);
         
-        if (RowClickBehavior == RowClickBehaviorOption.EditRecord)
+        if (State.RowClickBehavior == RowClickBehaviorOption.EditRecord)
             IsEditorOpen = true;
-        else if (RowClickBehavior == RowClickBehaviorOption.DeleteRecord && CanDeleteSingle)
+        else if (State.RowClickBehavior == RowClickBehaviorOption.DeleteRecord && CanDeleteSingle)
             IsDeleteModalOpen = true;
     }
 
@@ -457,25 +409,25 @@ public partial class MinqViewer
         }
     }
 
-    internal void OnPageSizeChanged()
+    internal async Task OnPageSizeChanged()
     {
         PageNumber = 0;
-        _ = SavePreferencesAsync();
+        await SavePreferencesAsync();
         LoadData();
     }
     
-    internal void OnRefreshIntervalChanged()
+    internal async Task OnRefreshIntervalChanged()
     {
         if (RefreshTimerComponent != null)
-            RefreshTimerComponent.Interval = RefreshInterval;
-        _ = SavePreferencesAsync();
+            RefreshTimerComponent.Interval = State.RefreshInterval;
+        await SavePreferencesAsync();
     }
 
-    internal void OnViewDataChanged()
+    internal async Task OnViewDataChanged()
     {
         if (LastRecords.Length > 0)
             ParseData(LastRecords);
-        _ = SavePreferencesAsync();
+        await SavePreferencesAsync();
     }
 
     private void PreviousPage()
@@ -537,24 +489,24 @@ public partial class MinqViewer
                     targetMethod = customMethod;
             }
 
-            if (PageSize <= 0)
+            if (State.PageSize <= 0)
             {
-                Log.Warn($"{nameof(PageSize)} was 0 or less.  This should never happen; a bug is present.  Defaulting to 1.", new
+                Log.Warn($"{nameof(State.PageSize)} was 0 or less.  This should never happen; a bug is present.  Defaulting to 1.", new
                 {
                     Help = "This is likely the result of bad JSON deserialization.  Try deleting local storage and refreshing the page."
                 });
-                PageSize = 1;
+                State.PageSize = 1;
             }
             
-            object[] parameters = [PageSize, PageNumber, 0L];
+            object[] parameters = [State.PageSize, PageNumber, 0L];
             object result = targetMethod.Invoke(service, parameters);
 
             if (result is Array records)
             {
                 LastRecords = records;
                 long remaining = (long)parameters[2];
-                TotalRecords = (PageNumber * PageSize) + records.Length + remaining;
-                TotalPages = TotalRecords == 0 ? 1 : (int)Math.Ceiling((double)TotalRecords / PageSize);
+                TotalRecords = (PageNumber * State.PageSize) + records.Length + remaining;
+                TotalPages = TotalRecords == 0 ? 1 : (int)Math.Ceiling((double)TotalRecords / State.PageSize);
 
                 ParseData(records);
             }
@@ -646,7 +598,7 @@ public partial class MinqViewer
         BuildColumnDefinitions(modelType, string.Empty, [], [], []);
 
         foreach (MinqColumnDefinition def in ColumnDefinitions.Values.Where(d => !d.IsIgnored))
-            if (FlattenJsonProperties)
+            if (State.FlattenJsonProperties)
             {
                 if (!def.IsComplex && !Columns.Contains(def.Name))
                     Columns.Add(def.Name);
@@ -668,7 +620,7 @@ public partial class MinqViewer
             JsonDocument document = JsonDocument.Parse(json);
             Dictionary<string, string> rowData = [];
 
-            if (FlattenJsonProperties)
+            if (State.FlattenJsonProperties)
                 FlattenJsonElement(document.RootElement, string.Empty, rowData);
             else
                 foreach (JsonProperty property in document.RootElement.EnumerateObject())
@@ -682,7 +634,7 @@ public partial class MinqViewer
 
                     if (!Columns.Contains(propName))
                         Columns.Add(propName);
-                    else if (HideDefaultValues && property.Value.IsDefault())
+                    else if (State.HideDefaultValues && property.Value.IsDefault())
                         continue;
 
                     rowData[propName] = property.Value.ToString();
@@ -708,7 +660,7 @@ public partial class MinqViewer
                 propName = def.Name;
             }
 
-            if (HideDefaultValues && property.Value.IsDefault())
+            if (State.HideDefaultValues && property.Value.IsDefault())
                 continue;
 
             if (property.Value.ValueKind == JsonValueKind.Object)

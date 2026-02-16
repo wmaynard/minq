@@ -46,7 +46,7 @@
                     </button>
                 </div>
                 <div style="display: flex; align-items: center;">
-                    <MinqTimer @ref="RefreshTimerComponent" Interval="RefreshInterval" OnRefreshTriggered="LoadData" />
+                    <MinqTimer @ref="RefreshTimerComponent" Interval="State.RefreshInterval" OnRefreshTriggered="LoadData" />
                     
                     <button class="minq-button" @onclick="PreviousPage" disabled="@(PageNumber == 0)">&lt;</button>
                     <span class="minq-pagination-text"> @(PageNumber + 1) of @TotalPages </span>
@@ -56,22 +56,35 @@
 
             @if (IsSettingsOpen)
             {
-                <MinqViewerSettings />
+                <MinqViewerSettings 
+                    Settings="State"
+                    AvailableThemes="AvailableThemes.Select(t => t.Name)"
+                    IsViewingSharedState="IsViewingSharedState"
+                    CanDeleteSingle="CanDeleteSingle"
+                    CanDeleteCollection="CanDeleteCollection"
+                    OnSaveSharedAsDefault="SaveSharedAsDefault"
+                    OnPageSizeChanged="OnPageSizeChanged"
+                    OnRefreshIntervalChanged="OnRefreshIntervalChanged"
+                    OnThemeChanged="OnThemeChangedAsync"
+                    OnPreferencesChanged="SavePreferencesAsync"
+                    OnViewDataChanged="OnViewDataChanged"
+                    OnOpenColumnPicker="OpenColumnPicker"
+                    OnOpenDeleteAllModal="OpenDeleteAllModal" />
             }
 
             <div class="minq-table-wrapper">
-                <table class="minq-table" style="font-size: @(TableFontSize)px;">
+                <table class="minq-table" style="font-size: @(State.TableFontSize)px;">
                     <thead>
                         <tr>
                             @{ int headerOffset = 0; }
                             @foreach (string column in VisibleColumns)
                             {
                                 bool isSticky = ColumnDefinitions.ContainsKey(column) && ColumnDefinitions[column].IsSticky;
-                                string stickyStyle = isSticky ? $"position: sticky; left: {headerOffset}px; z-index: 2; width: {PinnedColumnWidth}px; min-width: {PinnedColumnWidth}px; max-width: {PinnedColumnWidth}px; overflow: hidden; text-overflow: ellipsis; border-right: 2px solid var(--minq-header-border);" : $"max-width: {MaxColumnWidth}px; overflow: hidden; text-overflow: ellipsis;";
+                                string stickyStyle = isSticky ? $"position: sticky; left: {headerOffset}px; z-index: 2; width: {State.PinnedColumnWidth}px; min-width: {State.PinnedColumnWidth}px; max-width: {State.PinnedColumnWidth}px; overflow: hidden; text-overflow: ellipsis; border-right: 2px solid var(--minq-header-border);"
+                                                              : $"max-width: {State.MaxColumnWidth}px; overflow: hidden; text-overflow: ellipsis;";
                                 
                                 if (isSticky) 
-                                    headerOffset += PinnedColumnWidth;
-
+                                    headerOffset += State.PinnedColumnWidth;
                                 <th style="@stickyStyle" title="@column">@column</th>
                             }
                         </tr>
@@ -81,23 +94,23 @@
                         @foreach (Dictionary<string, string> row in Rows)
                         {
                             int currentIndex = rowIndex;
-                            <tr class="@(RowClickBehavior != RowClickBehaviorOption.SelectText ? "minq-clickable-row" : "")" @onclick="() => HandleRowClick(currentIndex)">
+                            <tr class="@(State.RowClickBehavior != RowClickBehaviorOption.SelectText ? "minq-clickable-row" : "")" @onclick="() => HandleRowClick(currentIndex)">
                                 @{ int cellOffset = 0; }
                                 @foreach (string column in VisibleColumns)
                                 {
                                     bool isSticky = ColumnDefinitions.ContainsKey(column) && ColumnDefinitions[column].IsSticky;
-                                    string stickyStyle = isSticky ? $"position: sticky; left: {cellOffset}px; z-index: 1; width: {PinnedColumnWidth}px; min-width: {PinnedColumnWidth}px; max-width: {PinnedColumnWidth}px; overflow: hidden; text-overflow: ellipsis; background-color: inherit; border-right: 2px solid var(--minq-border);" : $"max-width: {MaxColumnWidth}px; overflow: hidden; text-overflow: ellipsis;";
+                                    string stickyStyle = isSticky ? $"position: sticky; left: {cellOffset}px; z-index: 1; width: {State.PinnedColumnWidth}px; min-width: {State.PinnedColumnWidth}px; max-width: {State.PinnedColumnWidth}px; overflow: hidden; text-overflow: ellipsis; background-color: inherit; border-right: 2px solid var(--minq-border);"
+                                                                  : $"max-width: {State.MaxColumnWidth}px; overflow: hidden; text-overflow: ellipsis;";
                                     
                                     if (isSticky) 
-                                        cellOffset += PinnedColumnWidth;
-
+                                        cellOffset += State.PinnedColumnWidth;
                                     string cellValue = row.ContainsKey(column) ? row[column] : string.Empty;
                                     ColumnDefinitions.TryGetValue(column, out MinqColumnDefinition cellDef);
-
+                                    
                                     <td style="@stickyStyle" title="@cellValue">
                                         @if (cellDef != null && cellDef.IsTimestamp)
                                         {
-                                            <MinqTimestampValue RawValue="@cellValue" Format="TimestampFormat" />
+                                            <MinqTimestampValue RawValue="@cellValue" Format="State.TimestampFormat" />
                                         }
                                         else if (cellDef != null && cellDef.IsBool && !string.IsNullOrWhiteSpace(cellValue))
                                         {
@@ -129,12 +142,12 @@
 
             @if (IsDeleteModalOpen && SelectedRecord != null)
             {
-                <DeleteRecord Model="SelectedRecord" IsCollection="false"OnDelete="DeleteRecord" OnCancel="CloseModals" />
+                <DeleteRecord Model="SelectedRecord" IsCollection="false" OnDelete="DeleteRecord" OnCancel="CloseModals" />
             }
 
             @if (IsDeleteAllModalOpen)
             {
-                <DeleteRecord IsCollection="true"OnDeleteCollection="DeleteAllRecords" OnCancel="CloseModals" />
+                <DeleteRecord IsCollection="true" OnDeleteCollection="DeleteAllRecords" OnCancel="CloseModals" />
             }
         }
     </div>
