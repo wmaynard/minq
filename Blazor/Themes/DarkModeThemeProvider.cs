@@ -30,7 +30,7 @@ public class DarkThemeProvider : ThemeProvider
     public override int BadgePastText => 0x212121;
 
     // 5. Table Headers & Timers
-    public override int HeaderBg => 0x252526;
+    public override int HeaderBg => 0x121212;
     public override int HeaderBorder => 0x111111;
     public override int TimerText => 0xB0BEC5;
 

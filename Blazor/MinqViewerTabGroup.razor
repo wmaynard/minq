@@ -1,4 +1,6 @@
 @using Maynard.Json
+@using Maynard.Json.Attributes
+@using Maynard.Json.Enums
 @using Maynard.Minq.Blazor.Themes
 @using Microsoft.JSInterop
 @using Microsoft.AspNetCore.Components.Web;
@@ -44,23 +46,22 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (firstRender)
+        if (!firstRender)
+            return;
+        try
         {
-            try
+            string globalJson = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "MinqViewer_Global");
+            if (!string.IsNullOrWhiteSpace(globalJson))
             {
-                string globalJson = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "MinqViewer_Global");
-                if (!string.IsNullOrWhiteSpace(globalJson))
+                var gSet = FlexModel.FromJSON<TabGroupPayload>(globalJson);
+                if (gSet != null && !string.IsNullOrWhiteSpace(gSet.ThemeName))
                 {
-                    var gSet = FlexModel.FromJSON<TabGroupPayload>(globalJson);
-                    if (gSet != null && !string.IsNullOrWhiteSpace(gSet.ThemeName))
-                    {
-                        SelectedThemeName = gSet.ThemeName;
-                        StateHasChanged();
-                    }
+                    SelectedThemeName = gSet.ThemeName;
+                    StateHasChanged();
                 }
             }
-            catch { }
         }
+        catch { }
     }
 
     public void AddViewer(MinqViewer viewer)
@@ -68,8 +69,7 @@
         if (!Viewers.Contains(viewer))
         {
             Viewers.Add(viewer);
-            if (ActiveViewer == null)
-                ActiveViewer = viewer; 
+            ActiveViewer ??= viewer; 
                 
             StateHasChanged();
         }
@@ -83,6 +83,7 @@
     
     private class TabGroupPayload : FlexModel
     {
+        [FlexIgnore(Ignore.InBson)]
         public string ThemeName { get; set; }
     }
 }

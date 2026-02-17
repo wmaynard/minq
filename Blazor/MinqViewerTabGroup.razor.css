@@ -1,6 +1,11 @@
 .minq-tab-group-container {
     display: flex; 
     flex-direction: column;
+    /* Prevent host page bleed-through and establish a unified component base */
+    background-color: var(--minq-bg-surface); 
+    color: var(--minq-text-main);
+    padding: 1rem; 
+    border-radius: 8px;
 }
 
 .minq-tab-group-title {
@@ -17,6 +22,10 @@
     border-bottom: 2px solid var(--minq-border);
     margin-bottom: 1rem;
     overflow-x: auto;
+    /* Fill the tab track with the alt color */
+    background-color: var(--minq-bg-alt); 
+    padding: 0.5rem 0.5rem 0 0.5rem;
+    border-radius: 8px 8px 0 0;
 }
 
 .minq-tab-button {
@@ -26,13 +35,14 @@
     padding: 0.75rem 1.5rem;
     font-size: 1rem;
     font-weight: 600;
-    color: var(--minq-text-muted); /* Explicit fallback color for visibility */
+    /* Bumped up from text-muted to text-main for better inactive contrast */
+    color: var(--minq-text-main); 
     cursor: pointer;
     transition: color 0.2s, border-color 0.2s, background-color 0.2s;
-    margin-bottom: -2px; /* Pull down slightly to overlap border */
+    margin-bottom: -2px; /* Pull down slightly to overlap the track's bottom border */
     white-space: nowrap;
     border-radius: 6px 6px 0 0;
-    outline: none; /* Removes the stuck blue focus ring */
+    outline: none; 
 }
 
 .minq-tab-button:hover {
@@ -43,7 +53,8 @@
 .minq-tab-button.active {
     color: var(--minq-primary);
     border: 1px solid var(--minq-border);
-    border-bottom: 2px solid var(--minq-bg-surface); /* Masks the bottom border */
+    /* Color the bottom border the same as the surface to "erase" the line below it */
+    border-bottom: 2px solid var(--minq-bg-surface); 
     background-color: var(--minq-bg-surface);
 }
 
