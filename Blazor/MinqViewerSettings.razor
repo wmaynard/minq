@@ -90,7 +90,7 @@
 @code {
     [Parameter, EditorRequired]
     public MinqViewerState Settings { get; set; } = default!;
-
+    [Parameter] public bool IsReadOnly { get; set; }
     [Parameter] public IEnumerable<string> AvailableThemes { get; set; } = Array.Empty<string>();
     [Parameter] public bool IsViewingSharedState { get; set; }
     [Parameter] public bool CanDeleteSingle { get; set; }
@@ -131,7 +131,7 @@
     private List<MinqRadioOption<RowClickBehaviorOption>> ClickOptions => new()
     {
         new() { Value = RowClickBehaviorOption.SelectText, Label = "Select Text" },
-        new() { Value = RowClickBehaviorOption.EditRecord, Label = "Edit Record" },
-        new() { Value = RowClickBehaviorOption.DeleteRecord, Label = "Delete Record", IsDisabled = !CanDeleteSingle }
+        new() { Value = RowClickBehaviorOption.EditRecord, Label = "Edit Record", IsDisabled = IsReadOnly },
+        new() { Value = RowClickBehaviorOption.DeleteRecord, Label = "Delete Record", IsDisabled = IsReadOnly || !CanDeleteSingle }
     };
 }

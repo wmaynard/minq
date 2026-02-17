@@ -48,6 +48,8 @@ public partial class MinqViewer
 
     [Parameter]
     public bool IsAdmin { get; set; }
+    [Parameter]
+    public bool IsReadOnly { get; set; }
     #endregion Parameters
     
     public static readonly IReadOnlyList<ThemeProvider> AvailableThemes = ThemeManager.GetAvailableThemes();
@@ -82,8 +84,8 @@ public partial class MinqViewer
     public bool IsDeleteAllModalOpen { get; set; }
     public object SelectedRecord { get; set; }
 
-    public bool CanDeleteSingle => MinqViewerDeletionMode.HasFlag(MinqViewerDeletionMode.SingleRecord) || (IsAdmin && MinqViewerDeletionMode.HasFlag(MinqViewerDeletionMode.SingleRecordAdminOnly));
-    public bool CanDeleteCollection => MinqViewerDeletionMode.HasFlag(MinqViewerDeletionMode.Collection) || (IsAdmin && MinqViewerDeletionMode.HasFlag(MinqViewerDeletionMode.CollectionAdminOnly));
+    public bool CanDeleteSingle => !IsReadOnly && (MinqViewerDeletionMode.HasFlag(MinqViewerDeletionMode.SingleRecord) || (IsAdmin && MinqViewerDeletionMode.HasFlag(MinqViewerDeletionMode.SingleRecordAdminOnly)));
+    public bool CanDeleteCollection => !IsReadOnly && (MinqViewerDeletionMode.HasFlag(MinqViewerDeletionMode.Collection) || (IsAdmin && MinqViewerDeletionMode.HasFlag(MinqViewerDeletionMode.CollectionAdminOnly)));
 
     private Array LastRecords { get; set; } = Array.Empty<object>();
 
@@ -245,6 +247,12 @@ public partial class MinqViewer
             Log.Warn("User settings requested DeleteRecord behavior, but user lacks permission. Reverting to EditRecord.");
             State.RowClickBehavior = RowClickBehaviorOption.EditRecord;
         }
+        
+        if (IsReadOnly && State.RowClickBehavior != RowClickBehaviorOption.SelectText)
+        {
+            Log.Warn("User settings requested click behavior other than SelectText, but viewer is ReadOnly. Reverting to SelectText.");
+            State.RowClickBehavior = RowClickBehaviorOption.SelectText;
+        }
 
         if (RefreshTimerComponent != null)
             RefreshTimerComponent.Interval = State.RefreshInterval;
@@ -320,7 +328,7 @@ public partial class MinqViewer
 
     private void HandleRowClick(int rowIndex)
     {
-        if (State.RowClickBehavior == RowClickBehaviorOption.SelectText) 
+        if (State.RowClickBehavior == RowClickBehaviorOption.SelectText || IsReadOnly) 
             return;
             
         SelectedRecord = LastRecords.GetValue(rowIndex);
@@ -343,6 +351,8 @@ public partial class MinqViewer
 
     private void SaveRecord(object updatedModel)
     {
+        if (IsReadOnly) 
+            return;
         try
         {
             object service = ServiceProvider.GetRequiredService(Contract);
@@ -367,6 +377,8 @@ public partial class MinqViewer
 
     private void DeleteRecord(object modelToDelete)
     {
+        if (IsReadOnly) 
+            return;
         try
         {
             object service = ServiceProvider.GetRequiredService(Contract);
@@ -378,9 +390,7 @@ public partial class MinqViewer
                 Log.Info($"Successfully deleted record via {Contract.Name}.Delete()");
             }
             else
-            {
                 Log.Error($"Delete method not found on contract {Contract.Name}.");
-            }
 
             CloseModals();
             LoadData(); 
@@ -393,6 +403,8 @@ public partial class MinqViewer
 
     private void DeleteAllRecords()
     {
+        if (IsReadOnly) 
+            return;
         try
         {
             object service = ServiceProvider.GetRequiredService(Contract);
@@ -404,9 +416,7 @@ public partial class MinqViewer
                 Log.Info($"Successfully deleted all records via {Contract.Name}.DeleteAll()");
             }
             else
-            {
                 Log.Error($"DeleteAll method not found on contract {Contract.Name}.");
-            }
 
             CloseModals();
             PageNumber = 0;
