@@ -49,7 +49,8 @@
 
 .minq-table-wrapper {
     width: 100%;
-    overflow-x: auto;
+    max-height: 75vh; /* Constrains the height so the table scrolls internally */
+    overflow: auto;   /* Changed from overflow-x to allow vertical scrolling */
     border-radius: 8px;
     box-shadow: 0 4px 6px rgba(0,0,0,0.1), 0 1px 3px rgba(0,0,0,0.08);
     background-color: var(--minq-bg-surface);
@@ -64,6 +65,9 @@
 }
 
 .minq-table th {
+    position: sticky; /* Add this */
+    top: 0;           /* Add this */
+    z-index: 2;       /* Add this (Layer 3) */
     background-color: var(--minq-header-bg); 
     color: var(--minq-header-text); /* Fixed */
     border-bottom: 2px solid var(--minq-header-border);

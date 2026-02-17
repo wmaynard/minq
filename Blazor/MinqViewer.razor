@@ -68,8 +68,11 @@
                             @foreach (string column in VisibleColumns)
                             {
                                 bool isSticky = ColumnDefinitions.ContainsKey(column) && ColumnDefinitions[column].IsSticky;
-                                string stickyStyle = isSticky ? $"position: sticky; left: {headerOffset}px; z-index: 2; width: {State.PinnedColumnWidth}px; min-width: {State.PinnedColumnWidth}px; max-width: {State.PinnedColumnWidth}px; overflow: hidden; text-overflow: ellipsis; border-right: 2px solid var(--minq-header-border);"
-                                                              : $"max-width: {State.MaxColumnWidth}px; overflow: hidden; text-overflow: ellipsis;";
+                                string stickyStyle = isSticky 
+                                    ? $"position: sticky; top: 0; left: {headerOffset}px; z-index: 3; width: {State.PinnedColumnWidth}px; min-width: {State.PinnedColumnWidth}px; max-width: {State.PinnedColumnWidth}px; overflow: hidden; text-overflow: ellipsis; border-right: 2px solid var(--minq-header-border);"
+                                    : $"max-width: {State.MaxColumnWidth}px; overflow: hidden; text-overflow: ellipsis;";
+                                // string stickyStyle = isSticky ? $"position: sticky; left: {headerOffset}px; z-index: 2; width: {State.PinnedColumnWidth}px; min-width: {State.PinnedColumnWidth}px; max-width: {State.PinnedColumnWidth}px; overflow: hidden; text-overflow: ellipsis; border-right: 2px solid var(--minq-header-border);"
+                                //                               : $"max-width: {State.MaxColumnWidth}px; overflow: hidden; text-overflow: ellipsis;";
                                 
                                 if (isSticky) 
                                     headerOffset += State.PinnedColumnWidth;
