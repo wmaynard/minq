@@ -147,8 +147,8 @@ public partial class MinqViewer
                 HiddenColumns = HiddenColumns.ToList()
             };
 
-            await JSRuntime.InvokeVoidAsync("localStorage.setItem", "MinqViewer_Global", g.ToJson());
-            await JSRuntime.InvokeVoidAsync("localStorage.setItem", $"MinqViewer_Local_{Contract.Name}", l.ToJson());
+            await JSRuntime.Store("MinqViewer_Global", g.ToJson());
+            await JSRuntime.Store($"MinqViewer_Local_{Contract.Name}", l.ToJson());
         }
         catch (Exception ex)
         {
@@ -203,8 +203,8 @@ public partial class MinqViewer
             
         try 
         {
-            FlexJson globalJson = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "MinqViewer_Global");
-            FlexJson localJson = await JSRuntime.InvokeAsync<string>("localStorage.getItem", $"MinqViewer_Local_{Contract.Name}");
+            FlexJson globalJson = await JSRuntime.Load("MinqViewer_Global");
+            FlexJson localJson = await JSRuntime.Load($"MinqViewer_Local_{Contract.Name}");
             
             GlobalSettingsPayload gSet = globalJson?.ToModel<GlobalSettingsPayload>();
             LocalSettingsPayload lSet = localJson?.ToModel<LocalSettingsPayload>();

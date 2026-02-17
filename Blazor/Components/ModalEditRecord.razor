@@ -5,6 +5,7 @@
 @using Microsoft.JSInterop
 @using Maynard.Logging
 @using System.Linq
+@using Maynard.Minq.Blazor.Helpers
 @using Maynard.Minq.Blazor.Models
 @inject IJSRuntime JSRuntime
 
@@ -193,7 +194,7 @@
             if (toJsonMethod != null)
             {
                 string json = (string)toJsonMethod.Invoke(Model, null);
-                await JSRuntime.InvokeVoidAsync("navigator.clipboard.writeText", json);
+                await JSRuntime.CopyToClipboard(json);
             }
         }
         catch (Exception ex)
@@ -211,7 +212,7 @@
             {
                 object bsonDoc = toBsonMethod.Invoke(Model, null);
                 string bsonStr = bsonDoc?.ToString() ?? string.Empty;
-                await JSRuntime.InvokeVoidAsync("navigator.clipboard.writeText", bsonStr);
+                await JSRuntime.CopyToClipboard(bsonStr);
             }
             else
             {
