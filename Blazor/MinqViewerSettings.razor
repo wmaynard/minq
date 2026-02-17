@@ -42,7 +42,7 @@
             <MinqSlider Title="Pinned Column Width" Options="PinnedWidthOptions" @bind-Value="Settings.PinnedColumnWidth" OnChange="OnPreferencesChanged" Unit="px" />
             
             <div style="margin-top: 0.5rem;">
-                <MinqSlider Title="Unpinned Column Width" Options="MaxWidthOptions" @bind-Value="Settings.MaxColumnWidth" OnChange="OnPreferencesChanged" Unit="px" />
+                <MinqSlider Title="Unpinned Column Max Width" Options="MaxWidthOptions" @bind-Value="Settings.MaxColumnWidth" OnChange="OnPreferencesChanged" Unit="px" />
             </div>
             
             <button class="minq-button" style="margin-top: 1rem;" @onclick="OnOpenColumnPicker">Choose Columns</button>

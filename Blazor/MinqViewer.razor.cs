@@ -114,6 +114,7 @@ public partial class MinqViewer
     internal async Task OnThemeChangedAsync()
     {
         await SavePreferencesAsync();
+        TabGroup?.NotifyThemeChanged(State.SelectedThemeName);
         StateHasChanged(); 
     }
     
