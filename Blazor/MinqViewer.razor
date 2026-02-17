@@ -1,5 +1,6 @@
 @implements IDisposable
 @using System.Linq
+@using Maynard.Minq.Blazor.Components
 @using Microsoft.AspNetCore.Components.Web
 @using Maynard.Minq.Blazor.Enums
 @using Maynard.Minq.Blazor.Models
@@ -34,7 +35,7 @@
                     </button>
                 </div>
                 <div style="display: flex; align-items: center;">
-                    <MinqTimer @ref="RefreshTimerComponent" Interval="State.RefreshInterval" OnRefreshTriggered="LoadData" />
+                    <MinqInputRefreshTimer @ref="RefreshTimerComponent" Interval="State.RefreshInterval" OnRefreshTriggered="LoadData" />
                     
                     <button class="minq-button" @onclick="PreviousPage" disabled="@(PageNumber == 0)">&lt;</button>
                     <span class="minq-pagination-text"> @(PageNumber + 1) of @TotalPages </span>
@@ -100,7 +101,7 @@
                                     <td style="@stickyStyle" title="@cellValue">
                                         @if (cellDef != null && cellDef.IsTimestamp)
                                         {
-                                            <MinqTimestampValue RawValue="@cellValue" Format="State.MinqViewerTimestampFormat" />
+                                            <MinqTimestampDisplay RawValue="@cellValue" Format="State.MinqViewerTimestampFormat" />
                                         }
                                         else if (cellDef != null && cellDef.IsBool && !string.IsNullOrWhiteSpace(cellValue))
                                         {
@@ -122,22 +123,22 @@
 
             @if (IsColumnPickerOpen)
             {
-                <ColumnPicker AvailableColumns="PickerColumns" HiddenColumns="HiddenColumns" OnApply="ApplyColumns" OnCancel="CloseColumnPicker" />
+                <ModalColumnPicker AvailableColumns="PickerColumns" HiddenColumns="HiddenColumns" OnApply="ApplyColumns" OnCancel="CloseColumnPicker" />
             }
             
             @if (IsEditorOpen && SelectedRecord != null)
             {
-                <RecordEditor Model="SelectedRecord" ColumnDefinitions="ColumnDefinitions.Values" OnSave="SaveRecord" OnCancel="CloseModals" />
+                <ModalEditRecord Model="SelectedRecord" ColumnDefinitions="ColumnDefinitions.Values" OnSave="SaveRecord" OnCancel="CloseModals" />
             }
 
             @if (IsDeleteModalOpen && SelectedRecord != null)
             {
-                <DeleteRecord Model="SelectedRecord" IsCollection="false" OnDelete="DeleteRecord" OnCancel="CloseModals" />
+                <ModalDeleteRecord Model="SelectedRecord" IsCollection="false" OnDelete="DeleteRecord" OnCancel="CloseModals" />
             }
 
             @if (IsDeleteAllModalOpen)
             {
-                <DeleteRecord IsCollection="true" OnDeleteCollection="DeleteAllRecords" OnCancel="CloseModals" />
+                <ModalDeleteRecord IsCollection="true" OnDeleteCollection="DeleteAllRecords" OnCancel="CloseModals" />
             }
         }
     </div>

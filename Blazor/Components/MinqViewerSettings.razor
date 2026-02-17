@@ -15,9 +15,9 @@
     }
 
     <MinqViewerSettingsGroup Title="Data">
-        <MinqSlider Title="Page Size" Options="PageSizeOptions" @bind-Value="Settings.PageSize" OnChange="OnPageSizeChanged" Unit="records" />
+        <MinqInputSlider Title="Page Size" Options="PageSizeOptions" @bind-Value="Settings.PageSize" OnChange="OnPageSizeChanged" Unit="records" />
         <div style="margin-top: 0.75rem;">
-            <MinqSlider Title="Refresh Rate" Options="RefreshOptions" @bind-Value="Settings.RefreshInterval" OnChange="OnRefreshIntervalChanged" Unit="s" />
+            <MinqInputSlider Title="Refresh Rate" Options="RefreshOptions" @bind-Value="Settings.RefreshInterval" OnChange="OnRefreshIntervalChanged" Unit="s" />
         </div>
     </MinqViewerSettingsGroup>
 
@@ -33,16 +33,16 @@
         </div>
         
         <div style="margin-top: 1rem;">
-            <MinqSlider Title="Font Size" Options="FontSizeOptions" @bind-Value="Settings.TableFontSize" OnChange="OnPreferencesChanged" Unit="px" />
+            <MinqInputSlider Title="Font Size" Options="FontSizeOptions" @bind-Value="Settings.TableFontSize" OnChange="OnPreferencesChanged" Unit="px" />
         </div>
     </MinqViewerSettingsGroup>
 
     <MinqViewerSettingsGroup Title="Columns">
         <div style="display: flex; flex-direction: column; gap: 0.25rem;">
-            <MinqSlider Title="Pinned Column Width" Options="PinnedWidthOptions" @bind-Value="Settings.PinnedColumnWidth" OnChange="OnPreferencesChanged" Unit="px" />
+            <MinqInputSlider Title="Pinned Column Width" Options="PinnedWidthOptions" @bind-Value="Settings.PinnedColumnWidth" OnChange="OnPreferencesChanged" Unit="px" />
             
             <div style="margin-top: 0.5rem;">
-                <MinqSlider Title="Unpinned Column Max Width" Options="MaxWidthOptions" @bind-Value="Settings.MaxColumnWidth" OnChange="OnPreferencesChanged" Unit="px" />
+                <MinqInputSlider Title="Unpinned Column Max Width" Options="MaxWidthOptions" @bind-Value="Settings.MaxColumnWidth" OnChange="OnPreferencesChanged" Unit="px" />
             </div>
             
             <button class="minq-button" style="margin-top: 1rem;" @onclick="OnOpenColumnPicker">Choose Columns</button>
@@ -67,13 +67,13 @@
             </label>
         </div>
 
-        <MinqRadio Title="Timestamp Format" 
+        <MinqInputRadioGroup Title="Timestamp Format" 
                    Name="timestampFormat"
                    Options="TimestampOptions" 
                    @bind-Value="Settings.MinqViewerTimestampFormat" 
                    OnChange="OnPreferencesChanged" />
                    
-        <MinqRadio Title="On Click" 
+        <MinqInputRadioGroup Title="On Click" 
                    Name="rowClickBehavior"
                    Options="ClickOptions" 
                    @bind-Value="Settings.RowClickBehavior" 

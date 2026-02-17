@@ -10,6 +10,7 @@ using Maynard.Json.Attributes;
 using Maynard.Json.Enums;
 using Maynard.Logging;
 using Maynard.Minq.Attributes;
+using Maynard.Minq.Blazor.Components;
 using Maynard.Minq.Blazor.Enums;
 using Maynard.Minq.Blazor.Helpers;
 using Maynard.Minq.Blazor.Models;
@@ -26,7 +27,7 @@ public partial class MinqViewer
 {
     #region Parameters
     [CascadingParameter]
-    public MinqViewerTabGroup TabGroup { get; set; }
+    public MinqDashboard TabGroup { get; set; }
 
     [Parameter]
     public string TabTitle { get; set; }
@@ -63,7 +64,7 @@ public partial class MinqViewer
 
     public event Action OnSecondTicked;
 
-    public MinqTimer RefreshTimerComponent { get; set; }
+    public MinqInputRefreshTimer RefreshTimerComponent { get; set; }
     
     public PeriodicTimer ElapsedTimer { get; set; }
     public CancellationTokenSource ElapsedCts { get; set; } = new();
