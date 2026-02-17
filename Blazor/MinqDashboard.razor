@@ -47,7 +47,7 @@
     private string ThemeVariables => (ThemeManager
         .GetAvailableThemes()
         .FirstOrDefault(t => t.Name == SelectedThemeName)
-        ?? new DarkThemeProvider()
+        ?? new DarkMinqViewerThemeProvider()
     )
     .ToString();
 

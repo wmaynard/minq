@@ -6,19 +6,19 @@ namespace Maynard.Minq.Blazor.Themes;
 
 public static class ThemeManager
 {
-    private static List<ThemeProvider> _cachedThemes;
+    private static List<MinqViewerThemeProvider> _cachedThemes;
 
     /// <summary>
     /// Scans the current application domain for any non-abstract classes 
     /// that inherit from ThemeProvider and instantiates them.
     /// </summary>
-    public static IReadOnlyList<ThemeProvider> GetAvailableThemes()
+    public static IReadOnlyList<MinqViewerThemeProvider> GetAvailableThemes()
     {
         // Cache the themes so we don't pay the reflection cost more than once per application lifecycle
         if (_cachedThemes != null)
             return _cachedThemes;
 
-        var themes = new List<ThemeProvider>();
+        var themes = new List<MinqViewerThemeProvider>();
 
         // 1. Grab all loaded assemblies in the current AppDomain
         var assemblies = AppDomain.CurrentDomain.GetAssemblies();
@@ -45,14 +45,14 @@ public static class ThemeManager
             var themeTypes = types.Where(t => 
                 t.IsClass && 
                 !t.IsAbstract && 
-                t.IsSubclassOf(typeof(ThemeProvider)) &&
+                t.IsSubclassOf(typeof(MinqViewerThemeProvider)) &&
                 t.GetConstructor(Type.EmptyTypes) != null // Must have a parameterless constructor
             );
 
             // 3. Instantiate and collect
             foreach (var type in themeTypes)
             {
-                if (Activator.CreateInstance(type) is ThemeProvider instance)
+                if (Activator.CreateInstance(type) is MinqViewerThemeProvider instance)
                 {
                     themes.Add(instance);
                 }
@@ -61,8 +61,8 @@ public static class ThemeManager
 
         // Optional: Sort them so Light and Dark appear at the top, followed by user custom themes alphabetically
         _cachedThemes = themes
-            .OrderByDescending(t => t is LightThemeProvider)
-            .ThenByDescending(t => t is DarkThemeProvider)
+            .OrderByDescending(t => t is LightMinqViewerThemeProvider)
+            .ThenByDescending(t => t is DarkMinqViewerThemeProvider)
             .ThenBy(t => t.Name)
             .ToList();
 

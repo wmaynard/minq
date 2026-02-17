@@ -30,10 +30,10 @@ public partial class MinqViewer
     public MinqDashboard TabGroup { get; set; }
 
     [Parameter]
-    public string TabTitle { get; set; }
+    public string Title { get; set; }
 
     // Helper to get a clean title if the user doesn't provide one
-    public string DisplayTitle => !string.IsNullOrWhiteSpace(TabTitle) ? TabTitle : (Contract?.Name ?? "Viewer");
+    public string DisplayTitle => !string.IsNullOrWhiteSpace(Title) ? Title : (Contract?.Name ?? "Viewer");
     
     [CascadingParameter]
     public HttpContext HttpContext { get; set; }
@@ -53,14 +53,14 @@ public partial class MinqViewer
     public bool IsReadOnly { get; set; }
     #endregion Parameters
     
-    public static readonly IReadOnlyList<ThemeProvider> AvailableThemes = ThemeManager.GetAvailableThemes();
+    public static readonly IReadOnlyList<MinqViewerThemeProvider> AvailableThemes = ThemeManager.GetAvailableThemes();
     
     // The consolidated State object for the viewer settings
     public MinqViewerState State { get; set; } = new();
 
     private string ThemeVariables => AvailableThemes
         .FirstOrDefault(t => t.Name == State.SelectedThemeName)?.ToString() 
-        ?? new LightThemeProvider().ToString();
+        ?? new LightMinqViewerThemeProvider().ToString();
 
     public event Action OnSecondTicked;
 

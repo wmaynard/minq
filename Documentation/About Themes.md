@@ -33,7 +33,7 @@ This ensures that our `.minq-button` class will never accidentally overwrite a `
 
 Everything looked beautiful. Until it didn't.
 
-![Working CSS](/Blazor/Themes/working_css.jpeg)
+![Working CSS](/Documentation/Images/working_css.jpeg)
 
 ---
 
@@ -41,7 +41,7 @@ Everything looked beautiful. Until it didn't.
 
 Shortly after establishing our scoped CSS and variables, the layout completely collapsed. The browser rendered raw, unstyled HTML. 
 
-![Broken CSS](/Blazor/Themes/broken_css.jpeg)
+![Broken CSS](/Documentation/Images/broken_css.jpeg)
 
 At first glance, it looked like a classic caching issue or a missing stylesheet reference. 
 

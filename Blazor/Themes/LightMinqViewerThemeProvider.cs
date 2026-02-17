@@ -1,6 +1,6 @@
 namespace Maynard.Minq.Blazor.Themes;
 
-internal class LightThemeProvider : ThemeProvider
+internal class LightMinqViewerThemeProvider : MinqViewerThemeProvider
 {
     public override string Name => "Light Mode";
     

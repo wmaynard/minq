@@ -5,7 +5,7 @@ using System.Text.RegularExpressions;
 
 namespace Maynard.Minq.Blazor.Themes;
 
-public abstract partial class ThemeProvider
+public abstract partial class MinqViewerThemeProvider
 {
     public abstract string Name { get; }
     

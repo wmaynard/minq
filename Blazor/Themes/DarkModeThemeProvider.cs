@@ -1,6 +1,6 @@
 namespace Maynard.Minq.Blazor.Themes;
 
-public class DarkThemeProvider : ThemeProvider
+internal class DarkMinqViewerThemeProvider : MinqViewerThemeProvider
 {
     public override string Name => "Dark Mode";
     
