@@ -9,7 +9,7 @@
 @inject IJSRuntime JSRuntime
 
 <CascadingValue Value="this" IsFixed="true">
-    <div class="minq-container" style="@ThemeVariables">
+    <div class="minq-container" style="@ThemeVariables @(TabGroup != null && TabGroup.ActiveViewer != this ? "display: none;" : "")">
         @if (HasError)
         {
             <div class="empty-state">Error: @ErrorMessage</div>

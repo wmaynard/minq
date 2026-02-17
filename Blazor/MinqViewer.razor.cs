@@ -26,6 +26,15 @@ public partial class MinqViewer
 {
     #region Parameters
     [CascadingParameter]
+    public MinqViewerTabGroup TabGroup { get; set; }
+
+    [Parameter]
+    public string TabTitle { get; set; }
+
+    // Helper to get a clean title if the user doesn't provide one
+    public string DisplayTitle => !string.IsNullOrWhiteSpace(TabTitle) ? TabTitle : (Contract?.Name ?? "Viewer");
+    
+    [CascadingParameter]
     public HttpContext HttpContext { get; set; }
     
     [Parameter]
@@ -155,6 +164,8 @@ public partial class MinqViewer
 
     protected override void OnInitialized()
     {
+        TabGroup?.AddViewer(this);
+        
         ElapsedTimer = new PeriodicTimer(TimeSpan.FromSeconds(1));
         _ = RunElapsedTimerAsync();
         

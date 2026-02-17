@@ -1,0 +1,87 @@
+@using Maynard.Json
+@using Maynard.Minq.Blazor.Themes
+@using Microsoft.JSInterop
+@inject IJSRuntime JSRuntime
+
+<CascadingValue Value="this" IsFixed="true">
+    <div class="minq-container minq-tab-group-container" style="@ThemeVariables">
+        
+        @if (!string.IsNullOrWhiteSpace(Title))
+        {
+            <h2 class="minq-tab-group-title">@Title</h2>
+        }
+        
+        <div class="minq-tabs-header">
+            @foreach (var viewer in Viewers)
+            {
+                <button class="minq-tab-button @(ActiveViewer == viewer ? "active" : "")"
+                        @onclick="() => ActivateTab(viewer)">
+                    @viewer.DisplayTitle
+                </button>
+            }
+        </div>
+        
+        <div class="minq-tabs-content">
+            @ChildContent
+        </div>
+        
+    </div>
+</CascadingValue>
+
+@code {
+    [Parameter] public string Title { get; set; }
+    [Parameter] public RenderFragment ChildContent { get; set; }
+
+    public List<MinqViewer> Viewers { get; set; } = new();
+    public MinqViewer ActiveViewer { get; set; }
+
+    public string SelectedThemeName { get; set; } = "Light Mode";
+    
+    private string ThemeVariables => ThemeManager.GetAvailableThemes()
+        .FirstOrDefault(t => t.Name == SelectedThemeName)?.ToString() 
+        ?? new LightThemeProvider().ToString();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                string globalJson = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "MinqViewer_Global");
+                if (!string.IsNullOrWhiteSpace(globalJson))
+                {
+                    var gSet = FlexModel.FromJSON<TabGroupPayload>(globalJson);
+                    if (gSet != null && !string.IsNullOrWhiteSpace(gSet.ThemeName))
+                    {
+                        SelectedThemeName = gSet.ThemeName;
+                        StateHasChanged();
+                    }
+                }
+            }
+            catch { }
+        }
+    }
+
+    public void AddViewer(MinqViewer viewer)
+    {
+        if (!Viewers.Contains(viewer))
+        {
+            Viewers.Add(viewer);
+            if (ActiveViewer == null)
+                ActiveViewer = viewer; 
+                
+            StateHasChanged();
+        }
+    }
+
+    public void ActivateTab(MinqViewer viewer)
+    {
+        ActiveViewer = viewer;
+        StateHasChanged();
+    }
+    
+    private class TabGroupPayload : FlexModel
+    {
+        public string ThemeName { get; set; }
+    }
+}
