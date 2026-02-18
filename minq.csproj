@@ -4,11 +4,11 @@
 		<RootNamespace>Maynard.Minq</RootNamespace>
 		<RepositoryUrl>https://github.com/wmaynard/minq</RepositoryUrl>
 		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-		<PackageVersion>0.8.50</PackageVersion>
+		<PackageVersion>0.8.51</PackageVersion>
 		<Title>MINQ</Title>
 		<UserSecretsId>40214af1-e433-47e0-81d5-98c27cc1b0ba</UserSecretsId>
 		<LangVersion>13</LangVersion>
-		<AssemblyVersion>0.8.50</AssemblyVersion>
+		<AssemblyVersion>0.8.51</AssemblyVersion>
 		<Company>Will Maynard</Company>
 		<Configurations>Debug;Release;Local;UnitTest</Configurations>
 		<Platforms>AnyCPU</Platforms>
